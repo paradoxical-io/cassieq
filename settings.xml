@@ -1,0 +1,13 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+    <servers>
+        <server>
+            <id>devshorts</id>
+            <passphrase>${env.GPG_PASSWORD}</passphrase>
+        </server>
+        <server>
+            <id>ossrh</id>
+            <username>devshorts</username>
+            <password>${env.SONATYPE_PASSWORD}</password>
+        </server>
+    </servers>
+</settings>

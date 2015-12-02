@@ -1,0 +1,53 @@
+server:
+  adminMinThreads: 1
+  adminMaxThreads: 64
+  rootPath: "/*"
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+## Dropwizard metrics needs to be updated to 0.9.1
+##
+metrics:
+  reporters:
+    - type: console
+      timeZone: UTC
+      output: stdout
+      durationUnit: milliseconds
+      rateUnit: seconds
+      frequency: 120 seconds
+
+# Logging settings.
+logging:
+
+  # The default level of all loggers. Can be OFF, ERROR, WARN, INFO, DEBUG, TRACE, or ALL.
+  level: INFO
+
+  # Logger-specific levels
+  loggers:
+     com.sun.jersey.api.container.filter.LoggingFilter : INFO
+
+  appenders:
+    # Log warnings and errors to stderr
+    - type: console
+      threshold: ALL
+      target: stderr
+
+    # Log info, warnings and errors to our apps' main log.
+    # Rolled over daily and retained for 5 days.
+    - type: file
+      threshold: ALL
+      currentLogFilename: /data/logs/debug.log
+      archivedLogFilenamePattern: /data/logs/debug-%d.log.gz
+      archivedFileCount: 5
+
+    # Log debug messages, info, warnings and errors to our apps' debug log.
+    # Rolled over hourly and retained for 6 hours
+    - type: file
+      threshold: WARN
+      currentLogFilename: /data/logs/error.log
+      archivedLogFilenamePattern: /data/logs/error-%d{yyyy-MM-dd-hh}.log.gz
+      archivedFileCount: 6
