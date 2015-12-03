@@ -1,43 +1,57 @@
 #!/usr/bin/env bash
 
-classname="io.paradoxical.cassieq.ServiceApplication"
+function run_app(){
 
-command="server"
+    classname="io.paradoxical.cassieq.ServiceApplication"
 
+    command="server"
 
-conf_dir=/data/conf
+    conf_dir=/data/conf
 
-libs_dir=/data/lib
+    libs_dir=/data/lib
 
-for jar in ${libs_dir}/*.jar; do
-    classpath=$classpath:$jar
-done
+    for jar in ${libs_dir}/*.jar; do
+        classpath=$classpath:$jar
+    done
 
-properties="-Djava.library.path=${libs_dir} "
+    properties="-Djava.library.path=${libs_dir} "
 
-properties="${properties} -Dcom.sun.management.jmxremote.rmi.port=1898"
-properties="${properties} -Dcom.sun.management.jmxremote.port=1898"
-properties="${properties} -Dcom.sun.management.jmxremote.ssl=false"
-properties="${properties} -Dcom.sun.management.jmxremote.authenticate=false"
-properties="${properties} -Djava.rmi.server.hostname=${HOST_IPADDR}"
+    properties="${properties} -Dcom.sun.management.jmxremote.rmi.port=1898"
+    properties="${properties} -Dcom.sun.management.jmxremote.port=1898"
+    properties="${properties} -Dcom.sun.management.jmxremote.ssl=false"
+    properties="${properties} -Dcom.sun.management.jmxremote.authenticate=false"
+    properties="${properties} -Djava.rmi.server.hostname=${HOST_IPADDR}"
 
-if [ "${DEBUG_JAVA}" == "true" ]; then
-    properties="$properties -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
-fi
+    if [ "${DEBUG_JAVA}" == "true" ]; then
+        properties="$properties -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
+    fi
 
-echo "USING JAVA DEBUG $properties"
+    echo "USING JAVA DEBUG $properties"
 
-if [ -n "$ENV_CONF" ]; then
-    echo "Using $ENV_CONF file."
-
-    configFile=$conf_dir/configuration-$ENV_CONF.yml
-else
     configFile=$conf_dir/configuration.yml
+
+    cmd="java $properties -cp $classpath $classname $command $configFile"
+
+    echo ${cmd}
+
+    exec ${cmd}
+}
+
+function boostrap(){
+    java -jar /data/tools/cassandra-loader-exe.jar \
+        -k ${KEYSPACE} \
+        -ip ${CONTACT_POINTS} \
+        -u ${USERNAME} \
+        -pw ${PASSWORD} \
+        -f /data/db \
+        "$@"
+}
+
+if [ "$1" == "bootstrap" ]; then
+    shift
+    boostrap $@
+elif [ "$1" == "debug" ]; then
+    exec /bin/bash
+else
+    run_app
 fi
-
-cmd="java $properties -cp $classpath $classname $command $configFile"
-
-echo ${cmd}
-
-exec ${cmd}
-
