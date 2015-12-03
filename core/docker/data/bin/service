@@ -38,7 +38,7 @@ function run_app(){
 }
 
 function boostrap(){
-    java -jar /data/tools/cassandra-loader-exe.jar \
+    java -jar /data/tools/cassandra-loader.jar \
         -k ${KEYSPACE} \
         -ip ${CONTACT_POINTS} \
         -u ${USERNAME} \
