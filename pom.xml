@@ -420,6 +420,9 @@
                         <includes>
                             <include>%regex[.*]</include>
                         </includes>
+                        <excludes>
+                            <exclude>%regex[.*.json]</exclude>
+                        </excludes>
                     </configuration>
                 </plugin>
                 <plugin>
