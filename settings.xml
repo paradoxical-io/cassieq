@@ -6,7 +6,7 @@
         </server>
         <server>
             <id>ossrh</id>
-            <username>devshorts</username>
+            <username>paradoxicalio</username>
             <password>${env.SONATYPE_PASSWORD}</password>
         </server>
     </servers>
