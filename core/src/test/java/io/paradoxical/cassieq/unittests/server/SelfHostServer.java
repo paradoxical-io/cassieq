@@ -1,7 +1,7 @@
 package io.paradoxical.cassieq.unittests.server;
 
 import io.paradoxical.cassieq.ServiceConfiguration;
-import io.paradoxical.cassieq.api.client.ServiceClient;
+import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.common.test.guice.OverridableModule;
 import io.paradoxical.common.test.web.runner.ServiceTestRunner;
 import com.godaddy.logging.Logger;
@@ -9,6 +9,7 @@ import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -27,6 +28,12 @@ public class SelfHostServer {
     public SelfHostServer(List<OverridableModule> overridableModules) {
         this.overridableModules = overridableModules;
     }
+
+
+    public SelfHostServer(OverridableModule... overridableModules) {
+        this(Arrays.asList(overridableModules));
+    }
+
 
     public void start(ServiceConfiguration configuration) {
 
@@ -51,8 +58,8 @@ public class SelfHostServer {
         return random.nextInt(35000) + 15000;
     }
 
-    public ServiceClient getClient(String path) {
-        return ServiceClient.createClient(getBaseUri().toString());
+    public CassandraQueueApi getClient(String path) {
+        return CassandraQueueApi.createClient(getBaseUri().toString());
     }
 
     public URI getBaseUri() {

@@ -56,7 +56,9 @@
     <properties>
         <!-- Project Settings -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <guice.version>4.0</guice.version>
 
+        <apache.collections4.version>4.0</apache.collections4.version>
         <dockerRepo>paradoxical</dockerRepo>
         <jenkinsBuildNumber>dev</jenkinsBuildNumber>
         <!-- build.git_sha is created below -->
@@ -71,8 +73,11 @@
 
         <!-- Library Versions -->
         <io.paradoxical.common.test>1.0-SNAPSHOT</io.paradoxical.common.test>
+        <io.paradoxical.common>1.0-SNAPSHOT</io.paradoxical.common>
+        <io.paradoxical.cassandra-loader>1.0-SNAPSHOT</io.paradoxical.cassandra-loader>
         <godaddy.logging.version>1.0</godaddy.logging.version>
 
+        <javax.validation.version>1.1.0.Final</javax.validation.version>
         <dropwizard.version>0.9.1</dropwizard.version>
         <dropwizard.template.config.version>1.1.0</dropwizard.template.config.version>
         <guava.version>18.0</guava.version>
@@ -94,6 +99,8 @@
         <maven.jacoco.version>0.7.2.201409121644</maven.jacoco.version>
         <maven.source.plugin.version>2.4</maven.source.plugin.version>
 
+        <dropwizard.cassandra.version>2.0-dw0.9-cs2.1</dropwizard.cassandra.version>
+
         <!--reporting plugin versions-->
         <reporting.maven-surefire-report-plugin.version>2.18.1</reporting.maven-surefire-report-plugin.version>
         <reporting.maven-jxr-plugin.version>2.5</reporting.maven-jxr-plugin.version>
@@ -107,6 +114,18 @@
         <dependencies>
 
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${apache.collections4.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.stuartgunter</groupId>
+                <artifactId>dropwizard-cassandra</artifactId>
+                <version>${dropwizard.cassandra.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.godaddy</groupId>
                 <artifactId>logging</artifactId>
                 <version>${godaddy.logging.version}</version>
@@ -116,6 +135,12 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.inject.extensions</groupId>
+                <artifactId>guice-assistedinject</artifactId>
+                <version>${guice.version}</version>
             </dependency>
 
             <dependency>
@@ -184,6 +209,13 @@
             </dependency>
 
             <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${javax.validation.version}</version>
+            </dependency>
+
+
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>3.2.0</version>
@@ -194,6 +226,18 @@
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-validator</artifactId>
                 <version>5.2.2.Final</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.paradoxical</groupId>
+                <artifactId>common</artifactId>
+                <version>${io.paradoxical.common}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.paradoxical</groupId>
+                <artifactId>cassandra.loader</artifactId>
+                <version>${io.paradoxical.cassandra-loader}</version>
             </dependency>
 
             <dependency>

@@ -19,6 +19,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.paradoxical</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-client</artifactId>
         </dependency>
@@ -34,9 +39,21 @@
         </dependency>
 
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.squareup.retrofit</groupId>
             <artifactId>converter-jackson</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.paradoxical</groupId>
+            <artifactId>cassieq-model</artifactId>
+            <version>${parent.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.assertj</groupId>

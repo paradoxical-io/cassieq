@@ -25,9 +25,37 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jgroups</groupId>
+            <artifactId>jgroups-raft</artifactId>
+            <version>0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.stuartgunter</groupId>
+            <artifactId>dropwizard-cassandra</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.paradoxical</groupId>
+            <artifactId>cassandra.loader</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.paradoxical</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.paradoxical</groupId>
             <artifactId>common.test</artifactId>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>de.thomaskrille</groupId>
@@ -39,6 +67,10 @@
             <artifactId>dropwizard-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
