@@ -1,7 +1,7 @@
 server:
   adminMinThreads: 1
   adminMaxThreads: 64
-  rootPath: "/*"
+  rootPath: "/api/*"
   applicationConnectors:
     - type: http
       port: 8080
@@ -9,16 +9,39 @@ server:
     - type: http
       port: 8081
 
-## Dropwizard metrics needs to be updated to 0.9.1
-##
+cassandra:
+  clusterName: ${env.CLUSTER_NAME}
+  keyspace: ${env.KEYSPACE!'test'}
+  contactPoints: [${env.CONTACT_POINTS}!'192.168.99.100']
+  port: ${env.CASSANDRA_POR!9042}
+  socketOptions:
+    keepAlive: true
+  authProvider:
+    type: ${env.AUTH_PROVIDER!"plainText"}
+    username: ${env.USERNAME}
+    password: ${env.PASSWORD}
+  queryOptions:
+    consistencyLevel: ${env.CONSISTENCY_LEVEL!"LOCAL_QUORUM"}
+  reconnectionPolicy:
+    type: exponential
+    baseDelay: 1 second
+    maxDelay: 30 seconds
+<#if env.USE_SSL?has_content && env.USE_SSL == "true">
+  ssl:
+    port: ${env.SSL_PORT!9043}
+  loadBalancingPolicy:
+    dataCenter: ${env.DATA_CENTER}
+</#if>
+
+<#if env.USE_METRICS_GRAPHITE?has_content && env.USE_METRICS_GRAPHITE == "true">
 metrics:
   reporters:
-    - type: console
-      timeZone: UTC
-      output: stdout
-      durationUnit: milliseconds
-      rateUnit: seconds
-      frequency: 120 seconds
+    - type: graphite
+      host: ${env.GRAPHITE_URL}
+      port: ${env.GRAPHITE_PORT!2003}
+      prefix: ${env.GRAPHITE_PREFIX}
+</#if>
+
 
 # Logging settings.
 logging:
@@ -28,12 +51,16 @@ logging:
 
   # Logger-specific levels
   loggers:
+
+    # Sets the level for 'com.example.app' to DEBUG.
+     com.godaddy.domains : ALL
+
      com.sun.jersey.api.container.filter.LoggingFilter : INFO
 
   appenders:
     # Log warnings and errors to stderr
     - type: console
-      threshold: ALL
+      threshold: INFO
       target: stderr
 
     # Log info, warnings and errors to our apps' main log.
@@ -51,3 +78,6 @@ logging:
       currentLogFilename: /data/logs/error.log
       archivedLogFilenamePattern: /data/logs/error-%d{yyyy-MM-dd-hh}.log.gz
       archivedFileCount: 6
+
+repair:
+  raftConfigPath: "docker/data/conf/raft.xml"

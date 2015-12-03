@@ -6,7 +6,6 @@ import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -20,12 +19,12 @@ import static java.util.stream.Collectors.toList;
 
 public class QueueRepositoryImpl extends RepositoryBase implements QueueRepository {
 
-    @Inject
-    public QueueRepositoryImpl(final Provider<Session> session) {
-        this.session = session.get();
-    }
-
     private final Session session;
+
+    @Inject
+    public QueueRepositoryImpl(final Session session) {
+        this.session = session;
+    }
 
     @Override
     public void createQueue(final QueueDefinition definition) {

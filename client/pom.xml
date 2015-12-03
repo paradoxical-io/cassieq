@@ -51,7 +51,7 @@
         <dependency>
             <groupId>io.paradoxical</groupId>
             <artifactId>cassieq-model</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
 
 

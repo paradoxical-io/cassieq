@@ -1,21 +1,26 @@
 package io.paradoxical.cassieq.bundles;
 
-import io.paradoxical.cassieq.ServiceConfiguration;
-import io.paradoxical.cassieq.ServiceApplication;
-import io.paradoxical.cassieq.modules.DefaultApplicationModules;
 import com.google.inject.Module;
 import com.hubspot.dropwizard.guice.GuiceBundle;
-import lombok.Getter;
+import io.paradoxical.cassieq.ServiceApplication;
+import io.paradoxical.cassieq.ServiceConfiguration;
+import io.paradoxical.cassieq.modules.DefaultApplicationModules;
 
 import java.util.List;
 
 public class GuiceBundleProvider {
 
-    @Getter
-    private final GuiceBundle<ServiceConfiguration> bundle;
+    private GuiceBundle<ServiceConfiguration> bundle;
 
     public GuiceBundleProvider() {
-        bundle = buildGuiceBundle();
+    }
+
+    public synchronized GuiceBundle<ServiceConfiguration> getBundle() {
+        if (bundle == null) {
+            bundle = buildGuiceBundle();
+        }
+
+        return bundle;
     }
 
     protected List<Module> getModules() {
