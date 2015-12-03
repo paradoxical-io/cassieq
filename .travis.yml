@@ -4,3 +4,6 @@ jdk:
 
 after_success:
   - ./deploy.sh
+
+services:
+  - docker

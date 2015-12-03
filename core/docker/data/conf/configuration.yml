@@ -10,16 +10,16 @@ server:
       port: 8081
 
 cassandra:
-  clusterName: ${env.CLUSTER_NAME}
-  keyspace: ${env.KEYSPACE!'test'}
-  contactPoints: [${env.CONTACT_POINTS}!'192.168.99.100']
+  clusterName: ${env.CLUSTER_NAME!'cassieq'}
+  keyspace: ${env.KEYSPACE!'cassieq'}
+  contactPoints: [${env.CONTACT_POINTS!'192.168.99.100'}]
   port: ${env.CASSANDRA_POR!9042}
   socketOptions:
     keepAlive: true
   authProvider:
     type: ${env.AUTH_PROVIDER!"plainText"}
-    username: ${env.USERNAME}
-    password: ${env.PASSWORD}
+    username: ${env.USERNAME!'test'}
+    password: ${env.PASSWORD!'test'}
   queryOptions:
     consistencyLevel: ${env.CONSISTENCY_LEVEL!"LOCAL_QUORUM"}
   reconnectionPolicy:

@@ -6,7 +6,7 @@ if ( type cassandra-loader &> /dev/null ); then
 	    DOCKER_MACHINE_NAME=dev
 	fi
 
-	cassandra-loader -f db/scripts -ip `docker-machine ip $DOCKER_MACHINE_NAME` -k hackathon -p 9042 -createKeyspace -recreateDatabase
+	cassandra-loader -f db/scripts -ip `docker-machine ip $DOCKER_MACHINE_NAME` -k cassieq -p 9042 -createKeyspace -recreateDatabase
 
 else
 	echo "Error, did you not dot source this file?"
