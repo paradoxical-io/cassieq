@@ -10,7 +10,7 @@ import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.time.TestClock;
-import io.paradoxical.cassieq.workers.Reader;
+import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.NonNull;
 import lombok.Value;
 import org.joda.time.Duration;

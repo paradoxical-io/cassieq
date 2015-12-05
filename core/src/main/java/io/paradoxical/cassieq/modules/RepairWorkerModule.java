@@ -2,10 +2,10 @@ package io.paradoxical.cassieq.modules;
 
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.modules.annotations.RepairPool;
-import io.paradoxical.cassieq.workers.RepairWorker;
-import io.paradoxical.cassieq.workers.RepairWorkerImpl;
-import io.paradoxical.cassieq.workers.RepairWorkerManager;
-import io.paradoxical.cassieq.workers.SimpleRepairWorkerManager;
+import io.paradoxical.cassieq.workers.repair.RepairWorker;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
+import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;

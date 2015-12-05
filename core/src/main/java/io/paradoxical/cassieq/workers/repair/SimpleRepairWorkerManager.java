@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.workers;
+package io.paradoxical.cassieq.workers.repair;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;

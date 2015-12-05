@@ -1,8 +1,8 @@
 package io.paradoxical.cassieq.modules;
 
 import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.workers.Reader;
-import io.paradoxical.cassieq.workers.ReaderImpl;
+import io.paradoxical.cassieq.workers.reader.Reader;
+import io.paradoxical.cassieq.workers.reader.ReaderImpl;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 
