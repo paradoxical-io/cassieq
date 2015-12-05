@@ -15,7 +15,7 @@ import java.util.Random;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
-public class SelfHostServer {
+public class SelfHostServer implements AutoCloseable {
     private static final Logger logger = getLogger(SelfHostServer.class);
 
     @Getter
@@ -50,8 +50,17 @@ public class SelfHostServer {
         start(getDefaultConfig());
     }
 
-    public void stop() throws Exception {
-        serviceConfigurationTestServiceServiceTestRunner.close();
+    public void stop()  {
+        try {
+            serviceConfigurationTestServiceServiceTestRunner.close();
+        }
+        catch (Exception e) {
+            logger.error(e, "Error stopping");
+        }
+    }
+
+    @Override public void close() throws Exception {
+        stop();
     }
 
     protected static long getNextPort() {

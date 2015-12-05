@@ -46,7 +46,7 @@ public class TestBase {
     private final TestClock testClock = new TestClock();
 
     public TestBase() {
-        BootstrapLogging.bootstrap(Level.ALL);
+        BootstrapLogging.bootstrap(Level.INFO);
 
         LogMapping.register();
 

@@ -89,17 +89,14 @@ public class ReaderImpl implements Reader {
     private static final Logger logger = getLogger(ReaderImpl.class);
 
     private final DataContext dataContext;
-    private final BucketConfiguration config;
     private final Clock clock;
     private final QueueDefinition queueDefinition;
 
     @Inject
     public ReaderImpl(
             DataContextFactory dataContextFactory,
-            BucketConfiguration config,
             Clock clock,
             @Assisted QueueDefinition queueDefinition) {
-        this.config = config;
         this.clock = clock;
         this.queueDefinition = queueDefinition;
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -220,40 +217,44 @@ public class ReaderImpl implements Reader {
 
     private Optional<Message> getAndMark(ReaderBucketPointer currentBucket, Duration invisiblity) {
 
-        final List<Message> allMessages = dataContext.getMessageRepository().getMessages(currentBucket);
+        while(true) {
+            final List<Message> allMessages = dataContext.getMessageRepository().getMessages(currentBucket);
 
-        final boolean allComplete = allMessages.stream().allMatch(m -> m.isAcked() || m.isNotVisible(clock));
+            final boolean allComplete = allMessages.stream().allMatch(m -> m.isAcked() || m.isNotVisible(clock));
 
-        if (allComplete) {
-            if (allMessages.size() == queueDefinition.getBucketSize() || monotonPastBucket(currentBucket)) {
-                tombstone(currentBucket);
+            if (allComplete) {
+                if (allMessages.size() == queueDefinition.getBucketSize() || monotonPastBucket(currentBucket)) {
+                    tombstone(currentBucket);
 
-                return getAndMark(advanceBucket(currentBucket), invisiblity);
+                    currentBucket = advanceBucket(currentBucket);
+
+                    continue;
+                }
+                else {
+                    // bucket not ready to be closed yet, but all current messages processed
+                    return Optional.empty();
+                }
             }
-            else {
-                // bucket not ready to be closed yet, but all current messages processed
+
+            final Optional<Message> foundMessage = allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).findFirst();
+
+            if (!foundMessage.isPresent()) {
                 return Optional.empty();
             }
+
+            final Message visibleMessage = foundMessage.get();
+
+            final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
+
+            if (!consumedMessage.isPresent()) {
+                // someone else did it, fuck it, try again for the next visibleMessage
+                logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
+
+                continue;
+            }
+
+            return consumedMessage;
         }
-
-        final Optional<Message> foundMessage = allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).findFirst();
-
-        if (!foundMessage.isPresent()) {
-            return Optional.empty();
-        }
-
-        final Message visibleMessage = foundMessage.get();
-
-        final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
-
-        if (!consumedMessage.isPresent()) {
-            // someone else did it, fuck it, try again for the next visibleMessage
-            logger.with(visibleMessage).warn("Someone else consumed the visibleMessage!");
-
-            return getAndMark(currentBucket, invisiblity);
-        }
-
-        return consumedMessage;
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {
