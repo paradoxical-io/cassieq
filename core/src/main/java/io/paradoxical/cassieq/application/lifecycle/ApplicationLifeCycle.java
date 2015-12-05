@@ -4,7 +4,7 @@ import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.dropwizard.lifecycle.Managed;
-import io.paradoxical.cassieq.workers.RepairWorkerManager;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 

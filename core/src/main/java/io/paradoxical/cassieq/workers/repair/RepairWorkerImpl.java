@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.workers;
+package io.paradoxical.cassieq.workers.repair;
 
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.modules.annotations.RepairPool;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.workers.BucketConfiguration;
 import lombok.Data;
 import org.joda.time.DateTime;
 import org.joda.time.Instant;
@@ -24,13 +25,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
-
-@Data
-class RepairContext {
-    private final RepairBucketPointer pointer;
-
-    private final DateTime tombstonedAt;
-}
 
 public class RepairWorkerImpl implements RepairWorker {
     private final BucketConfiguration configuration;
