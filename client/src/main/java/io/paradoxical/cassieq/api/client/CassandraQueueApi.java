@@ -41,11 +41,11 @@ public interface CassandraQueueApi {
             @Path("queueName") QueueName queueName,
             @Query("invisibilityTime") Long invisibilityTimeSeconds);
 
-    @POST("api/v1/queues/{queueName}/messages") Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body String message);
+    @POST("api/v1/queues/{queueName}/messages") Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body Object message);
 
     @POST("api/v1/queues/{queueName}/messages") Call<ResponseBody> addMessage(
             @Path("queueName") QueueName queueName,
-            @Body String message,
+            @Body Object message,
             @Query("initialInvisibilitySeconds") Long initialInvisibilitySeconds);
 
     @DELETE("api/v1/queues/{queueName}/messages") Call<ResponseBody> ackMessage(

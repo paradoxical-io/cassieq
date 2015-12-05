@@ -259,6 +259,7 @@ public class ReaderImpl implements Reader {
 
     private void tombstone(final ReaderBucketPointer bucket) {
         logger.with(bucket).info("Tombstoning reader");
+
         dataContext.getMessageRepository().tombstone(bucket);
     }
 
