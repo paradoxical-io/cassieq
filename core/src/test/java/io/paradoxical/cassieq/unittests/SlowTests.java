@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
@@ -31,7 +32,14 @@ public class SlowTests extends TestBase {
 
     @Test
     public void test_multiple_parallel_readers() throws Exception {
-        @Cleanup SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
+        parallel_read_worker(250, // messages
+                             20,  // good workers
+                             5,   // bad workers
+                             Duration.ofSeconds(60));
+    }
+
+    private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers, Duration testTimeout) throws InterruptedException, IOException {
+        @Cleanup("stop") SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
 
         server.start();
 
@@ -39,14 +47,12 @@ public class SlowTests extends TestBase {
 
         final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri());
 
-        final QueueName queueName = QueueName.valueOf("test_multiple_parallel_readers");
+        final QueueName queueName = QueueName.valueOf(String.valueOf(new Random().nextInt()));
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
 
-        final int messagePublish = 500;
-
         new Thread(() -> {
-            IntStream.range(0, messagePublish)
+            IntStream.range(0, numMessages)
                      .parallel()
                      .forEach(Unchecked.intConsumer(i -> {
                          client.addMessage(queueName, i).execute();
@@ -56,22 +62,24 @@ public class SlowTests extends TestBase {
         final ExecutorService executorService = Executors.newFixedThreadPool(40);
 
         // N good workesr to pull stuff off
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < numGoodWorkers; i++) {
             executorService.submit(new Worker(client, queueName, payloads));
         }
 
-        // one bad worker who pulls things off but can't ever finish
-        executorService.submit(new FailingWorker(client, queueName, payloads));
+        // N/5 bad workers who pulls things off but can't ever finish
+        for (int i = 0; i < numBadWorkers; i++) {
+            executorService.submit(new FailingWorker(client, queueName, payloads));
+        }
 
         final LocalTime start = LocalTime.now();
 
-        final LocalTime end = start.plus(Duration.ofSeconds(60));
+        final LocalTime end = start.plus(testTimeout);
 
-        while (payloads.size() != messagePublish && LocalTime.now().isBefore(end)) {
+        while (payloads.size() != numMessages && LocalTime.now().isBefore(end)) {
             Thread.sleep(50);
         }
 
-        assertThat(payloads.size()).isEqualTo(messagePublish);
+        assertThat(payloads.size()).isEqualTo(numMessages);
     }
 
     class FailingWorker extends Worker {
