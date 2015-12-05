@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -124,9 +125,9 @@ public class MessageRepositoryTester extends TestBase {
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
-        context.getMessageRepository().tombstone(monoton.toBucketPointer(1));
+        context.getMessageRepository().tombstone(monoton.toBucketPointer(BucketSize.valueOf(1)));
 
-        final Optional<DateTime> tombstoneExists = context.getMessageRepository().tombstoneExists(monoton.toBucketPointer(1));
+        final Optional<DateTime> tombstoneExists = context.getMessageRepository().tombstoneExists(monoton.toBucketPointer(BucketSize.valueOf(1)));
 
         assertThat(tombstoneExists.isPresent()).isTrue();
     }
