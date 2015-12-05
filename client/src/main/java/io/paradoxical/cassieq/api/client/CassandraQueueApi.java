@@ -33,22 +33,28 @@ public interface CassandraQueueApi {
         return service;
     }
 
-    @POST("api/v1/queues") Call<ResponseBody> createQueue(@Body QueueCreateOptions queueName);
+    @POST("api/v1/queues")
+    Call<ResponseBody> createQueue(@Body QueueCreateOptions queueName);
 
-    @GET("api/v1/queues/{queueName}/messages/next") Call<GetMessageResponse> getMessage(@Path("queueName") QueueName queueName);
+    @GET("api/v1/queues/{queueName}/messages/next")
+    Call<GetMessageResponse> getMessage(@Path("queueName") QueueName queueName);
 
-    @GET("api/v1/queues/{queueName}/messages/next") Call<GetMessageResponse> getMessage(
+    @GET("api/v1/queues/{queueName}/messages/next")
+    Call<GetMessageResponse> getMessage(
             @Path("queueName") QueueName queueName,
             @Query("invisibilityTime") Long invisibilityTimeSeconds);
 
-    @POST("api/v1/queues/{queueName}/messages") Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body Object message);
+    @POST("api/v1/queues/{queueName}/messages")
+    Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body Object message);
 
-    @POST("api/v1/queues/{queueName}/messages") Call<ResponseBody> addMessage(
+    @POST("api/v1/queues/{queueName}/messages")
+    Call<ResponseBody> addMessage(
             @Path("queueName") QueueName queueName,
             @Body Object message,
             @Query("initialInvisibilitySeconds") Long initialInvisibilitySeconds);
 
-    @DELETE("api/v1/queues/{queueName}/messages") Call<ResponseBody> ackMessage(
+    @DELETE("api/v1/queues/{queueName}/messages")
+    Call<ResponseBody> ackMessage(
             @Path("queueName") QueueName queueName,
             @Query("popReceipt") String popReceipt);
 
