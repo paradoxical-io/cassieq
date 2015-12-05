@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Cassieq by paradoxical-io</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Cassieq</h1>
+      <h2 class="project-tagline">A distributed queue built off cassandra</h2>
+      <a href="https://github.com/paradoxical-io/cassieq" class="btn">View on GitHub</a>
+      <a href="https://github.com/paradoxical-io/cassieq/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/paradoxical-io/cassieq/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="ioparadoxicalcassieq--" class="anchor" href="#ioparadoxicalcassieq--" aria-hidden="true"><span class="octicon octicon-link"></span></a>io.paradoxical.cassieq  </h1>
+
+<p><img src="https://travis-ci.org/paradoxical-io/cassieq.svg?branch=master" alt="Build status"></p>
+
+<p>CassieQ is a distributed queue built on cassandra. Yes, we know, queues on cassandra are an anti-pattern,
+but only when you use secondary indexes, and lots of polls and scans which CassieQ <em>doesn't</em> do.</p>
+
+<p>CassieQ provides:</p>
+
+<ul>
+<li>at least once delivery</li>
+<li>invisiblity of messages</li>
+<li>simple API of get/ack</li>
+<li>highly scaleable</li>
+</ul>
+
+<h2>
+<a id="to-run" class="anchor" href="#to-run" aria-hidden="true"><span class="octicon octicon-link"></span></a>To run</h2>
+
+<pre><code>docker run -it \
+    -e KEYSPACE="" \
+    -e CONTACT_POINTS="" \
+    -e USERNAME="" \
+    -e PASSWORD="" \
+    paradoxical/cassieq
+</code></pre>
+
+<p>If you don't want to use environment variables, you can mount a volume to <code>/data/conf</code> and provide your own
+yaml</p>
+
+<h2>
+<a id="bootstrapping-required-tables" class="anchor" href="#bootstrapping-required-tables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bootstrapping required tables</h2>
+
+<pre><code>docker run -it \
+    -e KEYSPACE="" \
+        -e CONTACT_POINTS="" \
+        -e USERNAME="" \
+        -e PASSWORD="" \
+    paradoxical/cassieq bootstrap
+</code></pre>
+
+<p>This will build out the required tables in your keyspace. </p>
+
+<p>If your user has permissions to create a keyspace you can run</p>
+
+<pre><code>docker run -it \
+    -e KEYSPACE="" \
+        -e CONTACT_POINTS="" \
+        -e USERNAME="" \
+        -e PASSWORD="" \
+    paradoxical/cassieq bootstrap -createKeyspace
+</code></pre>
+
+<h2>
+<a id="available-env-vars" class="anchor" href="#available-env-vars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Available env vars</h2>
+
+<p>Nested properties are only enabled if the parent is enabled</p>
+
+<ul>
+<li>CLUSTER_NAME</li>
+<li>KEYSPACE</li>
+<li>CONTACT_POINTS</li>
+<li>AUTH_PROVIDER - defaults to "plainText"</li>
+<li>USERNAME</li>
+<li>PASSWORD</li>
+<li>CONSISTENCY_LEVEL - defaults to LOCAL_QUOURUM</li>
+<li>CASSANDRA_PORT - defaults to 9042</li>
+<li>USE_SSL - "true" or "false"
+
+<ul>
+<li>SSL_PORT - defaults to 9043</li>
+<li>DATA_CENTER - uses this data center as a load balancing policy</li>
+</ul>
+</li>
+<li>USE_METRICS_GRAPHITE - "true" or "false"
+
+<ul>
+<li>GRAPHITE_URL </li>
+<li>GRAPHITE_PREFIX </li>
+</ul>
+</li>
+<li>LOGSTASH_CUSTOM_APP_NAME</li>
+</ul>
+
+<h2>
+<a id="why-make-a-queue-on-cassandra" class="anchor" href="#why-make-a-queue-on-cassandra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why make a queue on cassandra?</h2>
+
+<p>Cassandra is a great datastore that is massively horizontally scaleable. It also exists at a lot of organizations
+already.  Being able to use a horizontally scaleable data store means you can ingest incredible amounts of messages.</p>
+
+<p>Also by providing a simple docker container that houses an REST web api, you can scale out the queue by tossing 
+more docker instances at your cassandra queue.</p>
+
+<p>CassieQ is fully encapsulated and only needs to know your cassandra information. Future work will include 
+passing the cassandra cluster credentials and connection information via docker env vars and auto populating
+the tracking tables for queues.</p>
+
+<h2>
+<a id="how-does-cassieq-work" class="anchor" href="#how-does-cassieq-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does CassieQ work?</h2>
+
+<p>Messages are put into a queue and can be read from the queue with a visiblity timeout. This means
+that if the message isn't acked within the visiblity timeout it becomes visible again.  Most other queue systems
+deal with this by detecting severed connections but since angenlahir is http based and connectionless we can't rely on that.</p>
+
+<p>CassieQ works with 3 pointers into a queue.</p>
+
+<ul>
+<li>A reader bucket pointer</li>
+<li>A repair bucket pointer</li>
+<li>An invisiblity pointer</li>
+</ul>
+
+<p>These three pointers will be discussed in each section</p>
+
+<p>In order to scale and efficiently act as a queue we need to leverage cassandra partitioning capabilities.
+Queues are actually messages bucketized into a fixed size group called a bucket.<br>
+Each message is assigned a monotonically increasing id that maps itself into a bucket. </p>
+
+<p>For example, if the bucket is size 20 and you have id 21, that maps into bucket 1 (21/20).  </p>
+
+<p>Messages are always put into the bucket they correlate to, regardless if previous buckets are full.</p>
+
+<p>The reader has a pointer to its active bucket (the reader buket pointer) and scans the bucket for unacked visible messages.  If the bucket is full
+it tombstones the bucket indicating that the bucket is closed for processing.  If the bucket is NOT full, but all messages
+in the bucket are consumed (or being processed) AND the monotonic pointer has already advanced to the next bucket,t he current 
+bucket is also tombstoned. This means no more messages will ever show up in the current bucket... sort of</p>
+
+<h3>
+<a id="repairing-delayed-writes" class="anchor" href="#repairing-delayed-writes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Repairing delayed writes</h3>
+
+<p>There is a condition that you can have a delayed write. For example, assume you generate monotonic ids in this sequence:</p>
+
+<pre><code>Id 19
+Id 20
+Write 20
+Write 19
+</code></pre>
+
+<p>In this scenario id 20 advances the monotonic bucket to bucket 1 (given buckets are size 20).  That means the reader tombstones
+bucket 0. But what happenes to message 19? We don't want to lose it, but as far as the reader is concnered its moved onto bucket 1 and off of bucket 0.</p>
+
+<p>This is where the concept of a repair worker comes into play. The repair worker's job is to slowly follow the reader and wait for tombstoned buckets. It 
+has its own pointer (the repair bucket pointer)</p>
+
+<p>If a bucket is tombstoned the repair worker will wait for a configured timeout for <em>out of order missing messages</em> to appear. This means if a slightly
+delayed write occurs then the repair worker will actually pick it up and then <em>republish it</em> to the last active bucket.</p>
+
+<p>This means we don't necessarily guarantee FIFO, however we do guarantee messages will appear.</p>
+
+<h3>
+<a id="invisibility" class="anchor" href="#invisibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Invisibility</h3>
+
+<p>Now the question comes up as how to deal with invsibility of messages. For this there is a separate pointer tracking 
+the last invisible pointer.  When a read comes in, we first check the invsiblity pointer to see if that message is now visible.</p>
+
+<p>If it is, we can return it. If not, get the next available message.  </p>
+
+<p>If the current invisible pointer is already acked then we need to find the next invisible pointer. This next invisible pointer is the first
+non-acked non-visible message. If there isn't one in the current bucket, the invisibility pointer moves to the next bucket until it finds one 
+or no messages exist.</p>
+
+<h2>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h2>
+
+<p>We have bundled a java client to talk to a simple rest api. The api supports</p>
+
+<ul>
+<li>Queue create</li>
+<li>Put a message</li>
+<li>Get a message</li>
+<li>Ack a message</li>
+</ul>
+
+<p>Getting a message gives you a pop reciept that encodes the message index AND its version. This means that you can prevent multiple ackers of a message
+and do conditional atomic actions based on that message version.</p>
+
+<h1>
+<a id="execute-cassieq-local" class="anchor" href="#execute-cassieq-local" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute cassieq local</h1>
+
+<pre><code>./scripts/run-core.sh
+</code></pre>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/paradoxical-io/cassieq">Cassieq</a> is maintained by <a href="https://github.com/paradoxical-io">paradoxical-io</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
