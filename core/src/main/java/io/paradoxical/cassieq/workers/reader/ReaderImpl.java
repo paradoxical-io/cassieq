@@ -223,7 +223,7 @@ public class ReaderImpl implements Reader {
             final boolean allComplete = allMessages.stream().allMatch(m -> m.isAcked() || m.isNotVisible(clock));
 
             if (allComplete) {
-                if (allMessages.size() == queueDefinition.getBucketSize() || monotonPastBucket(currentBucket)) {
+                if (allMessages.size() == queueDefinition.getBucketSize().get() || monotonPastBucket(currentBucket)) {
                     tombstone(currentBucket);
 
                     currentBucket = advanceBucket(currentBucket);

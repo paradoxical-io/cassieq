@@ -32,6 +32,10 @@ public class RepairTests extends TestBase {
 
         bucketConfiguration.setRepairWorkerTimeout(Duration.standardSeconds(3));
 
+        // dont delete repaired buckets since we need to query their status
+        // for testing purposes
+        bucketConfiguration.setDeleteBucketsAfterRepair(false);
+
         serviceConfiguration.setBucketConfiguration(bucketConfiguration);
 
         final Injector defaultInjector = getDefaultInjector(serviceConfiguration);
@@ -129,10 +133,9 @@ public class RepairTests extends TestBase {
 
         repairWorker.start();
 
-        // the ghost message
+        // the ghost message by claiming a monoton that wont ever appear
         dataContext.getMonotonicRepository().nextMonotonic();
         getTestClock().tick();
-
 
         // tombstone the old bucket
         dataContext.getMessageRepository().tombstone(ReaderBucketPointer.valueOf(0));
@@ -142,6 +145,7 @@ public class RepairTests extends TestBase {
         final Message thirdmessage = Message.builder().blob("3rd").index(index).build();
 
         dataContext.getMessageRepository().putMessage(thirdmessage);
+
         getTestClock().tickSeconds(50L);
 
         repairWorker.waitForNextRun();

@@ -35,11 +35,11 @@ public final class InvisibilityMessagePointer extends LongValue implements Messa
         return new InvisibilityMessagePointer(value.get());
     }
 
-    public ReaderBucketPointer toBucketPointer(int bucketSize) {
+    public ReaderBucketPointer toBucketPointer(BucketSize bucketSize) {
         if (get() <= 0) {
             return ReaderBucketPointer.valueOf(0);
         }
-        return ReaderBucketPointer.valueOf(get() / bucketSize);
+        return ReaderBucketPointer.valueOf(get() / bucketSize.get());
     }
 
     public static InvisibilityMessagePointer map(Row row) {

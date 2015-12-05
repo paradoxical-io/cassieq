@@ -40,7 +40,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                                                .ifNotExists()
                                                .value(Tables.Queue.QUEUENAME, queueDefinition.getQueueName().get())
-                                               .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize())
+                                               .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
                                                .value(Tables.Queue.MAX_DEQUEUE_COUNT, queueDefinition.getMaxDeliveryCount());
 
         session.execute(insertQueue);
