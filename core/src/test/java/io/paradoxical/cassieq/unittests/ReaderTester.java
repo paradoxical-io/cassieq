@@ -4,6 +4,7 @@ import com.google.inject.Injector;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
+import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
@@ -167,7 +168,7 @@ public class ReaderTester extends TestBase {
         final QueueName queue = QueueName.valueOf(queueName);
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queue)
-                                                               .bucketSize(bucketSize)
+                                                               .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
         createQueue(queueDefinition);
 

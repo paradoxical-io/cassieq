@@ -1,20 +1,20 @@
 package io.paradoxical.cassieq.workers.repair;
 
+import com.godaddy.logging.Logger;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.model.BucketPointer;
 import io.paradoxical.cassieq.model.Clock;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.modules.annotations.RepairPool;
-import com.godaddy.logging.Logger;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.workers.BucketConfiguration;
-import lombok.Data;
 import org.joda.time.DateTime;
 import org.joda.time.Instant;
 import org.joda.time.Seconds;
@@ -107,19 +107,21 @@ public class RepairWorkerImpl implements RepairWorker {
         return dataContext.getPointerRepository().getRepairCurrentBucketPointer();
     }
 
-    private void watchBucket(RepairContext pointer) {
-        waitForTimeout(pointer.getTombstonedAt());
+    private void watchBucket(RepairContext context) {
+        waitForTimeout(context.getTombstonedAt());
 
         if (!isStarted) {
             return;
         }
 
-        final List<Message> messages = dataContext.getMessageRepository().getMessages(pointer.getPointer());
+        final List<Message> messages = dataContext.getMessageRepository().getMessages(context.getPointer());
 
         messages.stream().filter(message -> !message.isAcked() && message.isVisible(clock) && message.getDeliveryCount() == 0)
                 .forEach(this::republishMessage);
 
-        advance(pointer.getPointer());
+        deleteMessagesInBucket(context.getPointer());
+
+        advance(context.getPointer());
     }
 
     private void waitForTimeout(final DateTime tombstoneTime) {
@@ -148,6 +150,12 @@ public class RepairWorkerImpl implements RepairWorker {
         logger.success("Bucket should be closed");
     }
 
+    /**
+     * Scan through the message table from the last known pointer
+     * and find the first bucket that exists and isn't tombstoned
+     *
+     * @return
+     */
     private Optional<RepairContext> findFirstBucketToMonitor() {
         RepairBucketPointer currentBucket = getCurrentBucket();
 
@@ -160,7 +168,9 @@ public class RepairWorkerImpl implements RepairWorker {
             if (tombstoneTime.isPresent()) {
                 final List<Message> messages = messageRepository.getMessages(currentBucket);
 
-                if (messages.size() == queueDefinition.getBucketSize() && messages.stream().allMatch(Message::isAcked)) {
+                if (messages.size() == queueDefinition.getBucketSize().get() && messages.stream().allMatch(Message::isAcked)) {
+                    deleteMessagesInBucket(currentBucket);
+
                     currentBucket = advance(currentBucket);
 
                     logger.with(currentBucket).info("Found full bucket, advancing");
@@ -185,6 +195,12 @@ public class RepairWorkerImpl implements RepairWorker {
         return Optional.empty();
     }
 
+    private void deleteMessagesInBucket(final RepairBucketPointer currentBucket) {
+        if (configuration.isDeleteBucketsAfterRepair()) {
+            dataContext.getMessageRepository().deleteAllMessages(currentBucket);
+        }
+    }
+
     private void republishMessage(Message message) {
         try {
             final MonotonicIndex nextIndex = dataContext.getMonotonicRepository().nextMonotonic();
@@ -206,10 +222,28 @@ public class RepairWorkerImpl implements RepairWorker {
     private RepairBucketPointer advance(final RepairBucketPointer currentBucket) {
         logger.info("Advancing bucket");
 
+        BucketPointer monotonBucket = getCurrentMonotonBucket();
+
+        // dont let the repair bucket pointer advance past the bucket of the current monoton
+        if (currentBucket.next().get() > monotonBucket.get()) {
+            logger.with("attempted-next-bucket", currentBucket.next())
+                  .with("current-monton-bucket", monotonBucket)
+                  .with("bucket-size", queueDefinition.getBucketSize())
+                  .warn("Attempted to move past monoton bucket, but limited");
+
+            return RepairBucketPointer.valueOf(monotonBucket.get());
+        }
+
         final RepairBucketPointer repairBucketPointer = dataContext.getPointerRepository().advanceRepairBucketPointer(currentBucket, currentBucket.next());
 
         logger.with(repairBucketPointer).info("New bucket");
 
         return repairBucketPointer;
+    }
+
+    private BucketPointer getCurrentMonotonBucket() {
+        final MonotonicIndex currentMonton = dataContext.getMonotonicRepository().getCurrent();
+
+        return RepairBucketPointer.valueOf(currentMonton.toBucketPointer(queueDefinition.getBucketSize()).get());
     }
 }
