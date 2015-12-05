@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
+import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.PopReceipt;
@@ -18,6 +19,7 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+import io.paradoxical.cassieq.workers.RepairWorkerManager;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;
@@ -40,14 +42,17 @@ import java.util.Optional;
 public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
+    private final RepairWorkerManager repairWorkerManager;
 
     @Inject
     public QueueResource(
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository) {
+            QueueRepository queueRepository,
+            RepairWorkerManager repairWorkerManager) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository);
+        this.repairWorkerManager = repairWorkerManager;
     }
 
     @POST
@@ -64,6 +69,9 @@ public class QueueResource extends BaseQueueResource {
                                                             .maxDeliveryCount(createOptions.getMaxDevliveryCount())
                                                             .queueName(createOptions.getQueueName())
                                                             .build());
+
+            // try and start a repair worker for the new queue
+            repairWorkerManager.refresh();
         }
         catch (Exception e) {
             logger.error(e, "Error");

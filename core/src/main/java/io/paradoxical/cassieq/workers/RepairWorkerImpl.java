@@ -95,6 +95,7 @@ public class RepairWorkerImpl implements RepairWorker {
 
             if (firstBucketToMonitor.isPresent()) {
                 watchBucket(firstBucketToMonitor.get());
+
                 synchronized (nextRun) {
                     nextRun.notifyAll();
                 }

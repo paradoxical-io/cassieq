@@ -46,7 +46,9 @@ public class TestBase {
     private final TestClock testClock = new TestClock();
 
     public TestBase() {
-        BootstrapLogging.bootstrap(Level.ALL);
+        final String environmentLogLevel = System.getenv("LOG_LEVEL");
+
+        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.ERROR);
 
         LogMapping.register();
 

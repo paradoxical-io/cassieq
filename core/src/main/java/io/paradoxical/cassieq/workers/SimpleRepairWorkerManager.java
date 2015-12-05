@@ -1,19 +1,20 @@
 package io.paradoxical.cassieq.workers;
 
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private final RepairWorkerFactory repairWorkerFactory;
     private final Provider<QueueRepository> queueRepositoryProvider;
-    private List<RepairWorker> activeRepairWorkers;
+    private Set<RepairWorker> activeRepairWorkers = new HashSet<>();
 
     @Inject
     public SimpleRepairWorkerManager(Provider<QueueRepository> queueRepositoryProvider, RepairWorkerFactory repairWorkerFactory) {
@@ -21,15 +22,28 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
         this.repairWorkerFactory = repairWorkerFactory;
     }
 
-    @Override public void start() {
-        activeRepairWorkers = queueRepositoryProvider.get().getQueues().stream().map(repairWorkerFactory::forQueue).collect(toList());
+    @Override public synchronized void start() {
+        final Set<RepairWorker> expectedWorkers =
+                queueRepositoryProvider.get()
+                                       .getQueues()
+                                       .stream()
+                                       .map(repairWorkerFactory::forQueue)
+                                       .collect(toSet());
 
-        activeRepairWorkers.forEach(RepairWorker::start);
+        for (RepairWorker worker : expectedWorkers) {
+            if (!activeRepairWorkers.contains(worker)) {
+                worker.start();
+
+                activeRepairWorkers.add(worker);
+            }
+        }
     }
 
-    @Override public void stop() {
+    @Override public synchronized void stop() {
         if (!CollectionUtils.isEmpty(activeRepairWorkers)) {
             activeRepairWorkers.forEach(RepairWorker::stop);
+
+            activeRepairWorkers.clear();
         }
     }
 }

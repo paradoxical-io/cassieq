@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import com.google.inject.Injector;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
@@ -7,10 +8,9 @@ import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.workers.Reader;
-import io.paradoxical.cassieq.model.QueueName;
-import com.google.inject.Injector;
 import lombok.NonNull;
 import lombok.Value;
 import org.joda.time.Duration;
@@ -28,8 +28,7 @@ public class ReaderTester extends TestBase {
         this.defaultInjector = getDefaultInjector();
     }
 
-    @Value
-    class ReaderQueueContext {
+    @Value class ReaderQueueContext {
 
         @NonNull
         QueueName queueName;

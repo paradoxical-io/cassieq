@@ -5,7 +5,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Pointer;
@@ -13,8 +15,6 @@ import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 
 import java.util.function.Function;
 
@@ -33,23 +33,38 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
     }
 
     @Override public ReaderBucketPointer advanceMessageBucketPointer(final ReaderBucketPointer original, final ReaderBucketPointer next) {
-        return movePointer(PointerType.BUCKET_POINTER, original, next, pointerEqualsClause(original));
+        if(movePointer(PointerType.BUCKET_POINTER, next, pointerEqualsClause(original))){
+            return next;
+        }
+
+        // someone else moved it, get that value
+        return getReaderCurrentBucket();
     }
 
     @Override public InvisibilityMessagePointer tryMoveInvisiblityPointerTo(
             final InvisibilityMessagePointer original, final InvisibilityMessagePointer destination) {
 
         //If the destination is less than the current pointer value, move the pointer.
-        InvisibilityMessagePointer pointer = movePointer(PointerType.INVISIBILITY_POINTER, original, destination, pointerGreaterThanClause(destination));
+        if (movePointer(PointerType.INVISIBILITY_POINTER, destination, pointerGreaterThanClause(destination))) {
+            return destination;
+        }
 
         //If the pointer was not moved, attempt to move the pointer to the destination if the original pointer value equals the current pointer value.
-        return pointer.get().equals(original.get()) ?
-               movePointer(PointerType.INVISIBILITY_POINTER, original, destination, pointerEqualsClause(original)) :
-               pointer;
+        if (movePointer(PointerType.INVISIBILITY_POINTER, destination, pointerEqualsClause(original))) {
+            return destination;
+        }
+
+        // someone else moved it, get that value
+        return getCurrentInvisPointer();
     }
 
     @Override public RepairBucketPointer advanceRepairBucketPointer(final RepairBucketPointer original, final RepairBucketPointer next) {
-        return movePointer(PointerType.REPAIR_BUCKET, original, next, pointerEqualsClause(original));
+        if (movePointer(PointerType.REPAIR_BUCKET, next, pointerEqualsClause(original))) {
+            return next;
+        }
+
+        // someone else moved it, get that value
+        return getRepairCurrentBucketPointer();
     }
 
     @Override public InvisibilityMessagePointer getCurrentInvisPointer() {
@@ -80,7 +95,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
         return getOne(session.execute(query), mapper);
     }
 
-    private <T extends Pointer> T movePointer(PointerType pointerType, T original, T destination, Clause clause) {
+    private <T extends Pointer> boolean movePointer(PointerType pointerType, T destination, Clause clause) {
 
         Statement statement = QueryBuilder.update(Tables.Pointer.TABLE_NAME)
                                           .with(set(Tables.Pointer.VALUE, destination.get()))
@@ -88,8 +103,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
                                           .and(eq(Tables.Pointer.POINTER_TYPE, pointerType.toString()))
                                           .onlyIf(clause);
 
-        return session.execute(statement)
-                      .wasApplied() ? destination : original;
+        return session.execute(statement).wasApplied();
     }
 
 

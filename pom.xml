@@ -132,9 +132,21 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jool</artifactId>
+                <version>0.9.7</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.godaddy</groupId>
                 <artifactId>logging</artifactId>
                 <version>${godaddy.logging.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.javaslang</groupId>
+                <artifactId>javaslang</artifactId>
+                <version>2.0.0-RC2</version>
             </dependency>
 
             <dependency>

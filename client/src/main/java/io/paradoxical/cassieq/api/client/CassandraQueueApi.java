@@ -14,7 +14,13 @@ import retrofit.http.POST;
 import retrofit.http.Path;
 import retrofit.http.Query;
 
+import java.net.URI;
+
 public interface CassandraQueueApi {
+
+    static CassandraQueueApi createClient(URI baseUri) {
+        return createClient(baseUri.toString());
+    }
 
     static CassandraQueueApi createClient(String baseUri) {
         Retrofit retrofit = new Retrofit.Builder()
@@ -22,9 +28,7 @@ public interface CassandraQueueApi {
                 .addConverterFactory(JacksonConverterFactory.create())
                 .build();
 
-        CassandraQueueApi service = retrofit.create(CassandraQueueApi.class);
-
-        return service;
+        return retrofit.create(CassandraQueueApi.class);
     }
 
     @POST("api/v1/queues")
@@ -34,15 +38,17 @@ public interface CassandraQueueApi {
     Call<GetMessageResponse> getMessage(@Path("queueName") QueueName queueName);
 
     @GET("api/v1/queues/{queueName}/messages/next")
-    Call<GetMessageResponse> getMessage(@Path("queueName") QueueName queueName, @Query("invisibilityTime") Long invisibilityTimeSeconds);
+    Call<GetMessageResponse> getMessage(
+            @Path("queueName") QueueName queueName,
+            @Query("invisibilityTime") Long invisibilityTimeSeconds);
 
     @POST("api/v1/queues/{queueName}/messages")
-    Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body String message);
+    Call<ResponseBody> addMessage(@Path("queueName") QueueName queueName, @Body Object message);
 
     @POST("api/v1/queues/{queueName}/messages")
     Call<ResponseBody> addMessage(
             @Path("queueName") QueueName queueName,
-            @Body String message,
+            @Body Object message,
             @Query("initialInvisibilitySeconds") Long initialInvisibilitySeconds);
 
     @DELETE("api/v1/queues/{queueName}/messages")
