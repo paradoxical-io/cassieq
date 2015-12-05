@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.workers;
+package io.paradoxical.cassieq.workers.reader;
 
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;

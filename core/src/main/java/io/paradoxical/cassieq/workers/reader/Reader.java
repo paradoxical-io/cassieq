@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.workers;
+package io.paradoxical.cassieq.workers.reader;
 
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.PopReceipt;

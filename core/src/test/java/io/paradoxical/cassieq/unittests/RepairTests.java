@@ -12,7 +12,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.workers.BucketConfiguration;
-import io.paradoxical.cassieq.workers.RepairWorkerImpl;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.model.QueueName;
 import com.google.inject.Injector;
 import org.joda.time.Duration;

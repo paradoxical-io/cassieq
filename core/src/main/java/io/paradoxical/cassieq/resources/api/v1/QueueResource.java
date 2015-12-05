@@ -5,7 +5,6 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.PopReceipt;
@@ -19,7 +18,7 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
-import io.paradoxical.cassieq.workers.RepairWorkerManager;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;

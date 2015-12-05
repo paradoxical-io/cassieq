@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.workers;
+package io.paradoxical.cassieq.workers.repair;
 
 public interface RepairWorkerManager {
     void start();
