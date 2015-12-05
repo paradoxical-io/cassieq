@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
+import javaslang.control.Try;
 import lombok.Cleanup;
 import org.apache.commons.collections4.ListUtils;
 import org.jooq.lambda.Unchecked;

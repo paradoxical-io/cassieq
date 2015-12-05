@@ -13,7 +13,6 @@ public class DefaultApplicationModules {
                 new SessionProviderModule(),
                 new RepairWorkerModule(),
                 new ReaderModule(),
-                new LeadershipModule(),
                 new ConfigProviderModule(),
                 new ClockModule());
     }

@@ -25,12 +25,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jgroups</groupId>
-            <artifactId>jgroups-raft</artifactId>
-            <version>0.2</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.stuartgunter</groupId>
             <artifactId>dropwizard-cassandra</artifactId>
         </dependency>
@@ -109,6 +103,11 @@
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jool</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.javaslang</groupId>
+            <artifactId>javaslang</artifactId>
         </dependency>
 
         <dependency>

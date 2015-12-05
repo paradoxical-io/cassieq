@@ -28,9 +28,7 @@ public interface CassandraQueueApi {
                 .addConverterFactory(JacksonConverterFactory.create())
                 .build();
 
-        CassandraQueueApi service = retrofit.create(CassandraQueueApi.class);
-
-        return service;
+        return retrofit.create(CassandraQueueApi.class);
     }
 
     @POST("api/v1/queues")
