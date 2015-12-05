@@ -10,6 +10,7 @@ import io.dropwizard.logging.LoggingFactory;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
@@ -94,7 +95,7 @@ public class TestBase {
     protected QueueDefinition setupQueue(QueueName queueName, Integer bucketSize, Injector injector) {
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queueName)
-                                                               .bucketSize(bucketSize)
+                                                               .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
 
         createQueue(queueDefinition, injector);

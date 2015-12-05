@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
+import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.PopReceipt;
@@ -64,7 +65,7 @@ public class QueueResource extends BaseQueueResource {
 
         try {
             getQueueRepository().createQueue(QueueDefinition.builder()
-                                                            .bucketSize(createOptions.getBucketSize())
+                                                            .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
                                                             .maxDeliveryCount(createOptions.getMaxDevliveryCount())
                                                             .queueName(createOptions.getQueueName())
                                                             .build());

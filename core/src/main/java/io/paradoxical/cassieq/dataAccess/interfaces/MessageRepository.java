@@ -24,7 +24,7 @@ public interface MessageRepository {
 
     boolean ackMessage(final Message message);
 
-    default List<Message> getMessages(final BucketPointer bucketPointer){
+    default List<Message> getMessages(final BucketPointer bucketPointer) {
         return getBucketContents(bucketPointer).stream().filter(Message::isNotTombstone).collect(toList());
     }
 
@@ -36,4 +36,5 @@ public interface MessageRepository {
 
     Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer);
 
+    void deleteAllMessages(BucketPointer bucket);
 }

@@ -12,4 +12,6 @@ public class BucketConfiguration {
     private Duration repairWorkerTimeout = Duration.standardSeconds(20);
 
     private Duration repairWorkerPollFrequency = Duration.standardSeconds(1);
+
+    private boolean deleteBucketsAfterRepair = true;
 }

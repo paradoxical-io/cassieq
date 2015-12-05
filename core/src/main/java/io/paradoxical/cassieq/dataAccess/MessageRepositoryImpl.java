@@ -5,7 +5,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
 import io.paradoxical.cassieq.model.BucketPointer;
@@ -15,8 +17,6 @@ import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MessageTag;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
@@ -167,8 +167,19 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     }
 
     @Override
+    public void deleteAllMessages(final BucketPointer bucket) {
+        final Statement delete = QueryBuilder.delete()
+                                             .all()
+                                             .from(Tables.Message.TABLE_NAME)
+                                             .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                             .and(eq(Tables.Message.BUCKET_NUM, bucket.get()));
+
+        session.execute(delete);
+    }
+
+    @Override
     public Message getMessage(final MessagePointer pointer) {
-        final BucketPointer bucketPointer = ReaderBucketPointer.valueOf(pointer.get() / queueDefinition.getBucketSize());
+        final BucketPointer bucketPointer = ReaderBucketPointer.valueOf(pointer.get() / queueDefinition.getBucketSize().get());
 
         Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, pointer.get()));
 
