@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.paradoxical.cassieq.configurations.JerseyConfiguration;
 import io.dropwizard.Configuration;
 import io.paradoxical.cassieq.configurations.RepairConfig;
-import io.paradoxical.cassieq.configurations.ServerConfig;
 import io.paradoxical.cassieq.workers.BucketConfiguration;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,11 +36,4 @@ public class ServiceConfiguration extends Configuration {
     @Getter
     @Setter
     private RepairConfig repairConf = new RepairConfig();
-
-    @Valid
-    @NotNull
-    @JsonProperty("server")
-    @Getter
-    @Setter
-    private ServerConfig serverConf = new ServerConfig();
 }

@@ -16,10 +16,13 @@ public abstract class BaseQueueResource {
 
     @Getter(AccessLevel.PROTECTED)
     private final ReaderFactory readerFactory;
+
     @Getter(AccessLevel.PROTECTED)
     private final MessageRepoFactory messageRepoFactory;
+
     @Getter(AccessLevel.PROTECTED)
     private final MonotonicRepoFactory monotonicRepoFactory;
+
     @Getter(AccessLevel.PROTECTED)
     private final QueueRepository queueRepository;
 
@@ -32,10 +35,6 @@ public abstract class BaseQueueResource {
         this.messageRepoFactory = messageRepoFactory;
         this.monotonicRepoFactory = monotonicRepoFactory;
         this.queueRepository = queueRepository;
-    }
-
-    protected boolean ensureQueueCreated(final QueueName queueName) {
-        return !queueRepository.queueExists(queueName);
     }
 
     protected Optional<QueueDefinition> getQueueDefinition(final QueueName queueName) {

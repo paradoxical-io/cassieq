@@ -13,7 +13,7 @@ cassandra:
   clusterName: ${env.CLUSTER_NAME!'cassieq'}
   keyspace: ${env.KEYSPACE!'cassieq'}
   contactPoints: [${env.CONTACT_POINTS!'192.168.99.100'}]
-  port: ${env.CASSANDRA_POR!9042}
+  port: ${env.CASSANDRA_PORT!9042}
   socketOptions:
     keepAlive: true
   authProvider:
