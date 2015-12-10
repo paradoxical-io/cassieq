@@ -37,7 +37,6 @@ public class SelfHostServer implements AutoCloseable {
 
     public void start(ServiceConfiguration configuration) {
 
-
         serviceConfigurationTestServiceServiceTestRunner =
                 new ServiceTestRunner<>(TestService::new,
                                         configuration,
@@ -72,7 +71,6 @@ public class SelfHostServer implements AutoCloseable {
     }
 
     public URI getBaseUri() {
-
         final String uri = String.format("http://localhost:%s/", serviceConfigurationTestServiceServiceTestRunner.getLocalPort());
 
         return URI.create(uri);
