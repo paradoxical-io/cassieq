@@ -8,7 +8,6 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import io.paradoxical.common.test.junit.RetryRule;
-import javaslang.control.Try;
 import lombok.Cleanup;
 import org.apache.commons.collections4.ListUtils;
 import org.jooq.lambda.Unchecked;
@@ -41,10 +40,10 @@ public class SlowTests extends TestBase {
 
     @Test
     public void test_multiple_parallel_readers() throws Exception {
-        parallel_read_worker(250, // messages
+        parallel_read_worker(200, // messages
                              20,  // good workers
                              1,   // bad workers
-                             Duration.ofSeconds(60));
+                             Duration.ofSeconds(30));
     }
 
     private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers, Duration testTimeout) throws InterruptedException, IOException {
@@ -95,7 +94,7 @@ public class SlowTests extends TestBase {
         assertThat(payloads.size()).isEqualTo(numMessages);
     }
 
-    class BadWorkerException extends RuntimeException{}
+    class BadWorkerException extends RuntimeException {}
 
     class FailingWorker extends Worker {
         public FailingWorker(
@@ -106,7 +105,8 @@ public class SlowTests extends TestBase {
             super(client, queueName, collection, executorService);
         }
 
-        @Override protected Integer getMessage() throws IOException {
+        @Override
+        protected Integer getMessage() throws IOException {
             throw new BadWorkerException();
         }
     }
@@ -130,9 +130,10 @@ public class SlowTests extends TestBase {
             this.executorService = executorService;
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             try {
-                if(!running){
+                if (!running) {
                     return;
                 }
 
@@ -142,7 +143,8 @@ public class SlowTests extends TestBase {
                     collection.add(i);
                 }
             }
-            catch(BadWorkerException ex){}
+            catch (BadWorkerException ex) {
+            }
             catch (Exception ex) {
                 logger.error(ex, "Error");
             }

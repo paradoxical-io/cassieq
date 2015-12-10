@@ -8,6 +8,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import lombok.Data;
+import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.HashSet;
@@ -47,6 +48,7 @@ class RepairWorkerKey {
 public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private final RepairWorkerFactory repairWorkerFactory;
     private final Provider<QueueRepository> queueRepositoryProvider;
+    @Getter
     private Set<RepairWorkerKey> currentRepairWorkers = new HashSet<>();
 
     @Inject
@@ -65,9 +67,9 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
                                        .map(RepairWorkerKey::new)
                                        .collect(toSet());
 
-        final ImmutableSet<RepairWorkerKey> itemsToStop = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();
+        final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();
 
-        final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(currentRepairWorkers, expectedWorkers).immutableCopy();
+        final ImmutableSet<RepairWorkerKey> itemsToStop = Sets.difference(currentRepairWorkers, expectedWorkers).immutableCopy();
 
         itemsToStop.forEach(this::stop);
 

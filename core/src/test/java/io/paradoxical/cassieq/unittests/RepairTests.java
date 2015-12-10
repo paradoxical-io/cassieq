@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
@@ -12,15 +13,19 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.workers.BucketConfiguration;
+import io.paradoxical.cassieq.workers.repair.RepairWorker;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.model.QueueName;
 import com.google.inject.Injector;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
+import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
 import org.joda.time.Duration;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class RepairTests extends TestBase {
     @Test
@@ -156,5 +161,35 @@ public class RepairTests extends TestBase {
         assertThat(repairCurrentBucketPointer.get()).isEqualTo(1);
 
         repairWorker.stop();
+    }
+
+    @Test
+    public void repair_manager_adds_new_workers(){
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration());
+
+        final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+
+        final QueueName queueName = QueueName.valueOf("repairer_moves_off_ghost_messages");
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
+
+        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+
+        contextFactory.createQueue(queueDefinition);
+
+        manager.refresh();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+
+        contextFactory.deleteQueueDefinition(queueName);
+
+        manager.refresh();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void repair_managers_removes_deleted_workers(){
+        fail("not ready");
     }
 }
