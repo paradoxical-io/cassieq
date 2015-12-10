@@ -7,10 +7,12 @@ import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
+import io.paradoxical.common.test.junit.RetryRule;
 import javaslang.control.Try;
 import lombok.Cleanup;
 import org.apache.commons.collections4.ListUtils;
 import org.jooq.lambda.Unchecked;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -34,12 +36,15 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 public class SlowTests extends TestBase {
     private static final Logger logger = getLogger(SlowTests.class);
 
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
+
     @Test
     public void test_multiple_parallel_readers() throws Exception {
         parallel_read_worker(250, // messages
                              20,  // good workers
                              1,   // bad workers
-                             Duration.ofSeconds(30));
+                             Duration.ofSeconds(60));
     }
 
     private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers, Duration testTimeout) throws InterruptedException, IOException {
