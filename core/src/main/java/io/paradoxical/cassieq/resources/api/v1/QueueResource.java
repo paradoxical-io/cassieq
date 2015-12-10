@@ -1,5 +1,12 @@
 package io.paradoxical.cassieq.resources.api.v1;
 
+import com.godaddy.logging.Logger;
+import com.godaddy.logging.LoggerFactory;
+import com.google.inject.Inject;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
@@ -11,14 +18,8 @@ import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
-import com.godaddy.logging.Logger;
-import com.godaddy.logging.LoggerFactory;
 import io.paradoxical.cassieq.model.QueueName;
-import com.google.inject.Inject;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
 
@@ -43,6 +44,7 @@ public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
     private final RepairWorkerManager repairWorkerManager;
+    private final QueueDeleter queueDeleter;
 
     @Inject
     public QueueResource(
@@ -50,9 +52,11 @@ public class QueueResource extends BaseQueueResource {
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
             QueueRepository queueRepository,
-            RepairWorkerManager repairWorkerManager) {
+            RepairWorkerManager repairWorkerManager,
+            QueueDeleter queueDeleter) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository);
         this.repairWorkerManager = repairWorkerManager;
+        this.queueDeleter = queueDeleter;
     }
 
     @POST
@@ -79,6 +83,22 @@ public class QueueResource extends BaseQueueResource {
         }
 
         return Response.ok().status(Response.Status.CREATED).build();
+    }
+
+    @DELETE
+    @Path("/{queueName}")
+    @ApiOperation(value = "Get Message")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 204, message = "No message"),
+            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+            @ApiResponse(code = 500, message = "Server Error")
+    })
+    public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
+        getQueueRepository().getQueue(queueName)
+                            .ifPresent(queueDeleter::delete);
+
+        return Response.ok().build();
     }
 
     @GET

@@ -6,4 +6,6 @@ public interface MonotonicRepository {
     MonotonicIndex nextMonotonic();
 
     MonotonicIndex getCurrent();
+
+    void deleteAll();
 }

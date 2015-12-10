@@ -72,6 +72,11 @@ public class RepairWorkerImpl implements RepairWorker {
         scheduledExecutorService.shutdown();
     }
 
+    @Override
+    public QueueDefinition forDefinition() {
+        return queueDefinition;
+    }
+
     public void waitForNextRun() throws InterruptedException {
         synchronized (nextRun) {
             nextRun.wait();
@@ -114,14 +119,20 @@ public class RepairWorkerImpl implements RepairWorker {
             return;
         }
 
-        final List<Message> messages = dataContext.getMessageRepository().getMessages(context.getPointer());
+        List<Message> messages = dataContext.getMessageRepository().getMessages(context.getPointer());
 
         messages.stream().filter(message -> !message.isAcked() && message.isVisible(clock) && message.getDeliveryCount() == 0)
                 .forEach(this::republishMessage);
 
-        deleteMessagesInBucket(context.getPointer());
-
         advance(context.getPointer());
+
+        // check if all is acked now before we give up
+        messages = dataContext.getMessageRepository().getMessages(context.getPointer());
+
+        // only delete them all if they are all already acked
+        if(messages.stream().allMatch(Message::isAcked)){
+            deleteMessagesInBucket(context.getPointer());
+        }
     }
 
     private void waitForTimeout(final DateTime tombstoneTime) {

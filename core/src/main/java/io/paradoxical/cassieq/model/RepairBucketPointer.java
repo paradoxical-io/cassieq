@@ -39,23 +39,32 @@ public final class RepairBucketPointer extends LongValue implements BucketPointe
         return new RepairBucketPointer(get() + 1);
     }
 
+
+    public MonotonicIndex startOf(BucketSize bucketsize) {
+        return MonotonicIndex.valueOf(get() * bucketsize.get());
+    }
+
     public static class XmlAdapter extends JaxbLongValueAdapter<RepairBucketPointer> {
 
-        @Nonnull @Override protected RepairBucketPointer createNewInstance(final Long value) {
+        @Nonnull
+        @Override
+        protected RepairBucketPointer createNewInstance(final Long value) {
             return RepairBucketPointer.valueOf(value);
         }
     }
 
     public static class JsonDeserializeAdapater extends JsonDeserializer<RepairBucketPointer> {
 
-        @Override public RepairBucketPointer deserialize(final JsonParser jp, final DeserializationContext ctxt)
+        @Override
+        public RepairBucketPointer deserialize(final JsonParser jp, final DeserializationContext ctxt)
                 throws IOException {
             return RepairBucketPointer.valueOf(jp.getValueAsLong());
         }
     }
 
     public static class JsonSerializeAdapter extends JsonSerializer<RepairBucketPointer> {
-        @SuppressWarnings("ConstantConditions") @Override
+        @SuppressWarnings("ConstantConditions")
+        @Override
         public void serialize(final RepairBucketPointer value, final JsonGenerator jgen, final SerializerProvider provider)
                 throws IOException {
             jgen.writeNumber(value.get());

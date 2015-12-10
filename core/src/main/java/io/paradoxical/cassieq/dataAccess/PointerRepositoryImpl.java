@@ -97,6 +97,15 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
         return pointer == null ? RepairBucketPointer.valueOf(0) : pointer;
     }
 
+    @Override
+    public void deleteAll() {
+        final Statement delete = QueryBuilder.delete().all()
+                                             .from(Tables.Pointer.TABLE_NAME)
+                                             .where(eq(Tables.Pointer.QUEUENAME, queueName.get()));
+
+        session.execute(delete);
+    }
+
     private <T extends Pointer> T getPointer(PointerType pointerType, Function<Row, T> mapper) {
         Statement query = QueryBuilder.select()
                                       .all()

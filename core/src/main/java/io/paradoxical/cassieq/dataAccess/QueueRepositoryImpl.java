@@ -99,4 +99,13 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                       .map(QueueDefinition::fromRow).collect(toList());
 
     }
+
+    @Override
+    public void deleteQueue(final QueueName queueName) {
+        final Statement delete = QueryBuilder.delete().all()
+                                             .from(Tables.Queue.TABLE_NAME)
+                                             .where(eq(Tables.Queue.QUEUENAME, queueName.get()));
+
+        session.execute(delete);
+    }
 }

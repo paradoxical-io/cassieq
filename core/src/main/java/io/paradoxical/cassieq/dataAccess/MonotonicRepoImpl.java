@@ -43,6 +43,15 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
         return current == null ? MonotonicIndex.valueOf(0) : current;
     }
 
+    @Override
+    public void deleteAll() {
+        final Statement delete = QueryBuilder.delete().all()
+                                             .from(Tables.Monoton.TABLE_NAME)
+                                             .where(eq(Tables.Monoton.QUEUENAME, queueName.get()));
+
+        session.execute(delete);
+    }
+
     private MonotonicIndex incrementMonotonicValue() {
         Long current = getCurrent().get();
 

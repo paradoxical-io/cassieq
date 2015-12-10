@@ -30,4 +30,6 @@ public interface PointerRepository {
     ReaderBucketPointer getReaderCurrentBucket();
 
     RepairBucketPointer getRepairCurrentBucketPointer();
+
+    void deleteAll();
 }
