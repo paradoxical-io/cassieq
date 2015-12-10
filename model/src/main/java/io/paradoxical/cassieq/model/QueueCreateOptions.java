@@ -9,7 +9,7 @@ import javax.validation.constraints.NotNull;
 @Data
 public class QueueCreateOptions {
     private static final Integer DEFAULT_BUCKET_SIZE = 20;
-    private static final Integer DEFAULT_MAX_DEVLIVERY_COUNT = 5;
+    private static final Integer DEFAULT_MAX_DELIVERY_COUNT = 5;
 
 
     @NotNull
@@ -32,6 +32,6 @@ public class QueueCreateOptions {
         this.queueName = queueName;
 
         this.bucketSize = bucketSize == null ? DEFAULT_BUCKET_SIZE : bucketSize;
-        this.maxDeliveryCount = maxDeliveryCount == null ? DEFAULT_MAX_DEVLIVERY_COUNT : maxDeliveryCount;
+        this.maxDeliveryCount = maxDeliveryCount == null ? DEFAULT_MAX_DELIVERY_COUNT : maxDeliveryCount;
     }
 }
