@@ -10,6 +10,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.NonNull;
@@ -96,6 +97,21 @@ public class ReaderTester extends TestBase {
     }
 
     @Test
+    public void reader_stops_on_deleted_queue() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("reader_stops_on_deleted_queue");
+
+        testContext.putMessage(0, "hi");
+
+        getTestClock().tick();
+
+        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition, QueueStatus.Deleting);
+
+        Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
+
+        assertThat(message).isEmpty();
+    }
+
+    @Test
     public void test_ack_next_message() throws Exception {
         final ReaderQueueContext testContext = setupTestContext("test_ack_next_message");
 
@@ -162,6 +178,10 @@ public class ReaderTester extends TestBase {
 
     private ReaderQueueContext setupTestContext(String queueName) {
         return setupTestContext(queueName, 20);
+    }
+
+    private DataContext getDataContext(ReaderQueueContext readerQueueContext){
+        return defaultInjector.getInstance(DataContextFactory.class).forQueue(readerQueueContext.getQueueDefinition());
     }
 
     private ReaderQueueContext setupTestContext(String queueName, int bucketSize) {

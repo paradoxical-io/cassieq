@@ -10,11 +10,13 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
 
 import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static java.util.stream.Collectors.toList;
 
 public class QueueRepositoryImpl extends RepositoryBase implements QueueRepository {
@@ -36,12 +38,22 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         insertQueueRecord(definition);
     }
 
+    @Override
+    public void setQueueStatus(final QueueDefinition queueDefinition, final QueueStatus status) {
+        final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                                             .where(eq(Tables.Queue.QUEUENAME, queueDefinition.getQueueName().get()))
+                                             .with(set(Tables.Queue.STATUS, status.name()));
+
+        session.execute(update);
+    }
+
     private void insertQueueRecord(final QueueDefinition queueDefinition) {
         final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                                                .ifNotExists()
                                                .value(Tables.Queue.QUEUENAME, queueDefinition.getQueueName().get())
                                                .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                                               .value(Tables.Queue.MAX_DEQUEUE_COUNT, queueDefinition.getMaxDeliveryCount());
+                                               .value(Tables.Queue.MAX_DEQUEUE_COUNT, queueDefinition.getMaxDeliveryCount())
+                                               .value(Tables.Queue.STATUS, QueueStatus.Active.name());
 
         session.execute(insertQueue);
     }
@@ -97,11 +109,10 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                       .all()
                       .stream()
                       .map(QueueDefinition::fromRow).collect(toList());
-
     }
 
     @Override
-    public void deleteQueue(final QueueName queueName) {
+    public void deleteQueueDefinition(final QueueName queueName) {
         final Statement delete = QueryBuilder.delete().all()
                                              .from(Tables.Queue.TABLE_NAME)
                                              .where(eq(Tables.Queue.QUEUENAME, queueName.get()));

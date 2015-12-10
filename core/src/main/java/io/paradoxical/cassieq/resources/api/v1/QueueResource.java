@@ -19,6 +19,7 @@ import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
@@ -163,7 +164,7 @@ public class QueueResource extends BaseQueueResource {
             String message) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
+        if (!queueDefinition.isPresent() || queueDefinition.get().getStatus() != QueueStatus.Active) {
             return buildQueueNotFoundResponse(queueName);
         }
 

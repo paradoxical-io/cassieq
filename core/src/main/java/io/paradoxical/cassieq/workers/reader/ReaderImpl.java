@@ -1,19 +1,11 @@
 package io.paradoxical.cassieq.workers.reader;
 
-import io.paradoxical.cassieq.factories.DataContext;
-import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.model.BucketPointer;
-import io.paradoxical.cassieq.model.Clock;
-import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
-import io.paradoxical.cassieq.model.Message;
-import io.paradoxical.cassieq.model.MessagePointer;
-import io.paradoxical.cassieq.model.MonotonicIndex;
-import io.paradoxical.cassieq.model.PopReceipt;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.factories.DataContext;
+import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.model.*;
 import org.joda.time.Duration;
 
 import java.util.List;
@@ -104,6 +96,10 @@ public class ReaderImpl implements Reader {
 
     @Override
     public Optional<Message> nextMessage(Duration invisibility) {
+        if (getQueueStatus().orElse(null) != QueueStatus.Active) {
+            return Optional.empty();
+        }
+
         final Optional<Message> nowVisibleMessage = tryGetNowVisibleMessage(getCurrentInvisPointer(), invisibility);
 
         if (nowVisibleMessage.isPresent()) {
@@ -120,6 +116,10 @@ public class ReaderImpl implements Reader {
         }
 
         return nextMessage;
+    }
+
+    private Optional<QueueStatus> getQueueStatus() {
+        return dataContext.getQueueRepository().getQueue(queueDefinition.getQueueName()).map(QueueDefinition::getStatus);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class ReaderImpl implements Reader {
 
     private Optional<Message> getAndMark(ReaderBucketPointer currentBucket, Duration invisiblity) {
 
-        while(true) {
+        while (true) {
             final List<Message> allMessages = dataContext.getMessageRepository().getMessages(currentBucket);
 
             final boolean allComplete = allMessages.stream().allMatch(m -> m.isAcked() || m.isNotVisible(clock));

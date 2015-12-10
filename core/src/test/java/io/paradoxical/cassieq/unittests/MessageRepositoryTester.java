@@ -9,7 +9,6 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
-import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.junit.Test;
@@ -158,7 +157,7 @@ public class MessageRepositoryTester extends TestBase {
 
         assertThat(messages.size()).isEqualTo(1).withFailMessage("Found incorrect number of messages in queue");
 
-        context.getMessageRepository().deleteAllMessageFrom(MonotonicIndex.valueOf(0), context.getMonotonicRepository().getCurrent());
+        context.getMessageRepository().deleteAllMessages(MonotonicIndex.valueOf(0), context.getMonotonicRepository().getCurrent());
 
         assertThat(context.getMessageRepository().getMessages(() -> 0L).size()).isEqualTo(0).withFailMessage("Values still existed in queue");
     }

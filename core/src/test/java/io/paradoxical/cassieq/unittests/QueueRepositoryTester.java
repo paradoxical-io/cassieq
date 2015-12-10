@@ -44,7 +44,7 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        repo.deleteQueue(queueName);
+        repo.deleteQueueDefinition(queueName);
 
         assertThat(repo.queueExists(queueName)).isEqualTo(false);
 
