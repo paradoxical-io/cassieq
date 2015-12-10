@@ -8,26 +8,30 @@ import javax.validation.constraints.NotNull;
 
 @Data
 public class QueueCreateOptions {
+    private static final Integer DEFAULT_BUCKET_SIZE = 20;
+    private static final Integer DEFAULT_MAX_DEVLIVERY_COUNT = 5;
+
+
     @NotNull
     private final QueueName queueName;
 
     private final Integer bucketSize;
 
-    private final Integer maxDevliveryCount;
+    private final Integer maxDeliveryCount;
 
     public QueueCreateOptions(QueueName queueName) {
-        this(queueName, 20, 5);
+        this(queueName, DEFAULT_BUCKET_SIZE, 5);
     }
 
     @JsonCreator
     public QueueCreateOptions(
             @JsonProperty("queueName") QueueName queueName,
             @JsonProperty("bucketSize") Integer bucketSize,
-            @JsonProperty("maxDevliveryCount") Integer maxDevliveryCount) {
+            @JsonProperty("maxDeliveryCount") Integer maxDeliveryCount) {
 
         this.queueName = queueName;
 
-        this.bucketSize = bucketSize;
-        this.maxDevliveryCount = maxDevliveryCount;
+        this.bucketSize = bucketSize == null ? DEFAULT_BUCKET_SIZE : bucketSize;
+        this.maxDeliveryCount = maxDeliveryCount == null ? DEFAULT_MAX_DEVLIVERY_COUNT : maxDeliveryCount;
     }
 }
