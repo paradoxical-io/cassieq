@@ -104,7 +104,7 @@ public class ReaderTester extends TestBase {
 
         getTestClock().tick();
 
-        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition, QueueStatus.Deleting);
+        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition.getQueueName(), QueueStatus.Deleting);
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 

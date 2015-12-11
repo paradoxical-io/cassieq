@@ -96,8 +96,7 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
-        getQueueRepository().getQueue(queueName)
-                            .ifPresent(queueDeleter::delete);
+        queueDeleter.delete(queueName);
 
         return Response.ok().build();
     }

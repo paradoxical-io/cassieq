@@ -164,8 +164,8 @@ public class RepairTests extends TestBase {
     }
 
     @Test
-    public void repair_manager_adds_new_workers(){
-        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration());
+    public void repair_manager_adds_new_workers() throws Exception {
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
 
         final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -186,10 +186,5 @@ public class RepairTests extends TestBase {
         manager.refresh();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
-    }
-
-    @Test
-    public void repair_managers_removes_deleted_workers(){
-        fail("not ready");
     }
 }

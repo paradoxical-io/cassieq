@@ -1,12 +1,16 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.StressTests;
 import com.godaddy.logging.Logger;
+import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
+import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
+import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.junit.RetryRule;
 import lombok.Cleanup;
 import org.apache.commons.collections4.ListUtils;
@@ -31,7 +35,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-@Category(SlowTests.class)
+@Category(StressTests.class)
 public class SlowTests extends TestBase {
     private static final Logger logger = getLogger(SlowTests.class);
 
@@ -40,14 +44,19 @@ public class SlowTests extends TestBase {
 
     @Test
     public void test_multiple_parallel_readers() throws Exception {
-        parallel_read_worker(200, // messages
-                             20,  // good workers
+        parallel_read_worker(250, // messages
+                             10,  // good workers
                              1,   // bad workers
                              Duration.ofSeconds(30));
     }
 
     private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers, Duration testTimeout) throws InterruptedException, IOException {
-        @Cleanup("stop") SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
+
+        final TestClock testClock = new TestClock();
+
+        @Cleanup("stop") SelfHostServer server = new SelfHostServer(
+                new InMemorySessionProvider(session),
+                new TestClockModule(testClock));
 
         server.start();
 
@@ -61,7 +70,6 @@ public class SlowTests extends TestBase {
 
         new Thread(() -> {
             IntStream.range(0, numMessages)
-                     .parallel()
                      .forEach(Unchecked.intConsumer(i -> {
                          client.addMessage(queueName, i).execute();
                      }));
@@ -70,7 +78,7 @@ public class SlowTests extends TestBase {
         final ExecutorService executorService = Executors.newFixedThreadPool(40);
 
         final List<Worker> goodWorkers = IntStream.range(0, numGoodWorkers)
-                                                  .mapToObj(i -> new Worker(client, queueName, payloads, executorService))
+                                                  .mapToObj(i -> new Worker(client, queueName, payloads, executorService, testClock))
                                                   .collect(toList());
 
         final List<Worker> badWorkers = IntStream.range(0, numBadWorkers)
@@ -102,7 +110,7 @@ public class SlowTests extends TestBase {
                 final QueueName queueName,
                 final Collection<Integer> collection,
                 final ExecutorService executorService) {
-            super(client, queueName, collection, executorService);
+            super(client, queueName, collection, executorService, null);
         }
 
         @Override
@@ -116,6 +124,7 @@ public class SlowTests extends TestBase {
         private final QueueName queueName;
         private final Collection<Integer> collection;
         private final ExecutorService executorService;
+        private final TestClock testClock;
         private volatile boolean running = true;
 
 
@@ -123,11 +132,12 @@ public class SlowTests extends TestBase {
                 CassandraQueueApi client,
                 QueueName queueName,
                 Collection<Integer> results,
-                final ExecutorService executorService) {
+                final ExecutorService executorService, final TestClock testClock) {
             this.client = client;
             this.queueName = queueName;
             this.collection = results;
             this.executorService = executorService;
+            this.testClock = testClock;
         }
 
         @Override
@@ -140,7 +150,14 @@ public class SlowTests extends TestBase {
                 Integer i = getMessage();
 
                 if (i != null) {
+                    logger.success("Message: " + i);
+
                     collection.add(i);
+                }
+                else if (testClock != null) {
+                    logger.info("TICK!");
+
+                    testClock.tickSeconds(5L);
                 }
             }
             catch (BadWorkerException ex) {

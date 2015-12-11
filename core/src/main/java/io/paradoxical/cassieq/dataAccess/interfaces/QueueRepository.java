@@ -12,7 +12,7 @@ import static java.util.stream.Collectors.toList;
 public interface QueueRepository {
     void createQueue(QueueDefinition definition);
 
-    void setQueueStatus(QueueDefinition definition, final QueueStatus status);
+    void setQueueStatus(QueueName queueName, final QueueStatus status);
 
     boolean queueExists(QueueName queueName);
 
