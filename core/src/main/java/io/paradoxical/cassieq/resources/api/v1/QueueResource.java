@@ -38,8 +38,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Optional;
 
-@Path("/v1/queues")
-@Api(value = "/v1/queues", description = "Queue api")
+@Path("/api/v1/queues")
+@Api(value = "/api/v1/queues", description = "Queue api")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
@@ -69,11 +69,13 @@ public class QueueResource extends BaseQueueResource {
         final QueueName queueName = createOptions.getQueueName();
 
         try {
-            getQueueRepository().createQueue(QueueDefinition.builder()
-                                                            .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
-                                                            .maxDeliveryCount(createOptions.getMaxDevliveryCount())
-                                                            .queueName(createOptions.getQueueName())
-                                                            .build());
+            final QueueDefinition newQueueDefinition = QueueDefinition.builder()
+                                                         .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
+                                                         .maxDeliveryCount(createOptions.getMaxDeliveryCount())
+                                                         .queueName(createOptions.getQueueName())
+                                                         .build();
+
+            getQueueRepository().createQueue(newQueueDefinition);
 
             // try and start a repair worker for the new queue
             repairWorkerManager.refresh();

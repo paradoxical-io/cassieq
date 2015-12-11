@@ -36,8 +36,8 @@ import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
-@Path("/v1/debug/queues")
-@Api(value = "/v1/debug/queues", description = "Queue diagnostic api")
+@Path("/api/v1/internal/queues")
+@Api(value = "/api/v1/internal/queues", description = "Queue diagnostic api")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueDebugResource extends BaseQueueResource {
 
