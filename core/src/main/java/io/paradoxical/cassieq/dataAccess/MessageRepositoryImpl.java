@@ -57,7 +57,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
         Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
                                           .ifNotExists()
-                                          .value(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get())
+                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
                                           .value(Tables.Message.BUCKET_NUM, bucketPointer)
                                           .value(Tables.Message.MONOTON, message.getIndex().get())
                                           .value(Tables.Message.VERSION, 1)
@@ -90,7 +90,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                                 .with(set(Tables.Message.NEXT_VISIBLE_ON, newInvisTime.toDate()))
                                                 .and(set(Tables.Message.VERSION, newVersion))
                                                 .and(set(Tables.Message.DELIVERY_COUNT, deliveryCount))
-                                                .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                                .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                                                 .and(eq(Tables.Message.BUCKET_NUM, bucketPointer))
                                                 .and(eq(Tables.Message.MONOTON, message.getIndex().get()))
                                                 .onlyIf(eq(Tables.Message.VERSION, message.getVersion()))
@@ -117,7 +117,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         Statement statement = QueryBuilder.update(Tables.Message.TABLE_NAME)
                                           .with(set(Tables.Message.ACKED, true))
                                           .and(set(Tables.Message.VERSION, message.getVersion() + 1))
-                                          .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                          .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                                           .and(eq(Tables.Message.BUCKET_NUM, bucketPointer))
                                           .and(eq(Tables.Message.MONOTON, message.getIndex().get()))
                                           .onlyIf(eq(Tables.Message.VERSION, message.getVersion()));
@@ -134,7 +134,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         final DateTime now = getNow();
         Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
                                           .ifNotExists()
-                                          .value(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get())
+                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
                                           .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
                                           .value(Tables.Message.ACKED, true)
                                           .value(Tables.Message.MONOTON, Tombstone.index.get())
@@ -148,7 +148,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         return QueryBuilder.select()
                            .all()
                            .from(Tables.Message.TABLE_NAME)
-                           .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                           .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                            .and(eq(Tables.Message.BUCKET_NUM, bucketPointer.get()));
     }
 
@@ -176,7 +176,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         final Statement delete = QueryBuilder.delete()
                                              .all()
                                              .from(Tables.Message.TABLE_NAME)
-                                             .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                             .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                                              .and(eq(Tables.Message.BUCKET_NUM, bucket.get()));
 
         session.execute(delete);
@@ -217,7 +217,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         final Statement delete = QueryBuilder.delete()
                                              .all()
                                              .from(Tables.Message.TABLE_NAME)
-                                             .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                             .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                                              .and(in(Tables.Message.BUCKET_NUM, deletableBuckets));
 
         session.execute(delete);

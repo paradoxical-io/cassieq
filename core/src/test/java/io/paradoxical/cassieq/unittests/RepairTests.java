@@ -169,20 +169,44 @@ public class RepairTests extends TestBase {
 
         final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
-        final QueueName queueName = QueueName.valueOf("repairer_moves_off_ghost_messages");
+        final QueueName queueName = QueueName.valueOf("repair_manager_adds_new_workers");
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
         final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
 
-        contextFactory.createQueue(queueDefinition);
-
         manager.refresh();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.deleteQueueDefinition(queueName);
+        contextFactory.deleteQueueDefinition(queueDefinition);
 
+        manager.refresh();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void repair_manager_properly_keeps_track_of_existing_workers() throws Exception {
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+
+        final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+
+        final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
+
+        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+
+        // refreshing twice should not add or remove anyone since no queues were added/deleted
+        manager.refresh();
+        manager.refresh();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+
+        contextFactory.deleteQueueDefinition(queueDefinition);
+
+        manager.refresh();
         manager.refresh();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);

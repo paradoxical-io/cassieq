@@ -9,6 +9,7 @@ import io.dropwizard.logging.BootstrapLogging;
 import io.dropwizard.logging.LoggingFactory;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -109,9 +110,16 @@ public class TestBase {
     private void createQueue(final QueueDefinition queueDefinition, final Injector injector) {
         final QueueRepository queueRepository = injector.getInstance(QueueRepository.class);
 
-        queueRepository.createQueue(queueDefinition);
+        try {
+            queueRepository.createQueue(queueDefinition);
+        }
+        catch (QueueExistsError queueExistsError) {
+            logger.error(queueExistsError, "Error creating queue because it already exists");
 
-        queueRepository.getQueue(queueDefinition.getQueueName()).get();
+            throw new RuntimeException(queueExistsError);
+        }
+
+        queueRepository.getQueue(queueDefinition.getId()).get();
     }
 
     protected void createQueue(final QueueDefinition queueDefinition) {

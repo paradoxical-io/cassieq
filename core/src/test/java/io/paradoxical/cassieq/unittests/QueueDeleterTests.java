@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class QueueDeleterTests extends TestBase {
     @Test
-    public void test_deleter_cleans_up_pointers() {
+    public void test_deleter_cleans_up_pointers() throws QueueExistsError {
         final QueueDeleter deleter = getDefaultInjector().getInstance(QueueDeleter.class);
 
         final QueueRepository instance = getDefaultInjector().getInstance(QueueRepository.class);

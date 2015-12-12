@@ -32,7 +32,7 @@ public class QueueDeleter {
 
         final MessagePointer endPointer = dataContext.getMonotonicRepository().getCurrent();
 
-        dataContext.getQueueRepository().setQueueStatus(queueName, QueueStatus.Deleting);
+        dataContext.getQueueRepository().setQueueStatus(queueDefinition.getId(), QueueStatus.Deleting);
 
         dataContext.getMessageRepository().deleteAllMessages(startPointer, endPointer);
 
@@ -41,7 +41,7 @@ public class QueueDeleter {
         dataContext.getPointerRepository().deleteAll();
 
         // actally delete the queue definition
-        dataContext.getQueueRepository().deleteQueueDefinition(queueDefinition.getQueueName());
+        dataContext.getQueueRepository().deleteQueueDefinition(queueDefinition);
 
         repairWorkerManager.refresh();
     }

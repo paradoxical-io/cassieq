@@ -70,10 +70,10 @@ public class QueueResource extends BaseQueueResource {
 
         try {
             final QueueDefinition newQueueDefinition = QueueDefinition.builder()
-                                                         .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
-                                                         .maxDeliveryCount(createOptions.getMaxDeliveryCount())
-                                                         .queueName(createOptions.getQueueName())
-                                                         .build();
+                                                                      .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
+                                                                      .maxDeliveryCount(createOptions.getMaxDeliveryCount())
+                                                                      .queueName(createOptions.getQueueName())
+                                                                      .build();
 
             getQueueRepository().createQueue(newQueueDefinition);
 
@@ -138,7 +138,7 @@ public class QueueResource extends BaseQueueResource {
 
         final Message messageInstance = messageOptional.get();
 
-        final String popReceipt = PopReceipt.from(messageInstance).toString();
+        final String popReceipt = PopReceipt.from(messageInstance, queueDefinition.get().getId()).toString();
 
         final String message = messageInstance.getBlob();
         final GetMessageResponse response = new GetMessageResponse(
@@ -172,7 +172,7 @@ public class QueueResource extends BaseQueueResource {
         try {
             final Message messageToInsert = Message.builder()
                                                    .blob(message)
-                                                   .index(getMonotonicRepoFactory().forQueue(queueName)
+                                                   .index(getMonotonicRepoFactory().forQueue(queueDefinition.get())
                                                                                    .nextMonotonic())
                                                    .build();
 
@@ -200,10 +200,20 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response ackMessage(
             @PathParam("queueName") QueueName queueName,
-            @QueryParam("popReceipt") String popReceipt) {
+            @QueryParam("popReceipt") String popReceiptRaw) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
         if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final PopReceipt popReceipt = PopReceipt.valueOf(popReceiptRaw);
+
+        if (!queueDefinition.get().getId().equals(popReceipt.getQueueId())) {
+            logger.with("popReceipt", popReceipt)
+                  .with("queueDefinition", queueDefinition)
+                  .warn("Pop receipt of old queue found");
+
             return buildQueueNotFoundResponse(queueName);
         }
 
@@ -211,7 +221,7 @@ public class QueueResource extends BaseQueueResource {
 
         try {
             messageAcked = getReaderFactory().forQueue(queueDefinition.get())
-                                             .ackMessage(PopReceipt.valueOf(popReceipt));
+                                             .ackMessage(popReceipt);
         }
         catch (Exception e) {
             logger.error(e, "Error");

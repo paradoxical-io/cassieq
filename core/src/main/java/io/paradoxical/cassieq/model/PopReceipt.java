@@ -23,12 +23,14 @@ public final class PopReceipt {
 
     private final MessageTag messageTag;
 
+    private final QueueId queueId;
+
     public static PopReceipt valueOf(String string) {
         return parsePopReceipt(string);
     }
 
-    public static PopReceipt from(Message message) {
-        return new PopReceipt(message.getIndex(), message.getVersion(), message.getTag());
+    public static PopReceipt from(Message message, QueueId queueId) {
+        return new PopReceipt(message.getIndex(), message.getVersion(), message.getTag(), queueId);
     }
 
     @Override
@@ -37,7 +39,7 @@ public final class PopReceipt {
     }
 
     private String getPopReceipt() {
-        final String receiptString = String.format("%s:%s:%s", getMessageIndex(), getMessageVersion(), getMessageTag());
+        final String receiptString = String.format("%s:%s:%s:%s", getMessageIndex(), getMessageVersion(), getMessageTag(), getQueueId());
 
         return Base64.getEncoder().withoutPadding().encodeToString(receiptString.getBytes());
     }
@@ -52,8 +54,9 @@ public final class PopReceipt {
         final MonotonicIndex monotonicIndex = MonotonicIndex.valueOf(Long.parseLong(components[0]));
         final Integer messageVersion = Integer.parseInt(components[1]);
         final MessageTag messageTag = MessageTag.valueOf(components[2]);
+        final QueueId queueId = QueueId.valueOf(components[3]);
 
-        return new PopReceipt(monotonicIndex, messageVersion, messageTag);
+        return new PopReceipt(monotonicIndex, messageVersion, messageTag, queueId);
     }
 
 

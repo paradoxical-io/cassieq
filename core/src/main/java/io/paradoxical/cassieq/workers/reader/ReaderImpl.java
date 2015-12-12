@@ -119,7 +119,7 @@ public class ReaderImpl implements Reader {
     }
 
     private Optional<QueueStatus> getQueueStatus() {
-        return dataContext.getQueueRepository().getQueue(queueDefinition.getQueueName()).map(QueueDefinition::getStatus);
+        return dataContext.getQueueRepository().getQueue(queueDefinition.getId()).map(QueueDefinition::getStatus);
     }
 
     @Override

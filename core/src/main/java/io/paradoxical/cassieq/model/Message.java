@@ -27,6 +27,8 @@ public class Message {
 
     private MessageTag tag;
 
+    private final QueueId queueId;
+
     public boolean isVisible(Clock clock) {
         return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now());
     }
@@ -47,7 +49,7 @@ public class Message {
     public boolean isNotTombstone() { return !isTombstone(); }
 
     public PopReceipt getPopReceipt() {
-        return PopReceipt.from(this);
+        return PopReceipt.from(this, queueId);
     }
 
     public Message createNewWithIndex(MonotonicIndex index) {

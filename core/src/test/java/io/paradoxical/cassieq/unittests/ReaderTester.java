@@ -63,7 +63,7 @@ public class ReaderTester extends TestBase {
 
             assertThat(message.get().getBlob().equals(blob));
 
-            final PopReceipt popReceipt = PopReceipt.from(message.get());
+            final PopReceipt popReceipt = PopReceipt.from(message.get(), queueDefinition.getId());
 
             return reader.ackMessage(popReceipt);
         }
@@ -104,7 +104,7 @@ public class ReaderTester extends TestBase {
 
         getTestClock().tick();
 
-        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition.getQueueName(), QueueStatus.Deleting);
+        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition.getId(), QueueStatus.Deleting);
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 

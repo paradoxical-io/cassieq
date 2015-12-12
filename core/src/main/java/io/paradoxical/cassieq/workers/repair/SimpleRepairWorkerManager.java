@@ -6,8 +6,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -15,35 +13,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toSet;
-
-@Data
-class RepairWorkerKey {
-    private QueueDefinition getQueueDefinition() {
-        return repairWorker.forDefinition();
-    }
-
-    private final RepairWorker repairWorker;
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof RepairWorkerKey)) {
-            return false;
-        }
-
-        final RepairWorkerKey that = (RepairWorkerKey) o;
-
-        return !(getQueueDefinition() != null ? !getQueueDefinition().equals(that.getQueueDefinition()) : that.getQueueDefinition() != null);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return getQueueDefinition() != null ? getQueueDefinition().hashCode() : 0;
-    }
-}
 
 public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private final RepairWorkerFactory repairWorkerFactory;
@@ -61,7 +30,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     public synchronized void start() {
         final Set<RepairWorkerKey> expectedWorkers =
                 queueRepositoryProvider.get()
-                                       .getQueues()
+                                       .getActiveQueues()
                                        .stream()
                                        .map(repairWorkerFactory::forQueue)
                                        .map(RepairWorkerKey::new)
