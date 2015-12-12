@@ -1,7 +1,6 @@
 server:
   adminMinThreads: 1
   adminMaxThreads: 64
-  rootPath: "/*"
   applicationConnectors:
     - type: http
       port: 8080

@@ -1,11 +1,12 @@
 package io.paradoxical.cassieq.unittests.server;
 
+import com.godaddy.logging.Logger;
+import com.google.common.collect.ImmutableList;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.common.test.guice.OverridableModule;
 import io.paradoxical.common.test.web.runner.ServiceTestRunner;
-import com.godaddy.logging.Logger;
-import com.google.common.collect.ImmutableList;
+import io.paradoxical.common.test.web.runner.ServiceTestRunnerConfig;
 import lombok.Getter;
 
 import java.net.URI;
@@ -42,14 +43,20 @@ public class SelfHostServer implements AutoCloseable {
                                         configuration,
                                         getNextPort());
 
-        serviceConfigurationTestServiceServiceTestRunner.run(ImmutableList.copyOf(overridableModules));
+        final ServiceTestRunnerConfig serviceConfiguration =
+                ServiceTestRunnerConfig.builder()
+                                       .logFormat("%d [%p] %marker [%mdc{corrId}] %logger %m%n")
+                                       .applicationRoot("/")
+                                       .build();
+
+        serviceConfigurationTestServiceServiceTestRunner.run(serviceConfiguration, ImmutableList.copyOf(overridableModules));
     }
 
     public void start() {
         start(getDefaultConfig());
     }
 
-    public void stop()  {
+    public void stop() {
         try {
             serviceConfigurationTestServiceServiceTestRunner.close();
         }
@@ -58,7 +65,8 @@ public class SelfHostServer implements AutoCloseable {
         }
     }
 
-    @Override public void close() throws Exception {
+    @Override
+    public void close() throws Exception {
         stop();
     }
 
