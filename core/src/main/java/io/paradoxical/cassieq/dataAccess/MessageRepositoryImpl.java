@@ -17,14 +17,19 @@ import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MessageTag;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import org.apache.commons.collections4.CollectionUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static java.util.stream.Collectors.toList;
 
@@ -173,6 +178,47 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                              .from(Tables.Message.TABLE_NAME)
                                              .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
                                              .and(eq(Tables.Message.BUCKET_NUM, bucket.get()));
+
+        session.execute(delete);
+    }
+
+    @Override
+    public void deleteAllMessages(MessagePointer from, MessagePointer to) {
+
+        final int lastBucketNumber = to.toBucketPointer(queueDefinition.getBucketSize()).get().intValue();
+        final int firstBucketNumber = from.toBucketPointer(queueDefinition.getBucketSize()).get().intValue();
+
+        List<Integer> batchBucketsToDelete = new ArrayList<>();
+
+        final Iterator<Integer> bucketRangeIterator = IntStream.range(firstBucketNumber, lastBucketNumber + 1)
+                                                               .boxed()
+                                                               .iterator();
+
+        while (bucketRangeIterator.hasNext()) {
+            batchBucketsToDelete.add(bucketRangeIterator.next());
+
+            if (batchBucketsToDelete.size() == getDeleteBatchSize()) {
+                deleteAllMessagesInBuckets(batchBucketsToDelete);
+
+                batchBucketsToDelete.clear();
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(batchBucketsToDelete)) {
+            deleteAllMessagesInBuckets(batchBucketsToDelete);
+        }
+    }
+
+    private int getDeleteBatchSize() {
+        return 100;
+    }
+
+    private void deleteAllMessagesInBuckets(final List<Integer> deletableBuckets) {
+        final Statement delete = QueryBuilder.delete()
+                                             .all()
+                                             .from(Tables.Message.TABLE_NAME)
+                                             .where(eq(Tables.Message.QUEUENAME, queueDefinition.getQueueName().get()))
+                                             .and(in(Tables.Message.BUCKET_NUM, deletableBuckets));
 
         session.execute(delete);
     }

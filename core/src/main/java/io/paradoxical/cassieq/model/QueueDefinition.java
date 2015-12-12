@@ -17,14 +17,17 @@ public class QueueDefinition {
     private final BucketSize bucketSize;
     private final Integer maxDeliveryCount;
 
-    private QueueDefinition(QueueName queueName, BucketSize bucketSize, Integer maxDeliveryCount) {
+    private final QueueStatus status;
+
+    public QueueDefinition(QueueName queueName, BucketSize bucketSize, Integer maxDeliveryCount, QueueStatus status) {
         this.queueName = queueName;
         this.bucketSize = bucketSize == null ? BucketSize.valueOf(20) : bucketSize;
         this.maxDeliveryCount = maxDeliveryCount == null ? 5 : maxDeliveryCount;
+        this.status = status == null ? QueueStatus.Active : status;
     }
 
-    private QueueDefinition(QueueName queueName, Integer bucketSize, Integer maxDeliveryCount) {
-        this(queueName, BucketSize.valueOf(bucketSize), maxDeliveryCount);
+    private QueueDefinition(QueueName queueName, Integer bucketSize, Integer maxDeliveryCount, QueueStatus status) {
+        this(queueName, BucketSize.valueOf(bucketSize), maxDeliveryCount, status);
     }
 
     public static QueueDefinition fromRow(final Row row) {
@@ -32,6 +35,7 @@ public class QueueDefinition {
                               .bucketSize(BucketSize.valueOf(row.getInt(Tables.Queue.BUCKET_SIZE)))
                               .maxDeliveryCount(row.getInt(Tables.Queue.MAX_DEQUEUE_COUNT))
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUENAME)))
+                              .status(QueueStatus.valueOf(row.getString(Tables.Queue.STATUS)))
                               .build();
     }
 }

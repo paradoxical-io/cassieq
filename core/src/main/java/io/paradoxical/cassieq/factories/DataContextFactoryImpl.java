@@ -4,6 +4,9 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import io.paradoxical.cassieq.model.QueueName;
+
+import java.util.Optional;
 
 public class DataContextFactoryImpl implements DataContextFactory {
     private final MonotonicRepoFactory monotonicRepoFactory;
@@ -29,6 +32,11 @@ public class DataContextFactoryImpl implements DataContextFactory {
                 monotonicRepoFactory.forQueue(definition.getQueueName()),
                 pointerRepoFactory.forQueue(definition.getQueueName()),
                 queueRepositoryProvider.get());
+    }
+
+    @Override
+    public Optional<QueueDefinition> getDefinition(final QueueName name) {
+        return queueRepositoryProvider.get().getQueue(name);
     }
 }
 

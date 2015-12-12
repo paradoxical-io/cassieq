@@ -27,4 +27,27 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
     }
+
+    @Test
+    public void delete_queue(){
+        final Injector defaultInjector = getDefaultInjector();
+
+        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueName queueName = QueueName.valueOf("delete_queue");
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+
+        repo.createQueue(queueDefinition);
+
+        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+
+        assertThat(repo.getQueueNames()).contains(queueName);
+
+        repo.deleteQueueDefinition(queueName);
+
+        assertThat(repo.queueExists(queueName)).isEqualTo(false);
+
+        assertThat(repo.getQueueNames()).doesNotContain(queueName);
+    }
 }

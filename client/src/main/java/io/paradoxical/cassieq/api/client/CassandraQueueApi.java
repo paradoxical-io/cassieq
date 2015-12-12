@@ -56,5 +56,7 @@ public interface CassandraQueueApi {
             @Path("queueName") QueueName queueName,
             @Query("popReceipt") String popReceipt);
 
+    @DELETE("/api/v1/queues/{queueName}")
+    Call<ResponseBody> deleteQueue(@Path("queueName") QueueName queueName);
 
 }

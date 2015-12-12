@@ -53,7 +53,7 @@ public class RepairWorkerImpl implements RepairWorker {
         this.configuration = configuration.getBucketConfiguration();
         dataContext = factory.forQueue(definition);
 
-        logger = logger.with(definition.getQueueName());
+        logger = logger.with("queue-name", definition.getQueueName());
     }
 
     @Override
@@ -70,6 +70,11 @@ public class RepairWorkerImpl implements RepairWorker {
         isStarted = false;
 
         scheduledExecutorService.shutdown();
+    }
+
+    @Override
+    public QueueDefinition forDefinition() {
+        return queueDefinition;
     }
 
     public void waitForNextRun() throws InterruptedException {
@@ -114,14 +119,20 @@ public class RepairWorkerImpl implements RepairWorker {
             return;
         }
 
-        final List<Message> messages = dataContext.getMessageRepository().getMessages(context.getPointer());
+        List<Message> messages = dataContext.getMessageRepository().getMessages(context.getPointer());
 
         messages.stream().filter(message -> !message.isAcked() && message.isVisible(clock) && message.getDeliveryCount() == 0)
                 .forEach(this::republishMessage);
 
-        deleteMessagesInBucket(context.getPointer());
-
         advance(context.getPointer());
+
+        // check if all is acked now before we give up
+        messages = dataContext.getMessageRepository().getMessages(context.getPointer());
+
+        // only delete them all if they are all already acked
+        if (messages.stream().allMatch(Message::isAcked)) {
+            deleteMessagesInBucket(context.getPointer());
+        }
     }
 
     private void waitForTimeout(final DateTime tombstoneTime) {
@@ -209,7 +220,8 @@ public class RepairWorkerImpl implements RepairWorker {
 
             dataContext.getMessageRepository().ackMessage(message);
 
-            logger.with(message).with("next-index", nextIndex)
+            logger.with(message)
+                  .with("next-index", nextIndex)
                   .info("Message needs republishing, acking original and publishing new one");
         }
         catch (Exception e) {
@@ -236,7 +248,7 @@ public class RepairWorkerImpl implements RepairWorker {
 
         final RepairBucketPointer repairBucketPointer = dataContext.getPointerRepository().advanceRepairBucketPointer(currentBucket, currentBucket.next());
 
-        logger.with(repairBucketPointer).info("New bucket");
+        logger.with("now-repair-pointer", repairBucketPointer).info("New bucket");
 
         return repairBucketPointer;
     }

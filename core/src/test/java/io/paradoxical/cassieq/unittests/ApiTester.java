@@ -1,16 +1,19 @@
 package io.paradoxical.cassieq.unittests;
 
+import com.godaddy.logging.Logger;
+import com.squareup.okhttp.ResponseBody;
+import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
-import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
-import com.godaddy.logging.Logger;
-import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.QueueName;
-import com.squareup.okhttp.ResponseBody;
+import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
-import lombok.Cleanup;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import retrofit.Response;
+
+import java.io.IOException;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,14 +22,39 @@ public class ApiTester extends TestBase {
 
     private static final Logger logger = getLogger(ApiTester.class);
 
-    @Test
-    public void test_client_can_create_put_and_ack() throws Exception {
-        @Cleanup("stop") SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
+    private static SelfHostServer server;
+
+    private static CassandraQueueApi client;
+
+    @BeforeClass
+    public static void setup() {
+        server = new SelfHostServer(new InMemorySessionProvider(session));
 
         server.start();
 
-        final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri().toString());
+        client = CassandraQueueApi.createClient(server.getBaseUri().toString());
+    }
 
+    @AfterClass
+    public static void cleanup() {
+        server.stop();
+    }
+
+    @Test
+    public void put_into_deleted_queue_fails() throws IOException {
+        final QueueName queueName = QueueName.valueOf("put_into_deleted_queue_fails");
+
+        client.createQueue(new QueueCreateOptions(queueName)).execute();
+
+        client.deleteQueue(queueName).execute();
+
+        final Response<ResponseBody> result = client.addMessage(queueName, "foo").execute();
+
+        assertThat(result.isSuccess()).isFalse();
+    }
+
+    @Test
+    public void test_client_can_create_put_and_ack() throws Exception {
         final QueueName queueName = QueueName.valueOf("test");
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
@@ -52,12 +80,6 @@ public class ApiTester extends TestBase {
 
     @Test
     public void demo_invis_client() throws Exception {
-        @Cleanup("stop") SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
-
-        server.start();
-
-        final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri().toString());
-
         final QueueName queueName = QueueName.valueOf("test");
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
@@ -70,13 +92,13 @@ public class ApiTester extends TestBase {
 
         int c = -1;
 
-        while(true){
+        while (true) {
             c++;
             final Response<GetMessageResponse> message = client.getMessage(queueName, 1L).execute();
 
             final GetMessageResponse body = message.body();
 
-            if(body == null){
+            if (body == null) {
                 break;
             }
 
@@ -106,12 +128,6 @@ public class ApiTester extends TestBase {
 
     @Test
     public void invis() throws Exception {
-        @Cleanup("stop") SelfHostServer server = new SelfHostServer(new InMemorySessionProvider(session));
-
-        server.start();
-
-        final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri().toString());
-
         final QueueName queueName = QueueName.valueOf("test");
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
@@ -125,7 +141,7 @@ public class ApiTester extends TestBase {
         GetMessageResponse body;
         int i = 0;
 
-        while((body = getMessage(client, queueName)) != null) {
+        while ((body = getMessage(client, queueName)) != null) {
 
             final String popReceipt = body.getPopReceipt();
 

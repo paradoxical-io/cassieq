@@ -10,11 +10,14 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
+import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static java.util.stream.Collectors.toList;
 
 public class QueueRepositoryImpl extends RepositoryBase implements QueueRepository {
@@ -22,12 +25,12 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     private final Session session;
 
     @Inject
-    public QueueRepositoryImpl(final Session session) {
+    public QueueRepositoryImpl(@NonNull final Session session) {
         this.session = session;
     }
 
     @Override
-    public void createQueue(final QueueDefinition definition) {
+    public void createQueue(@NonNull final QueueDefinition definition) {
 
         initializeMonotonicValue(definition.getQueueName());
 
@@ -36,24 +39,34 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         insertQueueRecord(definition);
     }
 
-    private void insertQueueRecord(final QueueDefinition queueDefinition) {
+    @Override
+    public void setQueueStatus(@NonNull final QueueName queueName, @NonNull final QueueStatus status) {
+        final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                                             .where(eq(Tables.Queue.QUEUENAME, queueName.get()))
+                                             .with(set(Tables.Queue.STATUS, status.name()));
+
+        session.execute(update);
+    }
+
+    private void insertQueueRecord(@NonNull final QueueDefinition queueDefinition) {
         final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                                                .ifNotExists()
                                                .value(Tables.Queue.QUEUENAME, queueDefinition.getQueueName().get())
                                                .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                                               .value(Tables.Queue.MAX_DEQUEUE_COUNT, queueDefinition.getMaxDeliveryCount());
+                                               .value(Tables.Queue.MAX_DEQUEUE_COUNT, queueDefinition.getMaxDeliveryCount())
+                                               .value(Tables.Queue.STATUS, QueueStatus.Active.name());
 
         session.execute(insertQueue);
     }
 
-    private void initializePointers(final QueueName queueName) {
+    private void initializePointers(@NonNull final QueueName queueName) {
 
         initializePointer(queueName, PointerType.BUCKET_POINTER, 0L);
         initializePointer(queueName, PointerType.INVISIBILITY_POINTER, -1L);
         initializePointer(queueName, PointerType.REPAIR_BUCKET, 0L);
     }
 
-    private void initializeMonotonicValue(final QueueName queueName) {
+    private void initializeMonotonicValue(@NonNull final QueueName queueName) {
         Statement statement = QueryBuilder.insertInto(Tables.Monoton.TABLE_NAME)
                                           .value(Tables.Monoton.QUEUENAME, queueName.get())
                                           .value(Tables.Monoton.VALUE, 0L)
@@ -62,7 +75,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         session.execute(statement);
     }
 
-    private void initializePointer(final QueueName queueName, final PointerType pointerType, final Long value) {
+    private void initializePointer(@NonNull final QueueName queueName, @NonNull final PointerType pointerType, @NonNull final Long value) {
         final Statement insert = QueryBuilder.insertInto(Tables.Pointer.TABLE_NAME)
                                              .ifNotExists()
                                              .value(Tables.Pointer.VALUE, value)
@@ -73,7 +86,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public boolean queueExists(final QueueName queueName) {
+    public boolean queueExists(@NonNull final QueueName queueName) {
         final Select.Where queryOne =
                 QueryBuilder.select().all().from(Tables.Queue.TABLE_NAME).where(eq(Tables.Queue.QUEUENAME, queueName.get()));
 
@@ -81,7 +94,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public Optional<QueueDefinition> getQueue(final QueueName queueName) {
+    public Optional<QueueDefinition> getQueue(@NonNull final QueueName queueName) {
         final Select.Where queryOne =
                 QueryBuilder.select().all().from(Tables.Queue.TABLE_NAME).where(eq(Tables.Queue.QUEUENAME, queueName.get()));
 
@@ -97,6 +110,14 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                       .all()
                       .stream()
                       .map(QueueDefinition::fromRow).collect(toList());
+    }
 
+    @Override
+    public void deleteQueueDefinition(@NonNull final QueueName queueName) {
+        final Statement delete = QueryBuilder.delete().all()
+                                             .from(Tables.Queue.TABLE_NAME)
+                                             .where(eq(Tables.Queue.QUEUENAME, queueName.get()));
+
+        session.execute(delete);
     }
 }

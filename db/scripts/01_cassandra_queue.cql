@@ -1,7 +1,8 @@
 CREATE TABLE queue (
   queuename text PRIMARY KEY,
   bucket_size int,
-  max_dequeue_count int
+  max_dequeue_count int,
+  status text
 );
 
 CREATE TABLE pointer (

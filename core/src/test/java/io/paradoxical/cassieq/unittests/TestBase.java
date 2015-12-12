@@ -73,6 +73,10 @@ public class TestBase {
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
+        return getDefaultInjector(configuration, session);
+    }
+
+    protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
         return Guice.createInjector(
                 ModuleUtils.mergeModules(DefaultApplicationModules.getModules(),
                                          new InMemorySessionProvider(session),
