@@ -5,6 +5,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
@@ -198,14 +199,14 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
             batchBucketsToDelete.add(bucketRangeIterator.next());
 
             if (batchBucketsToDelete.size() == getDeleteBatchSize()) {
-                deleteAllMessagesInBuckets(batchBucketsToDelete);
+                deleteAllMessagesInBuckets(ImmutableList.copyOf(batchBucketsToDelete));
 
                 batchBucketsToDelete.clear();
             }
         }
 
         if (!CollectionUtils.isEmpty(batchBucketsToDelete)) {
-            deleteAllMessagesInBuckets(batchBucketsToDelete);
+            deleteAllMessagesInBuckets(ImmutableList.copyOf(batchBucketsToDelete));
         }
     }
 
