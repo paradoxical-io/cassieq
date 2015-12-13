@@ -4,32 +4,24 @@ package io.paradoxical.cassieq.dataAccess;
 public final class Tables {
     public static class Pointer {
         public static final String TABLE_NAME = "pointer";
-        public static final String QUEUE_ID = "queueid";
+        public static final String QUEUE_NAME = "queuename";
         public static final String POINTER_TYPE = "pointer_type";
         public static final String VALUE = "value";
     }
 
     public static class Monoton {
         public static final String TABLE_NAME = "monoton";
-        public static final String QUEUE_ID = "queueid";
+        public static final String QUEUE_NAME = "queuename";
         public static final String VALUE = "value";
     }
 
     public static class Queue {
         public static final String TABLE_NAME = "queue";
-        public static final String QUEUE_ID = "queueid";
         public static final String MAX_DELIVERY_COUNT = "max_delivery_count";
         public static final String BUCKET_SIZE = "bucket_size";
         public static final String STATUS = "status";
         public static final String QUEUE_NAME = "queuename";
         public static final String VERSION = "version";
-    }
-
-    public static class QueueNameManager {
-        public static final String TABLE_NAME = "queue_name_manager";
-        public static final String QUEUE_NAME = "queuename";
-        public static final String VERSION = "version";
-        public static final String STATUS = "status";
     }
 
     public static class Message {

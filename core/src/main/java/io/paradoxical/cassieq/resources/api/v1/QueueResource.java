@@ -22,6 +22,7 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
+import lombok.Data;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;
@@ -65,7 +66,9 @@ public class QueueResource extends BaseQueueResource {
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response createQueue(@Valid @NotNull QueueCreateOptions createOptions) {
+    public Response createQueue(
+            @Valid @NotNull QueueCreateOptions createOptions,
+            @QueryParam("errorIfExists") @DefaultValue("false") Boolean errorIfExists) {
         final QueueName queueName = createOptions.getQueueName();
 
         try {
@@ -75,17 +78,27 @@ public class QueueResource extends BaseQueueResource {
                                                                       .queueName(createOptions.getQueueName())
                                                                       .build();
 
-            getQueueRepository().createQueue(newQueueDefinition);
+            final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition);
+
+            if(!wasInserted && errorIfExists){
+                return Response.status(Response.Status.CONFLICT).build();
+            }
 
             // try and start a repair worker for the new queue
             repairWorkerManager.refresh();
+
+            if(wasInserted){
+                return Response.status(Response.Status.CREATED).build();
+            }
+            else {
+                return Response.ok().build();
+            }
         }
         catch (Exception e) {
             logger.error(e, "Error");
             return buildErrorResponse("CreateQueue", queueName, e);
         }
 
-        return Response.ok().status(Response.Status.CREATED).build();
     }
 
     @DELETE

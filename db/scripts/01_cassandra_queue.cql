@@ -1,6 +1,5 @@
 CREATE TABLE queue (
-  queueid text PRIMARY KEY,
-  queuename text,
+  queuename text PRIMARY KEY,
   bucket_size int,
   max_delivery_count int,
   status int,
@@ -8,7 +7,7 @@ CREATE TABLE queue (
 );
 
 CREATE TABLE pointer (
-  queueid text,
+  queuename text,
   pointer_type text,
   value bigint,
 
@@ -16,7 +15,7 @@ CREATE TABLE pointer (
 );
 
 CREATE TABLE monoton (
-  queueid text PRIMARY KEY,
+  queuename text PRIMARY KEY,
   value bigint
 );
 

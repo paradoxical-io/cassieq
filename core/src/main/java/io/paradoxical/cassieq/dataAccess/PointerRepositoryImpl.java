@@ -102,7 +102,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
     public void deleteAll() {
         final Statement delete = QueryBuilder.delete().all()
                                              .from(Tables.Pointer.TABLE_NAME)
-                                             .where(eq(Tables.Pointer.QUEUE_ID, queueId.get()));
+                                             .where(eq(Tables.Pointer.QUEUE_NAME, g.get()));
 
         session.execute(delete);
     }

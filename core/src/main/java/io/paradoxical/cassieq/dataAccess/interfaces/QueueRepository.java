@@ -24,16 +24,9 @@ public interface QueueRepository {
      * @param definition
      * @throws QueueExistsError
      */
-    void createQueue(QueueDefinition definition) throws QueueExistsError;
+    boolean createQueue(QueueDefinition definition);
 
-    /**
-     * Sets the queue definition status if is possible set (some states cannot be gone back to)
-     */
-    boolean trySetQueueDefinitionStatus(QueueId queueId, final QueueStatus status);
-
-    boolean queueExists(QueueName queueName);
-
-    Optional<QueueDefinition> getQueue(QueueId queueId);
+    Optional<QueueDefinition> getQueue(QueueName queueId);
 
     List<QueueDefinition> getActiveQueues();
 
