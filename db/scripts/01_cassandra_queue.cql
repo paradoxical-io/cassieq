@@ -3,7 +3,7 @@ CREATE TABLE queue (
   queuename text,
   bucket_size int,
   max_delivery_count int,
-  status text,
+  status int,
   version int
 );
 
@@ -20,10 +20,10 @@ CREATE TABLE monoton (
   value bigint
 );
 
-CREATE TABLE queue_name_idx(
+CREATE TABLE queue_name_manager(
     queuename text PRIMARY KEY,
     version int,
-    status text
+    status int
 );
 
 CREATE TABLE message (

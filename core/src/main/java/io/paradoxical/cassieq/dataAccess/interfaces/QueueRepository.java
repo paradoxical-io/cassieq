@@ -12,9 +12,24 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 public interface QueueRepository {
+
+    /**
+     * Marks this queue id for deletion and makes the queue name available for creation by someone else
+     * @param definition
+     */
+    void markForDeletion(QueueDefinition definition);
+
+    /**
+     * Attemps to create a queue with this name
+     * @param definition
+     * @throws QueueExistsError
+     */
     void createQueue(QueueDefinition definition) throws QueueExistsError;
 
-    void setQueueStatus(QueueId queueId, final QueueStatus status);
+    /**
+     * Sets the queue definition status if is possible set (some states cannot be gone back to)
+     */
+    boolean trySetQueueDefinitionStatus(QueueId queueId, final QueueStatus status);
 
     boolean queueExists(QueueName queueName);
 

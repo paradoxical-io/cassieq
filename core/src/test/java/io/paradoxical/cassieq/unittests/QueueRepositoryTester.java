@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
 import org.junit.Test;
 
 import java.util.stream.IntStream;
@@ -58,6 +59,27 @@ public class QueueRepositoryTester extends TestBase {
         }
 
         fail("Queue exists error not thrown");
+    }
+
+    @Test
+    public void queue_defintion_once_in_status_cant_move_backwards() throws QueueExistsError {
+        final Injector defaultInjector = getDefaultInjector();
+
+        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueName queueName = QueueName.valueOf("queue_defintion_once_in_status_cant_move_backwards");
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+
+        repo.createQueue(queueDefinition);
+
+        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Deleting)).isTrue();
+
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Inactive)).isTrue();
+
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Active)).isFalse();
     }
 
     @Test

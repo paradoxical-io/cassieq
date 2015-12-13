@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.workers;
 
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
@@ -8,18 +9,20 @@ import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 
 public class QueueDeleter {
     private final DataContextFactory factory;
+    private final QueueRepository queueRepository;
     private final RepairWorkerManager repairWorkerManager;
 
     @Inject
     public QueueDeleter(
             DataContextFactory factory,
+            QueueRepository queueRepository,
             RepairWorkerManager repairWorkerManager) {
         this.factory = factory;
+        this.queueRepository = queueRepository;
         this.repairWorkerManager = repairWorkerManager;
     }
 
@@ -32,7 +35,7 @@ public class QueueDeleter {
 
         final MessagePointer endPointer = dataContext.getMonotonicRepository().getCurrent();
 
-        dataContext.getQueueRepository().setQueueStatus(queueDefinition.getId(), QueueStatus.Deleting);
+        queueRepository.markForDeletion(queueDefinition);
 
         dataContext.getMessageRepository().deleteAllMessages(startPointer, endPointer);
 
@@ -41,7 +44,7 @@ public class QueueDeleter {
         dataContext.getPointerRepository().deleteAll();
 
         // actally delete the queue definition
-        dataContext.getQueueRepository().tryDeleteQueueDefinition(queueDefinition);
+        queueRepository.tryDeleteQueueDefinition(queueDefinition);
 
         repairWorkerManager.refresh();
     }

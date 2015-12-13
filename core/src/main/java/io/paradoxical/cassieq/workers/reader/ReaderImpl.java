@@ -3,6 +3,7 @@ package io.paradoxical.cassieq.workers.reader;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.*;
@@ -81,14 +82,17 @@ public class ReaderImpl implements Reader {
     private static final Logger logger = getLogger(ReaderImpl.class);
 
     private final DataContext dataContext;
+    private final QueueRepository queueRepository;
     private final Clock clock;
     private final QueueDefinition queueDefinition;
 
     @Inject
     public ReaderImpl(
             DataContextFactory dataContextFactory,
+            QueueRepository queueRepository,
             Clock clock,
             @Assisted QueueDefinition queueDefinition) {
+        this.queueRepository = queueRepository;
         this.clock = clock;
         this.queueDefinition = queueDefinition;
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -119,7 +123,7 @@ public class ReaderImpl implements Reader {
     }
 
     private Optional<QueueStatus> getQueueStatus() {
-        return dataContext.getQueueRepository().getQueue(queueDefinition.getId()).map(QueueDefinition::getStatus);
+        return queueRepository.getQueue(queueDefinition.getId()).map(QueueDefinition::getStatus);
     }
 
     @Override

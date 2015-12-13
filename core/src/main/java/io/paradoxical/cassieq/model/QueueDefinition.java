@@ -38,7 +38,7 @@ public class QueueDefinition {
                               .bucketSize(BucketSize.valueOf(row.getInt(Tables.Queue.BUCKET_SIZE)))
                               .maxDeliveryCount(row.getInt(Tables.Queue.MAX_DELIVERY_COUNT))
                               .id(QueueId.valueOf(row.getString(Tables.Queue.QUEUE_ID)))
-                              .status(QueueStatus.valueOf(row.getString(Tables.Queue.STATUS)))
+                              .status(QueueStatus.values()[row.getInt(Tables.Queue.STATUS)])
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUE_NAME)))
                               .version(row.getInt(Tables.Queue.VERSION))
                               .build();
