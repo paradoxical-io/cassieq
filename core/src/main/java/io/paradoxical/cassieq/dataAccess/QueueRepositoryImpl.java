@@ -38,10 +38,26 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
 
     @Override
-    public void markForDeletion(final QueueDefinition definition) {
-        if (trySetQueueDefinitionStatus(definition.getQueueName(), QueueStatus.Deleting)) {
+    public boolean tryMarkForDeletion(final QueueDefinition definition) {
+        final boolean markedForDeletion = tryAdvanceQueueStatus(definition.getQueueName(), QueueStatus.Deleting);
+
+        if (markedForDeletion) {
             logger.with("definition", definition).success("Marked for deletion");
         }
+
+        return markedForDeletion;
+    }
+
+    @Override
+    public boolean tryMarkQueueInactive(final QueueDefinition definition) {
+        final Update.Conditions updateTrackingTable =
+                QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                            .where(eq(Tables.Queue.QUEUE_NAME, definition.getQueueName().get()))
+                            .with(set(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()))
+                            .onlyIf(eq(Tables.Queue.VERSION, definition.getVersion()))
+                            .and(eq(Tables.Queue.STATUS, QueueStatus.Deleting.ordinal()));
+
+        return session.execute(updateTrackingTable).wasApplied();
     }
 
 
@@ -50,13 +66,29 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return upsertQueueDefinition(definition);
     }
 
+    private boolean setQueueDefinitionStatus(
+            @NonNull final QueueName queueName,
+            @NonNull final QueueStatus status) {
+
+        final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                                             .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
+                                             .with(set(Tables.Queue.STATUS, status.ordinal()));
+
+        session.execute(update);
+
+        return true;
+    }
+
     /**
      * Set the status but only if its allowed to move to that status
      *
      * @param queueName
      * @param status
      */
-    public boolean trySetQueueDefinitionStatus(@NonNull final QueueName queueName, @NonNull final QueueStatus status) {
+    public boolean tryAdvanceQueueStatus(
+            @NonNull final QueueName queueName,
+            @NonNull final QueueStatus status) {
+
         final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
                                              .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
                                              .with(set(Tables.Queue.STATUS, status.ordinal()))
@@ -66,6 +98,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     private boolean insertQueueIfNotExist(final QueueDefinition queueDefinition) {
+
         final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                                                .ifNotExists()
                                                .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
@@ -82,7 +115,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
             resetQueuePointers(queueDefinition.getQueueName());
 
-            return trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Active);
+            return setQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Active);
         }
 
         return false;
@@ -108,12 +141,10 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
             return false;
         }
 
-
         // if however, an inactve queue exists, make sure only one person can
         // create the next active queue (prevent race conditions of multiple queues being created
         // of the same name that are active
         // first check the table name version table
-
 
         final int currentVersion = currentQueueDefinition.getVersion();
         final int nextVersion = currentVersion + 1;
@@ -121,14 +152,15 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         // update the tracking table to see who can grab the next version
         // only if the queue name status is inactive
         // if its available grab it
-        final Statement insertTrackingId = QueryBuilder.update(Tables.Queue.TABLE_NAME)
-                                                       .where(eq(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get()))
-                                                       .with(set(Tables.Queue.VERSION, nextVersion))
-                                                       .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
-                                                       .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get()))
-                                                       .and(set(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount()))
-                                                       .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
-                                                       .and(eq(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()));
+        final Statement insertTrackingId =
+                QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                            .where(eq(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get()))
+                            .with(set(Tables.Queue.VERSION, nextVersion))
+                            .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
+                            .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get()))
+                            .and(set(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount()))
+                            .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
+                            .and(eq(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()));
 
         final boolean queueUpdateApplied = session.execute(insertTrackingId).wasApplied();
 
@@ -145,31 +177,20 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     private void resetQueueMonotonicValue(@NonNull final QueueName queueName) {
-        Statement statement = QueryBuilder.insertInto(Tables.Monoton.TABLE_NAME)
-                                          .ifNotExists()
-                                          .value(Tables.Monoton.QUEUE_NAME, queueName.get())
-                                          .value(Tables.Monoton.VALUE, 0L)
-                                          .ifNotExists();
+        final Update.Where upsert = QueryBuilder.update(Tables.Monoton.TABLE_NAME)
+                                                .with(set(Tables.Monoton.VALUE, 0L))
+                                                .where(eq(Tables.Monoton.QUEUE_NAME, queueName.get()));
 
-        final boolean valueInserted = session.execute(statement).wasApplied();
-
-        if (!valueInserted) {
-            // get + update to 0
-        }
+        session.execute(upsert);
     }
 
     private void initializePointer(@NonNull final QueueName queueName, @NonNull final PointerType pointerType, @NonNull final Long value) {
-        final Statement insert = QueryBuilder.insertInto(Tables.Pointer.TABLE_NAME)
-                                             .ifNotExists()
-                                             .value(Tables.Pointer.VALUE, value)
-                                             .value(Tables.Pointer.QUEUE_NAME, queueName.get())
-                                             .value(Tables.Pointer.POINTER_TYPE, pointerType.toString());
+        final Update.Where upsert = QueryBuilder.update(Tables.Pointer.TABLE_NAME)
+                                                .with(set(Tables.Pointer.VALUE, value))
+                                                .and(set(Tables.Pointer.POINTER_TYPE, pointerType.toString()))
+                                                .where(eq(Tables.Pointer.QUEUE_NAME, queueName.get()));
 
-        final boolean valueInserted = session.execute(insert).wasApplied();
-
-        if (!valueInserted) {
-            // get + update to 0
-        }
+        session.execute(upsert);
     }
 
     @Override
@@ -201,17 +222,5 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Optional<QueueDefinition> queue = getQueue(name);
 
         return queue.filter(queueDef -> queueDef.getStatus() == QueueStatus.Active);
-    }
-
-    @Override
-    public boolean tryDeleteQueueDefinition(@NonNull final QueueDefinition definition) {
-        final Update.Conditions updateTrackingTable =
-                QueryBuilder.update(Tables.Queue.TABLE_NAME)
-                            .where(eq(Tables.Queue.QUEUE_NAME, definition.getQueueName().get()))
-                            .with(set(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()))
-                            .onlyIf(eq(Tables.Queue.VERSION, definition.getVersion()))
-                            .and(eq(Tables.Queue.STATUS, QueueStatus.Active.ordinal()));
-
-        return session.execute(updateTrackingTable).wasApplied();
     }
 }

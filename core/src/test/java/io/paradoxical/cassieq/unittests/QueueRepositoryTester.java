@@ -2,7 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.QueueRepositoryImpl;
-import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
@@ -58,12 +58,12 @@ public class QueueRepositoryTester extends TestBase {
     }
 
     @Test
-    public void queue_defintion_once_in_status_cant_move_backwards() throws QueueExistsError {
+    public void queue_definition_once_in_status_cant_move_backwards() {
         final Injector defaultInjector = getDefaultInjector();
 
-        final QueueRepositoryImpl repo = (QueueRepositoryImpl)defaultInjector.getInstance(QueueRepository.class);
+        final QueueRepositoryImpl repo = (QueueRepositoryImpl) defaultInjector.getInstance(QueueRepository.class);
 
-        final QueueName queueName = QueueName.valueOf("queue_defintion_once_in_status_cant_move_backwards");
+        final QueueName queueName = QueueName.valueOf("queue_definition_once_in_status_cant_move_backwards");
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
@@ -71,20 +71,20 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
     }
 
     @Test
-    public void can_create_new_queue_while_old_queue_is_deleting() throws QueueExistsError {
+    public void can_create_new_queue_while_old_queue_is_deleting() {
         final Injector defaultInjector = getDefaultInjector();
 
         final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
 
-        final QueueName queueName = QueueName.valueOf("delete_queue");
+        final QueueName queueName = QueueName.valueOf("can_create_new_queue_while_old_queue_is_deleting");
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
@@ -92,14 +92,14 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
-        repo.markForDeletion(queueDefinition);
+        repo.tryMarkForDeletion(queueDefinition);
 
-        // should be able to create a new defintion here
+        // should be able to create a new definition here
         repo.createQueue(queueDefinition);
     }
 
     @Test
-    public void delete_queue() throws QueueExistsError {
+    public void delete_queue() {
         final Injector defaultInjector = getDefaultInjector();
 
         final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
@@ -114,7 +114,7 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        repo.tryDeleteQueueDefinition(queueDefinition);
+        repo.tryMarkForDeletion(queueDefinition);
 
         assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
 
@@ -122,7 +122,7 @@ public class QueueRepositoryTester extends TestBase {
     }
 
     @Test
-    public void only_one_active_ever() throws QueueExistsError {
+    public void only_one_active_ever() {
         final Injector defaultInjector = getDefaultInjector();
 
         final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
@@ -136,7 +136,7 @@ public class QueueRepositoryTester extends TestBase {
                  .forEach(i -> {
                      repo.createQueue(queueDefinition);
 
-                     repo.tryDeleteQueueDefinition(queueDefinition);
+                     repo.tryMarkQueueInactive(queueDefinition);
                  });
 
 

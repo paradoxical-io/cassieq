@@ -8,6 +8,7 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -111,7 +112,13 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
-        queueDeleter.delete(queueName);
+        try {
+            queueDeleter.delete(queueName);
+        }
+        catch (QueueAlreadyDeletingException e) {
+            logger.error(e, "Error");
+            return buildErrorResponse("DeleteQueue", queueName, e);
+        }
 
         return Response.ok().build();
     }

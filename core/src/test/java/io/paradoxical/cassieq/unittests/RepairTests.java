@@ -177,7 +177,7 @@ public class RepairTests extends TestBase {
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryDeleteQueueDefinition(queueDefinition);
+        contextFactory.tryMarkForDeletion(queueDefinition);
 
         manager.refresh();
 
@@ -202,7 +202,7 @@ public class RepairTests extends TestBase {
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryDeleteQueueDefinition(queueDefinition);
+        contextFactory.tryMarkForDeletion(queueDefinition);
 
         manager.refresh();
         manager.refresh();
