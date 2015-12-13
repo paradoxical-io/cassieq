@@ -19,12 +19,6 @@ CREATE TABLE monoton (
   value bigint
 );
 
-CREATE TABLE queue_name_manager(
-    queuename text PRIMARY KEY,
-    version int,
-    status int
-);
-
 CREATE TABLE message (
   queueid text,
   bucket_num bigint,
