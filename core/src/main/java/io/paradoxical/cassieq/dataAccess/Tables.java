@@ -22,12 +22,14 @@ public final class Tables {
         public static final String BUCKET_SIZE = "bucket_size";
         public static final String STATUS = "status";
         public static final String QUEUE_NAME = "queuename";
+        public static final String VERSION = "version";
     }
 
     public static class QueueIdIndex {
         public static final String TABLE_NAME = "queue_name_idx";
         public static final String QUEUE_NAME = "queuename";
         public static final String VERSION = "version";
+        public static final String STATUS = "status";
     }
 
     public static class Message {

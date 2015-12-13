@@ -41,7 +41,7 @@ public class QueueDeleter {
         dataContext.getPointerRepository().deleteAll();
 
         // actally delete the queue definition
-        dataContext.getQueueRepository().deleteQueueDefinition(queueDefinition);
+        dataContext.getQueueRepository().tryDeleteQueueDefinition(queueDefinition);
 
         repairWorkerManager.refresh();
     }

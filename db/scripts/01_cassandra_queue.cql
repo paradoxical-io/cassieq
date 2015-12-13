@@ -3,7 +3,8 @@ CREATE TABLE queue (
   queuename text,
   bucket_size int,
   max_delivery_count int,
-  status text
+  status text,
+  version int
 );
 
 CREATE TABLE pointer (
@@ -20,10 +21,10 @@ CREATE TABLE monoton (
 );
 
 CREATE TABLE queue_name_idx(
-    queuename text,
+    queuename text PRIMARY KEY,
     version int,
-    PRIMARY KEY (queuename, version)
-) WITH CLUSTERING ORDER BY (version DESC);
+    status text
+);
 
 CREATE TABLE message (
   queueid text,

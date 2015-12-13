@@ -14,25 +14,23 @@ public class QueueDefinition {
     private final BucketSize bucketSize;
     private final Integer maxDeliveryCount;
     private final QueueStatus status;
-
     @NotNull
     private QueueId id;
+    private Integer version;
+
     public QueueDefinition(
             QueueName queueName,
             BucketSize bucketSize,
             Integer maxDeliveryCount,
             QueueStatus status,
-            QueueId id) {
+            QueueId id,
+            Integer version) {
         this.queueName = queueName;
         this.id = id;
+        this.version = version == null ? 0 : version;
         this.bucketSize = bucketSize == null ? BucketSize.valueOf(20) : bucketSize;
         this.maxDeliveryCount = maxDeliveryCount == null ? 5 : maxDeliveryCount;
         this.status = status == null ? QueueStatus.Active : status;
-        this.id = id;
-    }
-
-    private QueueDefinition(QueueName queueName, Integer bucketSize, Integer maxDeliveryCount, QueueStatus status, QueueId id) {
-        this(queueName, BucketSize.valueOf(bucketSize), maxDeliveryCount, status, id);
     }
 
     public static QueueDefinition fromRow(final Row row) {
@@ -42,10 +40,7 @@ public class QueueDefinition {
                               .id(QueueId.valueOf(row.getString(Tables.Queue.QUEUE_ID)))
                               .status(QueueStatus.valueOf(row.getString(Tables.Queue.STATUS)))
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUE_NAME)))
+                              .version(row.getInt(Tables.Queue.VERSION))
                               .build();
-    }
-
-    public int getVersion(){
-        return id.getVersion(queueName);
     }
 }

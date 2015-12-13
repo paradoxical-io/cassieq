@@ -6,6 +6,8 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.datastax.driver.core.querybuilder.Update;
+import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
@@ -21,9 +23,12 @@ import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
 
 public class QueueRepositoryImpl extends RepositoryBase implements QueueRepository {
+
+    private static final Logger logger = getLogger(QueueRepositoryImpl.class);
 
     private final Session session;
 
@@ -70,18 +75,21 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         int currentVersion;
 
         if (row == null) {
-            currentVersion = insertQueueIndexTracking(queueDefinition);
+            currentVersion = seedQueueNameIdGeneratorTable(queueDefinition);
         }
         else {
-            currentVersion = session.execute(activeQueueIdSelect).one().getInt(0);
+            currentVersion = row.getInt(0);
         }
 
         final int nextVersion = currentVersion + 1;
 
-        final Statement insertTrackingId = QueryBuilder.insertInto(Tables.QueueIdIndex.TABLE_NAME)
-                                                       .ifNotExists()
-                                                       .value(Tables.QueueIdIndex.QUEUE_NAME, queueDefinition.getQueueName().get())
-                                                       .value(Tables.QueueIdIndex.VERSION, nextVersion);
+        // update the tracking table to see who can grab the next version
+        final Statement insertTrackingId = QueryBuilder.update(Tables.QueueIdIndex.TABLE_NAME)
+                                                       .where(eq(Tables.QueueIdIndex.QUEUE_NAME, queueDefinition.getQueueName().get()))
+                                                       .with(set(Tables.QueueIdIndex.VERSION, nextVersion))
+                                                       .and(set(Tables.Queue.STATUS, QueueStatus.Active.name()))
+                                                       .onlyIf(eq(Tables.QueueIdIndex.VERSION, currentVersion))
+                                                       .and(eq(Tables.QueueIdIndex.STATUS, QueueStatus.Inactive.name()));
 
         if (!session.execute(insertTrackingId).wasApplied()) {
             throw new QueueExistsError(queueDefinition);
@@ -89,17 +97,25 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
         final QueueId queueId = QueueId.valueOf(queueDefinition.getQueueName(), nextVersion);
 
+        // if we're still the one who grabbed the version then insert into the table
         final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                                                .ifNotExists()
                                                .value(Tables.Queue.QUEUE_ID, queueId.get())
+                                               .value(Tables.Queue.VERSION, nextVersion)
                                                .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
                                                .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
                                                .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
                                                .value(Tables.Queue.STATUS, QueueStatus.Active.name());
 
-        session.execute(insertQueue);
+        if (!session.execute(insertQueue).wasApplied()) {
+            throw new QueueExistsError(queueDefinition);
+        }
 
         queueDefinition.setId(queueId);
+
+        queueDefinition.setVersion(nextVersion);
+
+        logger.with(queueDefinition).success("Created queue");
     }
 
     /**
@@ -107,19 +123,23 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
      *
      * @param queueDefinition
      */
-    private int insertQueueIndexTracking(@NonNull final QueueDefinition queueDefinition) throws QueueExistsError {
+    private int seedQueueNameIdGeneratorTable(@NonNull final QueueDefinition queueDefinition) throws QueueExistsError {
 
         final int initialVersion = 0;
 
         final Statement value = QueryBuilder.insertInto(Tables.QueueIdIndex.TABLE_NAME)
                                             .ifNotExists()
                                             .value(Tables.QueueIdIndex.QUEUE_NAME, queueDefinition.getQueueName().get())
+                                            .value(Tables.QueueIdIndex.STATUS, QueueStatus.Inactive.name())
                                             .value(Tables.QueueIdIndex.VERSION, initialVersion);
 
 
         if (!session.execute(value).wasApplied()) {
             throw new QueueExistsError(queueDefinition);
         }
+
+        logger.with("queue-name", queueDefinition.getQueueName())
+              .debug("Seeding queue tracking table for new queue name");
 
         return initialVersion;
     }
@@ -181,12 +201,11 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     @Override
     public Optional<QueueDefinition> getActiveQueue(final QueueName name) {
-        final Select limit = QueryBuilder.select(Tables.QueueIdIndex.VERSION)
-                                         .from(Tables.QueueIdIndex.TABLE_NAME)
-                                         .where(eq(Tables.QueueIdIndex.QUEUE_NAME, name.get()))
-                                         .limit(1);
+        final Statement highestVersion = QueryBuilder.select(Tables.QueueIdIndex.VERSION)
+                                                     .from(Tables.QueueIdIndex.TABLE_NAME)
+                                                     .where(eq(Tables.QueueIdIndex.QUEUE_NAME, name.get()));
 
-        final Row result = session.execute(limit).one();
+        final Row result = session.execute(highestVersion).one();
 
         if (result == null) {
             return Optional.empty();
@@ -204,11 +223,22 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public void deleteQueueDefinition(@NonNull final QueueDefinition definition) {
+    public boolean tryDeleteQueueDefinition(@NonNull final QueueDefinition definition) {
+        final Update.Conditions updateTrackingTable =
+                QueryBuilder.update(Tables.QueueIdIndex.TABLE_NAME)
+                            .where(eq(Tables.QueueIdIndex.QUEUE_NAME, definition.getQueueName().get()))
+                            .with(set(Tables.QueueIdIndex.STATUS, QueueStatus.Inactive.name()))
+                            .onlyIf(eq(Tables.QueueIdIndex.VERSION, definition.getVersion()))
+                            .and(eq(Tables.QueueIdIndex.STATUS, QueueStatus.Active.name()));
+
+        if (!session.execute(updateTrackingTable).wasApplied()) {
+            return false;
+        }
+
         Statement delete = QueryBuilder.delete().all()
                                        .from(Tables.Queue.TABLE_NAME)
                                        .where(eq(Tables.Queue.QUEUE_ID, definition.getId().get()));
 
-        session.execute(delete);
+        return session.execute(delete).wasApplied();
     }
 }

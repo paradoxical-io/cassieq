@@ -7,6 +7,8 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import org.junit.Test;
 
+import java.util.stream.IntStream;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -74,10 +76,43 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        repo.deleteQueueDefinition(queueDefinition);
+        repo.tryDeleteQueueDefinition(queueDefinition);
 
         assertThat(repo.queueExists(queueName)).isEqualTo(false);
 
         assertThat(repo.getQueueNames()).doesNotContain(queueName);
+    }
+
+    @Test
+    public void only_one_active_ever() throws QueueExistsError {
+        final Injector defaultInjector = getDefaultInjector();
+
+        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueName queueName = QueueName.valueOf("only_one_active_ever");
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+
+        IntStream.range(0, 1000)
+                 .parallel()
+                 .forEach(i -> {
+                     try {
+                         repo.createQueue(queueDefinition);
+
+                         repo.tryDeleteQueueDefinition(queueDefinition);
+                     }
+                     catch (QueueExistsError queueExistsError) {
+                     }
+                 });
+
+        try {
+            repo.createQueue(queueDefinition);
+        }
+        catch (QueueExistsError ex) {
+        }
+
+        final long count = repo.getActiveQueues().stream().filter(i -> i.getQueueName().equals(queueName)).count();
+
+        assertThat(count).isBetween(0L, 1L).withFailMessage("Too many active queues created");
     }
 }

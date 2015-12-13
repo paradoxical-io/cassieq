@@ -24,7 +24,7 @@ public interface QueueRepository {
 
     Optional<QueueDefinition> getActiveQueue(QueueName name);
 
-    void deleteQueueDefinition(QueueDefinition definition);
+    boolean tryDeleteQueueDefinition(QueueDefinition definition);
 
     default List<QueueName> getQueueNames() {
         return getActiveQueues().stream().map(QueueDefinition::getQueueName).collect(toList());
