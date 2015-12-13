@@ -11,7 +11,7 @@ CREATE TABLE pointer (
   pointer_type text,
   value bigint,
 
-  PRIMARY KEY (queueid, pointer_type)
+  PRIMARY KEY (queuename, pointer_type)
 );
 
 CREATE TABLE monoton (

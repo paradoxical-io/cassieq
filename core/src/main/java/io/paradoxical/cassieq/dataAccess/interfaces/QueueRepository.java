@@ -22,7 +22,6 @@ public interface QueueRepository {
     /**
      * Attemps to create a queue with this name
      * @param definition
-     * @throws QueueExistsError
      */
     boolean createQueue(QueueDefinition definition);
 

@@ -56,7 +56,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
      * @param queueName
      * @param status
      */
-    private boolean trySetQueueDefinitionStatus(@NonNull final QueueName queueName, @NonNull final QueueStatus status) {
+    public boolean trySetQueueDefinitionStatus(@NonNull final QueueName queueName, @NonNull final QueueStatus status) {
         final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
                                              .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
                                              .with(set(Tables.Queue.STATUS, status.ordinal()))
@@ -71,7 +71,6 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                                .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
                                                .value(Tables.Queue.VERSION, 0)
                                                .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                                               .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
                                                .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
                                                .value(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal());
 
@@ -126,7 +125,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                                        .where(eq(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get()))
                                                        .with(set(Tables.Queue.VERSION, nextVersion))
                                                        .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
-                                                       .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize()))
+                                                       .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get()))
                                                        .and(set(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount()))
                                                        .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
                                                        .and(eq(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()));

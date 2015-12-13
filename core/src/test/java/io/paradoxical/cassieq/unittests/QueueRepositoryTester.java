@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
+import io.paradoxical.cassieq.dataAccess.QueueRepositoryImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -22,13 +23,13 @@ public class QueueRepositoryTester extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("queue_operations");
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(false);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
     }
@@ -41,22 +42,17 @@ public class QueueRepositoryTester extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("cannot_create_same_queue_twice");
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(false);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        try {
-            repo.createQueue(queueDefinition);
-        }
-        catch (QueueExistsError ex) {
-            return;
-        }
+        repo.createQueue(queueDefinition);
 
         fail("Queue exists error not thrown");
     }
@@ -65,7 +61,7 @@ public class QueueRepositoryTester extends TestBase {
     public void queue_defintion_once_in_status_cant_move_backwards() throws QueueExistsError {
         final Injector defaultInjector = getDefaultInjector();
 
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+        final QueueRepositoryImpl repo = (QueueRepositoryImpl)defaultInjector.getInstance(QueueRepository.class);
 
         final QueueName queueName = QueueName.valueOf("queue_defintion_once_in_status_cant_move_backwards");
 
@@ -73,13 +69,13 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Deleting)).isTrue();
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Inactive)).isTrue();
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
 
-        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getId(), QueueStatus.Active)).isFalse();
+        assertThat(repo.trySetQueueDefinitionStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
     }
 
     @Test
@@ -94,7 +90,7 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
         repo.markForDeletion(queueDefinition);
 
@@ -114,13 +110,13 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
         repo.tryDeleteQueueDefinition(queueDefinition);
 
-        assertThat(repo.queueExists(queueName)).isEqualTo(false);
+        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
 
         assertThat(repo.getQueueNames()).doesNotContain(queueName);
     }
@@ -138,20 +134,14 @@ public class QueueRepositoryTester extends TestBase {
         IntStream.range(0, 1000)
                  .parallel()
                  .forEach(i -> {
-                     try {
-                         repo.createQueue(queueDefinition);
+                     repo.createQueue(queueDefinition);
 
-                         repo.tryDeleteQueueDefinition(queueDefinition);
-                     }
-                     catch (QueueExistsError queueExistsError) {
-                     }
+                     repo.tryDeleteQueueDefinition(queueDefinition);
                  });
 
-        try {
-            repo.createQueue(queueDefinition);
-        }
-        catch (QueueExistsError ex) {
-        }
+
+        repo.createQueue(queueDefinition);
+
 
         final long count = repo.getActiveQueues().stream().filter(i -> i.getQueueName().equals(queueName)).count();
 
