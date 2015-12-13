@@ -83,6 +83,26 @@ public class QueueRepositoryTester extends TestBase {
     }
 
     @Test
+    public void can_create_new_queue_while_old_queue_is_deleting() throws QueueExistsError {
+        final Injector defaultInjector = getDefaultInjector();
+
+        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueName queueName = QueueName.valueOf("delete_queue");
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+
+        repo.createQueue(queueDefinition);
+
+        assertThat(repo.queueExists(queueName)).isEqualTo(true);
+
+        repo.markForDeletion(queueDefinition);
+
+        // should be able to create a new defintion here
+        repo.createQueue(queueDefinition);
+    }
+
+    @Test
     public void delete_queue() throws QueueExistsError {
         final Injector defaultInjector = getDefaultInjector();
 
