@@ -15,7 +15,6 @@ import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import lombok.NonNull;
-import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,22 +45,37 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final boolean markedForDeletion = tryAdvanceQueueStatus(definition.getQueueName(), QueueStatus.PendingDelete);
 
         if (markedForDeletion) {
-            insertDeletionJobIfNotExists(definition);
+            final Optional<DeletionJob> deletionJob = insertDeletionJobIfNotExists(definition);
 
             if (tryAdvanceQueueStatus(definition.getQueueName(), QueueStatus.Deleting)) {
                 // anyone can create a queue with the same name now
 
                 logger.with("definition", definition).success("Marked for deletion");
 
-                throw new NotImplementedException("deletion success");
+                return deletionJob;
             }
         }
 
         return Optional.empty();
     }
 
-    private void insertDeletionJobIfNotExists(final QueueDefinition definition) {
-        throw new NotImplementedException("insert deletion job");
+    private Optional<DeletionJob> insertDeletionJobIfNotExists(final QueueDefinition definition) {
+        final DeletionJob deletionJob = new DeletionJob(definition.getQueueName(),
+                                                        definition.getVersion(),
+                                                        definition.getBucketSize());
+
+
+        final Statement insert = QueryBuilder.insertInto(Tables.DeletionJob.TABLE_NAME)
+                                             .ifNotExists()
+                                             .value(Tables.DeletionJob.QUEUE_NAME, deletionJob.getQueueName().get())
+                                             .value(Tables.DeletionJob.VERSION, deletionJob.getVersion())
+                                             .value(Tables.DeletionJob.BUCKET_SIZE, deletionJob.getBucketSize().get());
+
+        if (session.execute(insert).wasApplied()) {
+            return Optional.of(deletionJob);
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -235,6 +249,11 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     @Override
     public void deleteCompletionJob(final DeletionJob queue) {
-        throw new NotImplementedException("Deletion job delete");
+        final Statement delete = QueryBuilder.delete()
+                                             .from(Tables.DeletionJob.TABLE_NAME)
+                                             .where(eq(Tables.DeletionJob.QUEUE_NAME, queue.getQueueName().get()))
+                                             .and(eq(Tables.DeletionJob.VERSION, queue.getVersion()));
+
+        session.execute(delete);
     }
 }

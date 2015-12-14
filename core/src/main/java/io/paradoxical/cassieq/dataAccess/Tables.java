@@ -25,7 +25,6 @@ public final class Tables {
     }
 
     public static class Message {
-
         public static final String TABLE_NAME = "message";
         public static final String QUEUE_ID = "queueid";
         public static final String BUCKET_NUM = "bucket_num";
@@ -37,5 +36,12 @@ public final class Tables {
         public static final String NEXT_VISIBLE_ON = "next_visible_on";
         public static final String CREATED_DATE = "created_date";
         public static final String TAG = "tag";
+    }
+
+    public static class DeletionJob {
+        public static final String TABLE_NAME = "deletion_job";
+        public static final String QUEUE_NAME = "queuename";
+        public static final String VERSION = "version";
+        public static final String BUCKET_SIZE = "bucket_size";
     }
 }

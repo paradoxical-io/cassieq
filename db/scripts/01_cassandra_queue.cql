@@ -19,6 +19,13 @@ CREATE TABLE monoton (
   value bigint
 );
 
+CREATE TABLE deletion_job (
+    queuename text,
+    version int,
+    bucket_size int,
+    PRIMARY KEY (queuename, version)
+);
+
 CREATE TABLE message (
   queueid text,
   bucket_num bigint,
