@@ -4,14 +4,14 @@ package io.paradoxical.cassieq.dataAccess;
 public final class Tables {
     public static class Pointer {
         public static final String TABLE_NAME = "pointer";
-        public static final String QUEUE_NAME = "queuename";
+        public static final String QUEUE_ID = "queueid";
         public static final String POINTER_TYPE = "pointer_type";
         public static final String VALUE = "value";
     }
 
     public static class Monoton {
         public static final String TABLE_NAME = "monoton";
-        public static final String QUEUE_NAME = "queuename";
+        public static final String QUEUE_ID = "queueid";
         public static final String VALUE = "value";
     }
 

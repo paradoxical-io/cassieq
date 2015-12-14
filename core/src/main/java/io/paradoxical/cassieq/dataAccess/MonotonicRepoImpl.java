@@ -39,7 +39,7 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
         Statement statement = QueryBuilder.select()
                                           .all()
                                           .from(Tables.Monoton.TABLE_NAME)
-                                          .where(eq(Tables.Monoton.QUEUE_NAME, queueId.get()));
+                                          .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()));
 
         MonotonicIndex current = getOne(session.execute(statement), MonotonicIndex::map);
 
@@ -50,7 +50,7 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
     public void deleteAll() {
         final Statement delete = QueryBuilder.delete().all()
                                              .from(Tables.Monoton.TABLE_NAME)
-                                             .where(eq(Tables.Monoton.QUEUE_NAME, queueId.get()));
+                                             .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()));
 
         session.execute(delete);
     }
@@ -62,7 +62,7 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
 
         Statement stat = QueryBuilder.update(Tables.Monoton.TABLE_NAME)
                                      .with(set(Tables.Monoton.VALUE, next))
-                                     .where(eq(Tables.Monoton.QUEUE_NAME, queueId.get()))
+                                     .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()))
                                      .onlyIf(eq(Tables.Monoton.VALUE, current));
 
         if (session.execute(stat).wasApplied()) {

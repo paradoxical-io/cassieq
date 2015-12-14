@@ -49,7 +49,7 @@ public class Message {
     public boolean isNotTombstone() { return !isTombstone(); }
 
     public PopReceipt getPopReceipt() {
-        return PopReceipt.from(this, queueId);
+        return PopReceipt.from(this);
     }
 
     public Message createNewWithIndex(MonotonicIndex index) {
@@ -64,7 +64,6 @@ public class Message {
                       .tag(tag)
                       .build();
     }
-
 
     public Message withNewVersion(int version) {
         return Message.builder()

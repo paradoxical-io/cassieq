@@ -2,11 +2,12 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.QueueRepositoryImpl;
-import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsException;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
 
 import java.util.stream.IntStream;
@@ -23,13 +24,13 @@ public class QueueRepositoryTester extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("queue_operations");
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
     }
@@ -42,13 +43,13 @@ public class QueueRepositoryTester extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("cannot_create_same_queue_twice");
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
@@ -69,7 +70,7 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
@@ -90,7 +91,7 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         repo.tryMarkForDeletion(queueDefinition);
 
@@ -110,13 +111,13 @@ public class QueueRepositoryTester extends TestBase {
 
         repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(true);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
         repo.tryMarkForDeletion(queueDefinition);
 
-        assertThat(repo.getQueue(queueName).isPresent()).isEqualTo(false);
+        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
 
         assertThat(repo.getQueueNames()).doesNotContain(queueName);
     }
@@ -127,6 +128,8 @@ public class QueueRepositoryTester extends TestBase {
 
         final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
 
+        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
+
         final QueueName queueName = QueueName.valueOf("only_one_active_ever");
 
         final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
@@ -136,7 +139,12 @@ public class QueueRepositoryTester extends TestBase {
                  .forEach(i -> {
                      repo.createQueue(queueDefinition);
 
-                     repo.tryMarkQueueInactive(queueDefinition);
+                     try {
+                         queueDeleter.delete(queueName);
+                     }
+                     catch (QueueAlreadyDeletingException e) {
+                        // ok
+                     }
                  });
 
 

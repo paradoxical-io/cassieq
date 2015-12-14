@@ -7,15 +7,15 @@ CREATE TABLE queue (
 );
 
 CREATE TABLE pointer (
-  queuename text,
+  queueid text,
   pointer_type text,
   value bigint,
 
-  PRIMARY KEY (queuename, pointer_type)
+  PRIMARY KEY (queueid, pointer_type)
 );
 
 CREATE TABLE monoton (
-  queuename text PRIMARY KEY,
+  queueid text PRIMARY KEY,
   value bigint
 );
 

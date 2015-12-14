@@ -24,6 +24,7 @@ import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import lombok.Data;
+import org.apache.commons.lang3.NotImplementedException;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;
@@ -103,8 +104,21 @@ public class QueueResource extends BaseQueueResource {
     }
 
     @DELETE
+    @Path("/")
+    @ApiOperation(value = "Purge inactive queues")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 204, message = "No message"),
+            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+            @ApiResponse(code = 500, message = "Server Error")
+    })
+    public Response purgeInactive() {
+        throw new NotImplementedException("Purge inactive");
+    }
+
+    @DELETE
     @Path("/{queueName}")
-    @ApiOperation(value = "Get Message")
+    @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 204, message = "No message"),
@@ -158,7 +172,7 @@ public class QueueResource extends BaseQueueResource {
 
         final Message messageInstance = messageOptional.get();
 
-        final String popReceipt = PopReceipt.from(messageInstance, queueDefinition.get().getId()).toString();
+        final String popReceipt = PopReceipt.from(messageInstance).toString();
 
         final String message = messageInstance.getBlob();
         final GetMessageResponse response = new GetMessageResponse(
@@ -228,14 +242,6 @@ public class QueueResource extends BaseQueueResource {
         }
 
         final PopReceipt popReceipt = PopReceipt.valueOf(popReceiptRaw);
-
-        if (!queueDefinition.get().getId().equals(popReceipt.getQueueId())) {
-            logger.with("popReceipt", popReceipt)
-                  .with("queueDefinition", queueDefinition)
-                  .warn("Pop receipt of old queue found");
-
-            return buildQueueNotFoundResponse(queueName);
-        }
 
         boolean messageAcked;
 

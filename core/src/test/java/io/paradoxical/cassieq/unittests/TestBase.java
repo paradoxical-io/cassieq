@@ -112,7 +112,7 @@ public class TestBase {
 
         queueRepository.createQueue(queueDefinition);
 
-        assertThat(queueRepository.getQueue(queueDefinition.getQueueName()).isPresent()).isTrue();
+        assertThat(queueRepository.getQueueUnsafe(queueDefinition.getQueueName()).isPresent()).isTrue();
     }
 
     protected void createQueue(final QueueDefinition queueDefinition) {

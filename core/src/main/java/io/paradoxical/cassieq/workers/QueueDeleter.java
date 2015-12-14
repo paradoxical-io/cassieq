@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.workers;
 
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
@@ -10,7 +11,10 @@ import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
+
+import java.util.Optional;
 
 public class QueueDeleter {
     private final DataContextFactory factory;
@@ -31,8 +35,9 @@ public class QueueDeleter {
         final QueueDefinition queueDefinition = factory.getDefinition(queueName).get();
 
         // This should be the first thing. this way the pointers below can't be modified further.
-        if(!queueRepository.tryMarkForDeletion(queueDefinition))
-        {
+        final Optional<DeletionJob> deletionJob = queueRepository.tryMarkForDeletion(queueDefinition);
+
+        if(!deletionJob.isPresent()) {
             throw new QueueAlreadyDeletingException(queueDefinition);
         }
 
@@ -48,8 +53,10 @@ public class QueueDeleter {
 
         dataContext.getPointerRepository().deleteAll();
 
-        // actally delete the queue definition
-        queueRepository.tryMarkQueueInactive(queueDefinition);
+        // queue definition is now totally inactive
+        queueRepository.tryAdvanceQueueStatus(queueName, QueueStatus.Inactive);
+
+        queueRepository.deleteCompletionJob(deletionJob.get());
 
         repairWorkerManager.refresh();
     }
