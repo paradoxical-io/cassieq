@@ -1,8 +1,8 @@
 package io.paradoxical.cassieq.factories;
 
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
-import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueId;
 
 public interface MonotonicRepoFactory {
-    MonotonicRepository forQueue(QueueDefinition definition);
+    MonotonicRepository forQueue(QueueId queueId);
 }

@@ -8,7 +8,6 @@ import com.google.inject.Injector;
 import io.dropwizard.logging.BootstrapLogging;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
-import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -26,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestBase {
     private static final Logger logger = getLogger(TestBase.class);
@@ -110,16 +110,9 @@ public class TestBase {
     private void createQueue(final QueueDefinition queueDefinition, final Injector injector) {
         final QueueRepository queueRepository = injector.getInstance(QueueRepository.class);
 
-        try {
-            queueRepository.createQueue(queueDefinition);
-        }
-        catch (QueueExistsError queueExistsError) {
-            logger.error(queueExistsError, "Error creating queue because it already exists");
+        queueRepository.createQueue(queueDefinition);
 
-            throw new RuntimeException(queueExistsError);
-        }
-
-        queueRepository.getQueue(queueDefinition.getId()).get();
+        assertThat(queueRepository.getQueueUnsafe(queueDefinition.getQueueName()).isPresent()).isTrue();
     }
 
     protected void createQueue(final QueueDefinition queueDefinition) {

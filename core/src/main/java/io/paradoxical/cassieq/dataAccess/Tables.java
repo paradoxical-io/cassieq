@@ -17,7 +17,6 @@ public final class Tables {
 
     public static class Queue {
         public static final String TABLE_NAME = "queue";
-        public static final String QUEUE_ID = "queueid";
         public static final String MAX_DELIVERY_COUNT = "max_delivery_count";
         public static final String BUCKET_SIZE = "bucket_size";
         public static final String STATUS = "status";
@@ -25,15 +24,7 @@ public final class Tables {
         public static final String VERSION = "version";
     }
 
-    public static class QueueNameManager {
-        public static final String TABLE_NAME = "queue_name_manager";
-        public static final String QUEUE_NAME = "queuename";
-        public static final String VERSION = "version";
-        public static final String STATUS = "status";
-    }
-
     public static class Message {
-
         public static final String TABLE_NAME = "message";
         public static final String QUEUE_ID = "queueid";
         public static final String BUCKET_NUM = "bucket_num";
@@ -45,5 +36,12 @@ public final class Tables {
         public static final String NEXT_VISIBLE_ON = "next_visible_on";
         public static final String CREATED_DATE = "created_date";
         public static final String TAG = "tag";
+    }
+
+    public static class DeletionJob {
+        public static final String TABLE_NAME = "deletion_job";
+        public static final String QUEUE_NAME = "queuename";
+        public static final String VERSION = "version";
+        public static final String BUCKET_SIZE = "bucket_size";
     }
 }

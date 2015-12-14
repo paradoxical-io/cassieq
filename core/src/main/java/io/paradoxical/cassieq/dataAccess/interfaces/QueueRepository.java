@@ -1,10 +1,10 @@
 package io.paradoxical.cassieq.dataAccess.interfaces;
 
-import io.paradoxical.cassieq.dataAccess.exceptions.QueueExistsError;
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,33 +15,37 @@ public interface QueueRepository {
 
     /**
      * Marks this queue id for deletion and makes the queue name available for creation by someone else
+     *
      * @param definition
      */
-    void markForDeletion(QueueDefinition definition);
+    Optional<DeletionJob> tryMarkForDeletion(QueueDefinition definition);
 
     /**
      * Attemps to create a queue with this name
+     *
      * @param definition
-     * @throws QueueExistsError
      */
-    void createQueue(QueueDefinition definition) throws QueueExistsError;
+    Optional<QueueDefinition> createQueue(QueueDefinition definition);
 
-    /**
-     * Sets the queue definition status if is possible set (some states cannot be gone back to)
-     */
-    boolean trySetQueueDefinitionStatus(QueueId queueId, final QueueStatus status);
+    boolean tryAdvanceQueueStatus(
+            @NonNull QueueName queueName,
+            @NonNull QueueStatus status);
 
-    boolean queueExists(QueueName queueName);
+    boolean deleteIfInActive(QueueName queueName);
 
-    Optional<QueueDefinition> getQueue(QueueId queueId);
+    Optional<QueueDefinition> getQueueUnsafe(QueueName queueId);
 
-    List<QueueDefinition> getActiveQueues();
+    default List<QueueDefinition> getActiveQueues(){
+        return getQueues(QueueStatus.Active);
+    }
+
+    List<QueueDefinition> getQueues(QueueStatus queueStatus);
 
     Optional<QueueDefinition> getActiveQueue(QueueName name);
-
-    boolean tryDeleteQueueDefinition(QueueDefinition definition);
 
     default List<QueueName> getQueueNames() {
         return getActiveQueues().stream().map(QueueDefinition::getQueueName).collect(toList());
     }
+
+    void deleteCompletionJob(DeletionJob queue);
 }

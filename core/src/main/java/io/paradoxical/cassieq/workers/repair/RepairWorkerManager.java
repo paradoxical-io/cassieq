@@ -5,7 +5,7 @@ public interface RepairWorkerManager {
 
     void stop();
 
-    default void refresh() {
+    default void notifyChanges() {
         start();
     }
 }

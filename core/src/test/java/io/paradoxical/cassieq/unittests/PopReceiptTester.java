@@ -3,7 +3,6 @@ package io.paradoxical.cassieq.unittests;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
-import io.paradoxical.cassieq.model.QueueId;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,9 +15,7 @@ public class PopReceiptTester {
 
         Message m = Message.builder().index(monotonicIndex).version(version).build();
 
-        final QueueId queueId = QueueId.valueOf("test");
-
-        final PopReceipt popReceipt = PopReceipt.from(m, queueId);
+        final PopReceipt popReceipt = PopReceipt.from(m);
 
         System.out.println(popReceipt);
 
@@ -26,6 +23,5 @@ public class PopReceiptTester {
 
         assertThat(components.getMessageIndex()).isEqualTo(monotonicIndex);
         assertThat(components.getMessageVersion()).isEqualTo(version);
-        assertThat(components.getQueueId()).isEqualTo(queueId);
     }
 }

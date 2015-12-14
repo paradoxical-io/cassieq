@@ -1,6 +1,5 @@
 CREATE TABLE queue (
-  queueid text PRIMARY KEY,
-  queuename text,
+  queuename text PRIMARY KEY,
   bucket_size int,
   max_delivery_count int,
   status int,
@@ -20,10 +19,11 @@ CREATE TABLE monoton (
   value bigint
 );
 
-CREATE TABLE queue_name_manager(
-    queuename text PRIMARY KEY,
+CREATE TABLE deletion_job (
+    queuename text,
     version int,
-    status int
+    bucket_size int,
+    PRIMARY KEY (queuename, version)
 );
 
 CREATE TABLE message (

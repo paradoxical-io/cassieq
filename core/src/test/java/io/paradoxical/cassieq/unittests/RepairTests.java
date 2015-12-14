@@ -173,13 +173,13 @@ public class RepairTests extends TestBase {
 
         final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
 
-        manager.refresh();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryDeleteQueueDefinition(queueDefinition);
+        contextFactory.tryMarkForDeletion(queueDefinition);
 
-        manager.refresh();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
     }
@@ -197,15 +197,15 @@ public class RepairTests extends TestBase {
         final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
 
         // refreshing twice should not add or remove anyone since no queues were added/deleted
-        manager.refresh();
-        manager.refresh();
+        manager.notifyChanges();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryDeleteQueueDefinition(queueDefinition);
+        contextFactory.tryMarkForDeletion(queueDefinition);
 
-        manager.refresh();
-        manager.refresh();
+        manager.notifyChanges();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
     }

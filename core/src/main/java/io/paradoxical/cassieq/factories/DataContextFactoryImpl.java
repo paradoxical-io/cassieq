@@ -29,8 +29,8 @@ public class DataContextFactoryImpl implements DataContextFactory {
     public DataContext forQueue(QueueDefinition definition) {
         return new DataContext(
                 messageRepoFactory.forQueue(definition),
-                monotonicRepoFactory.forQueue(definition),
-                pointerRepoFactory.forQueue(definition));
+                monotonicRepoFactory.forQueue(definition.getId()),
+                pointerRepoFactory.forQueue(definition.getId()));
     }
 
     @Override

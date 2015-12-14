@@ -64,7 +64,7 @@ public class ReaderTester extends TestBase {
 
             assertThat(message.get().getBlob().equals(blob));
 
-            final PopReceipt popReceipt = PopReceipt.from(message.get(), queueDefinition.getId());
+            final PopReceipt popReceipt = PopReceipt.from(message.get());
 
             return reader.ackMessage(popReceipt);
         }
@@ -105,7 +105,7 @@ public class ReaderTester extends TestBase {
 
         getTestClock().tick();
 
-        getQueueRepository().markForDeletion(testContext.queueDefinition);
+        getQueueRepository().tryMarkForDeletion(testContext.queueDefinition);
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 
