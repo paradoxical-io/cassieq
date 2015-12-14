@@ -7,7 +7,6 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.model.MonotonicIndex;
-import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
@@ -18,9 +17,9 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
     private final QueueId queueId;
 
     @Inject
-    public MonotonicRepoImpl(Session session, @Assisted QueueDefinition definition) {
+    public MonotonicRepoImpl(Session session, @Assisted QueueId id) {
         this.session = session;
-        this.queueId = definition.getId();
+        this.queueId = id;
     }
 
     @Override

@@ -23,8 +23,6 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
-import lombok.Data;
-import org.apache.commons.lang3.NotImplementedException;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;
@@ -80,16 +78,16 @@ public class QueueResource extends BaseQueueResource {
                                                                       .queueName(createOptions.getQueueName())
                                                                       .build();
 
-            final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition);
+            final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
 
-            if(!wasInserted && errorIfExists){
+            if (!wasInserted && errorIfExists) {
                 return Response.status(Response.Status.CONFLICT).build();
             }
 
             // try and start a repair worker for the new queue
-            repairWorkerManager.refresh();
+            repairWorkerManager.notifyChanges();
 
-            if(wasInserted){
+            if (wasInserted) {
                 return Response.status(Response.Status.CREATED).build();
             }
             else {
@@ -113,7 +111,12 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response purgeInactive() {
-        throw new NotImplementedException("Purge inactive");
+        getQueueRepository().getQueues(QueueStatus.Inactive)
+                            .stream()
+                            .map(QueueDefinition::getQueueName)
+                            .forEach(getQueueRepository()::deleteIfInActive);
+
+        return Response.ok().build();
     }
 
     @DELETE
@@ -206,7 +209,7 @@ public class QueueResource extends BaseQueueResource {
         try {
             final Message messageToInsert = Message.builder()
                                                    .blob(message)
-                                                   .index(getMonotonicRepoFactory().forQueue(queueDefinition.get())
+                                                   .index(getMonotonicRepoFactory().forQueue(queueDefinition.get().getId())
                                                                                    .nextMonotonic())
                                                    .build();
 

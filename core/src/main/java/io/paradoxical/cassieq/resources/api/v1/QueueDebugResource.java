@@ -203,7 +203,7 @@ public class QueueDebugResource extends BaseQueueResource {
             return buildQueueNotFoundResponse(queueName);
         }
 
-        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(queueDefinition.get());
+        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(queueDefinition.get().getId());
 
         return Response.ok(monotonicRepository.getCurrent())
                        .status(Response.Status.OK)

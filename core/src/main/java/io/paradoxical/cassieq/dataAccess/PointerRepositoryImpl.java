@@ -12,8 +12,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Pointer;
 import io.paradoxical.cassieq.model.PointerType;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import lombok.NonNull;
@@ -26,16 +25,14 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 
 public class PointerRepositoryImpl extends RepositoryBase implements PointerRepository {
     private final Session session;
-    private final QueueName queueName;
-    private final QueueDefinition definition;
+    private final QueueId id;
 
     @Inject
     public PointerRepositoryImpl(
             @NonNull Provider<Session> session,
-            @NonNull @Assisted QueueDefinition definition) {
-        this.definition = definition;
+            @NonNull @Assisted QueueId id) {
+        this.id = id;
         this.session = session.get();
-        this.queueName = definition.getQueueName();
     }
 
     @Override
@@ -104,7 +101,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
     public void deleteAll() {
         final Statement delete = QueryBuilder.delete().all()
                                              .from(Tables.Pointer.TABLE_NAME)
-                                             .where(eq(Tables.Pointer.QUEUE_ID, definition.getId().get()));
+                                             .where(eq(Tables.Pointer.QUEUE_ID, id.get()));
 
         session.execute(delete);
     }
@@ -113,7 +110,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
         Statement query = QueryBuilder.select()
                                       .all()
                                       .from(Tables.Pointer.TABLE_NAME)
-                                      .where(eq(Tables.Pointer.QUEUE_ID, definition.getId().get()))
+                                      .where(eq(Tables.Pointer.QUEUE_ID, id.get()))
                                       .and(eq(Tables.Pointer.POINTER_TYPE, pointerType.toString()));
 
         return getOne(session.execute(query), mapper);
@@ -123,7 +120,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
 
         Statement statement = QueryBuilder.update(Tables.Pointer.TABLE_NAME)
                                           .with(set(Tables.Pointer.VALUE, destination.get()))
-                                          .where(eq(Tables.Pointer.QUEUE_ID, definition.getId().get()))
+                                          .where(eq(Tables.Pointer.QUEUE_ID, id.get()))
                                           .and(eq(Tables.Pointer.POINTER_TYPE, pointerType.toString()))
                                           .onlyIf(clause);
 

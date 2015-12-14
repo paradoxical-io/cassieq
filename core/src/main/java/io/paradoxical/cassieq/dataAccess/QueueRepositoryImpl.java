@@ -5,7 +5,6 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.querybuilder.Update;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
@@ -60,10 +59,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     private Optional<DeletionJob> insertDeletionJobIfNotExists(final QueueDefinition definition) {
-        final DeletionJob deletionJob = new DeletionJob(definition.getQueueName(),
-                                                        definition.getVersion(),
-                                                        definition.getBucketSize());
-
+        final DeletionJob deletionJob = new DeletionJob(definition);
 
         final Statement insert = QueryBuilder.insertInto(Tables.DeletionJob.TABLE_NAME)
                                              .ifNotExists()
@@ -79,8 +75,12 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public boolean createQueue(@NonNull final QueueDefinition definition) {
-        return upsertQueueDefinition(definition);
+    public Optional<QueueDefinition> createQueue(@NonNull final QueueDefinition definition) {
+        if (upsertQueueDefinition(definition)) {
+            return getActiveQueue(definition.getQueueName());
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -99,14 +99,21 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                              .with(set(Tables.Queue.STATUS, status.ordinal()))
                                              .onlyIf(lte(Tables.Queue.STATUS, status.ordinal()));
 
-        return session.execute(update).wasApplied();
+        if (session.execute(update).wasApplied()) {
+            logger.with("queue-name", queueName)
+                  .with("new-status", status)
+                  .success("Advancing queue status");
+
+            return true;
+        }
+
+        return false;
     }
 
     @Override
     public boolean deleteIfInActive(QueueName queueName) {
         final Statement delete = QueryBuilder.delete()
                                              .from(Tables.Queue.TABLE_NAME)
-                                             .ifExists()
                                              .onlyIf(eq(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()))
                                              .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()));
 
@@ -135,26 +142,39 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     private boolean upsertQueueDefinition(@NonNull final QueueDefinition queueDefinition) {
+        final Logger upsertLogger = logger.with("queue-name", queueDefinition.getQueueName());
+
         if (insertQueueIfNotExist(queueDefinition)) {
-            // easy/happy path. nothing was there before
+            upsertLogger.success("Created new queue");
+
             return true;
         }
 
         final Optional<QueueDefinition> currentQueueDefinitionOption = getQueueUnsafe(queueDefinition.getQueueName());
 
         if (!currentQueueDefinitionOption.isPresent()) {
-            throw new RuntimeException("this should be impossible because we just inserted the queue");
+            // a queue was deleted in the time that it was inactive + already existing
+            // try creating the queue again since that meant that the deletion job
+            // succeeded just after the insert statement attempted.
+
+            upsertLogger.warn("The queue was deleted after being in an inactive state");
+
+            return upsertQueueDefinition(queueDefinition);
         }
 
         final QueueDefinition currentQueueDefinition = currentQueueDefinitionOption.get();
 
-        // always insert if not exist pointers regardless of state
-        ensurePointers(currentQueueDefinition);
-
         // not provisionable state
         if (currentQueueDefinition.getStatus().ordinal() < QueueStatus.Deleting.ordinal()) {
+            upsertLogger.with("current-status", currentQueueDefinition.getStatus())
+                        .with("version", currentQueueDefinition.getVersion())
+                        .warn("Queue status does not allow provisioning");
+
             return false;
         }
+
+        // make sure the pointers exist
+        ensurePointers(currentQueueDefinition);
 
         // if however, an inactve queue exists, make sure only one person can
         // create the next active queue (prevent race conditions of multiple queues being created
@@ -180,7 +200,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final boolean queueUpdateApplied = session.execute(insertTrackingId).wasApplied();
 
         if (queueUpdateApplied) {
-            logger.with(queueDefinition).success("Created queue");
+            upsertLogger.success("Update queue to active");
         }
 
         return queueUpdateApplied;
@@ -193,29 +213,36 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     private void insertQueuePointerIfNotExists(@NonNull final QueueId queueId) {
-
         initializePointer(queueId, PointerType.BUCKET_POINTER, 0L);
         initializePointer(queueId, PointerType.INVISIBILITY_POINTER, -1L);
         initializePointer(queueId, PointerType.REPAIR_BUCKET, 0L);
     }
 
     private void insertQueueMonotonicValueIfNotExists(@NonNull final QueueId queueId) {
-        final Update.Where upsert = QueryBuilder.update(Tables.Monoton.TABLE_NAME)
-                                                .with(set(Tables.Monoton.VALUE, 0L))
-                                                .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()));
+        final Statement insert = QueryBuilder.insertInto(Tables.Monoton.TABLE_NAME)
+                                             .ifNotExists()
+                                             .value(Tables.Monoton.VALUE, 0L)
+                                             .value(Tables.Monoton.QUEUE_ID, queueId.get());
 
-        session.execute(upsert);
+        session.execute(insert);
     }
 
     private void initializePointer(@NonNull final QueueId queueId, @NonNull final PointerType pointerType, @NonNull final Long value) {
-        final Update.Where upsert = QueryBuilder.update(Tables.Pointer.TABLE_NAME)
-                                                .with(set(Tables.Pointer.VALUE, value))
-                                                .and(set(Tables.Pointer.POINTER_TYPE, pointerType.toString()))
-                                                .where(eq(Tables.Pointer.QUEUE_ID, queueId.get()));
+        final Statement upsert = QueryBuilder.insertInto(Tables.Pointer.TABLE_NAME)
+                                             .ifNotExists()
+                                             .value(Tables.Pointer.VALUE, value)
+                                             .value(Tables.Pointer.POINTER_TYPE, pointerType.toString())
+                                             .value(Tables.Pointer.QUEUE_ID, queueId.get());
 
         session.execute(upsert);
     }
 
+    /**
+     * Returns the queue regardless of status
+     *
+     * @param queueName
+     * @return
+     */
     @Override
     public Optional<QueueDefinition> getQueueUnsafe(@NonNull final QueueName queueName) {
         final Select.Where queryOne =
@@ -229,14 +256,14 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public List<QueueDefinition> getActiveQueues() {
+    public List<QueueDefinition> getQueues(QueueStatus status) {
         final Select query = QueryBuilder.select().all().from(Tables.Queue.TABLE_NAME);
 
         return session.execute(query)
                       .all()
                       .stream()
                       .map(QueueDefinition::fromRow)
-                      .filter(queue -> queue.getStatus().equals(QueueStatus.Active))
+                      .filter(queue -> queue.getStatus().equals(status))
                       .collect(toList());
     }
 
@@ -248,12 +275,18 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public void deleteCompletionJob(final DeletionJob queue) {
+    public void deleteCompletionJob(final DeletionJob job) {
         final Statement delete = QueryBuilder.delete()
                                              .from(Tables.DeletionJob.TABLE_NAME)
-                                             .where(eq(Tables.DeletionJob.QUEUE_NAME, queue.getQueueName().get()))
-                                             .and(eq(Tables.DeletionJob.VERSION, queue.getVersion()));
+                                             .where(eq(Tables.DeletionJob.QUEUE_NAME, job.getQueueName().get()))
+                                             .and(eq(Tables.DeletionJob.VERSION, job.getVersion()));
 
         session.execute(delete);
+
+        if (deleteIfInActive(job.getQueueName())) {
+            logger.with("queue-name", job.getQueueName())
+                  .with("version", job.getVersion())
+                  .info("Deleted queue definition since it was inactive");
+        }
     }
 }

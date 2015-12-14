@@ -13,7 +13,6 @@ import org.junit.Test;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 public class QueueRepositoryTester extends TestBase {
     @Test
@@ -53,9 +52,7 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        repo.createQueue(queueDefinition);
-
-        fail("Queue exists error not thrown");
+        assertThat(repo.createQueue(queueDefinition)).isEmpty();
     }
 
     @Test
@@ -72,6 +69,9 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
+
+        // ok to move to the same again
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
@@ -100,10 +100,12 @@ public class QueueRepositoryTester extends TestBase {
     }
 
     @Test
-    public void delete_queue() {
+    public void delete_queue() throws QueueAlreadyDeletingException {
         final Injector defaultInjector = getDefaultInjector();
 
         final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
 
         final QueueName queueName = QueueName.valueOf("delete_queue");
 
@@ -115,9 +117,15 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueNames()).contains(queueName);
 
-        repo.tryMarkForDeletion(queueDefinition);
+        queueDeleter.delete(queueName);
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
+        assertThat(repo.getActiveQueue(queueName).isPresent())
+                .isEqualTo(false)
+                .withFailMessage("Deleted queue still shows up as active");
+
+        assertThat(repo.getQueueUnsafe(queueName).isPresent())
+                .isEqualTo(false)
+                .withFailMessage("Raw queue definition still exists even though deleter should have removed it");
 
         assertThat(repo.getQueueNames()).doesNotContain(queueName);
     }
@@ -143,13 +151,12 @@ public class QueueRepositoryTester extends TestBase {
                          queueDeleter.delete(queueName);
                      }
                      catch (QueueAlreadyDeletingException e) {
-                        // ok
+                         // ok
                      }
                  });
 
 
         repo.createQueue(queueDefinition);
-
 
         final long count = repo.getActiveQueues().stream().filter(i -> i.getQueueName().equals(queueName)).count();
 

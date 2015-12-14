@@ -25,7 +25,7 @@ public interface QueueRepository {
      *
      * @param definition
      */
-    boolean createQueue(QueueDefinition definition);
+    Optional<QueueDefinition> createQueue(QueueDefinition definition);
 
     boolean tryAdvanceQueueStatus(
             @NonNull QueueName queueName,
@@ -35,7 +35,11 @@ public interface QueueRepository {
 
     Optional<QueueDefinition> getQueueUnsafe(QueueName queueId);
 
-    List<QueueDefinition> getActiveQueues();
+    default List<QueueDefinition> getActiveQueues(){
+        return getQueues(QueueStatus.Active);
+    }
+
+    List<QueueDefinition> getQueues(QueueStatus queueStatus);
 
     Optional<QueueDefinition> getActiveQueue(QueueName name);
 

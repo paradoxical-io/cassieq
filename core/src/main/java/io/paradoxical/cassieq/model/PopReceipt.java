@@ -37,7 +37,7 @@ public final class PopReceipt {
     }
 
     private String getPopReceipt() {
-        final String receiptString = String.format("%s:%s:%s:%s", getMessageIndex(), getMessageVersion(), getMessageTag());
+        final String receiptString = String.format("%s:%s:%s", getMessageIndex(), getMessageVersion(), getMessageTag());
 
         return Base64.getEncoder().withoutPadding().encodeToString(receiptString.getBytes());
     }
