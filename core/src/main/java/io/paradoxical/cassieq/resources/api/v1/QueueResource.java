@@ -8,6 +8,7 @@ import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -65,32 +66,62 @@ public class QueueResource extends BaseQueueResource {
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response createQueue(@Valid @NotNull QueueCreateOptions createOptions) {
+    public Response createQueue(
+            @Valid @NotNull QueueCreateOptions createOptions,
+            @QueryParam("errorIfExists") @DefaultValue("false") Boolean errorIfExists) {
         final QueueName queueName = createOptions.getQueueName();
 
         try {
             final QueueDefinition newQueueDefinition = QueueDefinition.builder()
-                                                         .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
-                                                         .maxDeliveryCount(createOptions.getMaxDeliveryCount())
-                                                         .queueName(createOptions.getQueueName())
-                                                         .build();
+                                                                      .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
+                                                                      .maxDeliveryCount(createOptions.getMaxDeliveryCount())
+                                                                      .queueName(createOptions.getQueueName())
+                                                                      .build();
 
-            getQueueRepository().createQueue(newQueueDefinition);
+            final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
+
+            if (!wasInserted && errorIfExists) {
+                return Response.status(Response.Status.CONFLICT).build();
+            }
 
             // try and start a repair worker for the new queue
-            repairWorkerManager.refresh();
+            repairWorkerManager.notifyChanges();
+
+            if (wasInserted) {
+                return Response.status(Response.Status.CREATED).build();
+            }
+            else {
+                return Response.ok().build();
+            }
         }
         catch (Exception e) {
             logger.error(e, "Error");
             return buildErrorResponse("CreateQueue", queueName, e);
         }
 
-        return Response.ok().status(Response.Status.CREATED).build();
+    }
+
+    @DELETE
+    @Path("/")
+    @ApiOperation(value = "Purge inactive queues")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 204, message = "No message"),
+            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+            @ApiResponse(code = 500, message = "Server Error")
+    })
+    public Response purgeInactive() {
+        getQueueRepository().getQueues(QueueStatus.Inactive)
+                            .stream()
+                            .map(QueueDefinition::getQueueName)
+                            .forEach(getQueueRepository()::deleteIfInActive);
+
+        return Response.ok().build();
     }
 
     @DELETE
     @Path("/{queueName}")
-    @ApiOperation(value = "Get Message")
+    @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 204, message = "No message"),
@@ -98,7 +129,13 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
-        queueDeleter.delete(queueName);
+        try {
+            queueDeleter.delete(queueName);
+        }
+        catch (QueueAlreadyDeletingException e) {
+            logger.error(e, "Error");
+            return buildErrorResponse("DeleteQueue", queueName, e);
+        }
 
         return Response.ok().build();
     }
@@ -172,7 +209,7 @@ public class QueueResource extends BaseQueueResource {
         try {
             final Message messageToInsert = Message.builder()
                                                    .blob(message)
-                                                   .index(getMonotonicRepoFactory().forQueue(queueName)
+                                                   .index(getMonotonicRepoFactory().forQueue(queueDefinition.get().getId())
                                                                                    .nextMonotonic())
                                                    .build();
 
@@ -200,18 +237,20 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response ackMessage(
             @PathParam("queueName") QueueName queueName,
-            @QueryParam("popReceipt") String popReceipt) {
+            @QueryParam("popReceipt") String popReceiptRaw) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
         if (!queueDefinition.isPresent()) {
             return buildQueueNotFoundResponse(queueName);
         }
 
+        final PopReceipt popReceipt = PopReceipt.valueOf(popReceiptRaw);
+
         boolean messageAcked;
 
         try {
             messageAcked = getReaderFactory().forQueue(queueDefinition.get())
-                                             .ackMessage(PopReceipt.valueOf(popReceipt));
+                                             .ackMessage(popReceipt);
         }
         catch (Exception e) {
             logger.error(e, "Error");

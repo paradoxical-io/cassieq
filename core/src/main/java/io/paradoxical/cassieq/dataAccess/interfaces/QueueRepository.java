@@ -1,8 +1,10 @@
 package io.paradoxical.cassieq.dataAccess.interfaces;
 
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,19 +12,40 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 public interface QueueRepository {
-    void createQueue(QueueDefinition definition);
 
-    void setQueueStatus(QueueName queueName, final QueueStatus status);
+    /**
+     * Marks this queue id for deletion and makes the queue name available for creation by someone else
+     *
+     * @param definition
+     */
+    Optional<DeletionJob> tryMarkForDeletion(QueueDefinition definition);
 
-    boolean queueExists(QueueName queueName);
+    /**
+     * Attemps to create a queue with this name
+     *
+     * @param definition
+     */
+    Optional<QueueDefinition> createQueue(QueueDefinition definition);
 
-    Optional<QueueDefinition> getQueue(QueueName queueName);
+    boolean tryAdvanceQueueStatus(
+            @NonNull QueueName queueName,
+            @NonNull QueueStatus status);
 
-    List<QueueDefinition> getQueues();
+    boolean deleteIfInActive(QueueName queueName);
 
-    void deleteQueueDefinition(QueueName queueName);
+    Optional<QueueDefinition> getQueueUnsafe(QueueName queueId);
 
-    default List<QueueName> getQueueNames(){
-        return getQueues().stream().map(QueueDefinition::getQueueName).collect(toList());
+    default List<QueueDefinition> getActiveQueues(){
+        return getQueues(QueueStatus.Active);
     }
+
+    List<QueueDefinition> getQueues(QueueStatus queueStatus);
+
+    Optional<QueueDefinition> getActiveQueue(QueueName name);
+
+    default List<QueueName> getQueueNames() {
+        return getActiveQueues().stream().map(QueueDefinition::getQueueName).collect(toList());
+    }
+
+    void deleteCompletionJob(DeletionJob queue);
 }

@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
@@ -104,7 +105,7 @@ public class ReaderTester extends TestBase {
 
         getTestClock().tick();
 
-        getDataContext(testContext).getQueueRepository().setQueueStatus(testContext.queueDefinition.getQueueName(), QueueStatus.Deleting);
+        getQueueRepository().tryMarkForDeletion(testContext.queueDefinition);
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 
@@ -180,10 +181,6 @@ public class ReaderTester extends TestBase {
         return setupTestContext(queueName, 20);
     }
 
-    private DataContext getDataContext(ReaderQueueContext readerQueueContext){
-        return defaultInjector.getInstance(DataContextFactory.class).forQueue(readerQueueContext.getQueueDefinition());
-    }
-
     private ReaderQueueContext setupTestContext(String queueName, int bucketSize) {
         final QueueName queue = QueueName.valueOf(queueName);
         final QueueDefinition queueDefinition = QueueDefinition.builder()
@@ -197,5 +194,9 @@ public class ReaderTester extends TestBase {
         final Reader reader = readerFactory.forQueue(queueDefinition);
 
         return new ReaderQueueContext(queue, queueDefinition, reader);
+    }
+
+    private QueueRepository getQueueRepository() {
+        return getDefaultInjector().getInstance(QueueRepository.class);
     }
 }

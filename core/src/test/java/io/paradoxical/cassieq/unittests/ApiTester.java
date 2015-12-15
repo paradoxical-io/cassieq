@@ -55,7 +55,7 @@ public class ApiTester extends TestBase {
 
     @Test
     public void test_client_can_create_put_and_ack() throws Exception {
-        final QueueName queueName = QueueName.valueOf("test");
+        final QueueName queueName = QueueName.valueOf("test_client_can_create_put_and_ack");
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
 
@@ -80,7 +80,7 @@ public class ApiTester extends TestBase {
 
     @Test
     public void demo_invis_client() throws Exception {
-        final QueueName queueName = QueueName.valueOf("test");
+        final QueueName queueName = QueueName.valueOf("demo_invis_client");
 
         client.createQueue(new QueueCreateOptions(queueName)).execute();
 

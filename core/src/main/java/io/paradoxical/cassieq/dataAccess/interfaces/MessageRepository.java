@@ -37,6 +37,4 @@ public interface MessageRepository {
     Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer);
 
     void deleteAllMessages(BucketPointer bucket);
-
-    void deleteAllMessages(MessagePointer from, MessagePointer to);
 }

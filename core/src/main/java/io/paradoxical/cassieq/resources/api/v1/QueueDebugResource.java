@@ -63,7 +63,7 @@ public class QueueDebugResource extends BaseQueueResource {
     })
     public Response getQueues() {
 
-        final List<QueueDefinition> queues = getQueueRepository().getQueues();
+        final List<QueueDefinition> queues = getQueueRepository().getActiveQueues();
 
         return Response.ok(queues)
                        .status(Response.Status.OK)
@@ -203,7 +203,7 @@ public class QueueDebugResource extends BaseQueueResource {
             return buildQueueNotFoundResponse(queueName);
         }
 
-        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(queueName);
+        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(queueDefinition.get().getId());
 
         return Response.ok(monotonicRepository.getCurrent())
                        .status(Response.Status.OK)

@@ -3,40 +3,42 @@ package io.paradoxical.cassieq.dataAccess;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
-import io.paradoxical.cassieq.model.MonotonicIndex;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
+import io.paradoxical.cassieq.model.MonotonicIndex;
+import io.paradoxical.cassieq.model.QueueId;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 
 public class MonotonicRepoImpl extends RepositoryBase implements MonotonicRepository {
     private final Session session;
-    private final QueueName queueName;
+    private final QueueId queueId;
 
     @Inject
-    public MonotonicRepoImpl(Session session, @Assisted QueueName queueName) {
+    public MonotonicRepoImpl(Session session, @Assisted QueueId id) {
         this.session = session;
-        this.queueName = queueName;
+        this.queueId = id;
     }
 
-    @Override public MonotonicIndex nextMonotonic() {
+    @Override
+    public MonotonicIndex nextMonotonic() {
         MonotonicIndex nextMonotonic = null;
 
-        while(nextMonotonic == null) {
+        while (nextMonotonic == null) {
             nextMonotonic = incrementMonotonicValue();
         }
 
         return nextMonotonic;
     }
 
-    @Override public MonotonicIndex getCurrent() {
+    @Override
+    public MonotonicIndex getCurrent() {
         Statement statement = QueryBuilder.select()
                                           .all()
                                           .from(Tables.Monoton.TABLE_NAME)
-                                          .where(eq(Tables.Monoton.QUEUENAME, queueName.get()));
+                                          .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()));
 
         MonotonicIndex current = getOne(session.execute(statement), MonotonicIndex::map);
 
@@ -47,7 +49,7 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
     public void deleteAll() {
         final Statement delete = QueryBuilder.delete().all()
                                              .from(Tables.Monoton.TABLE_NAME)
-                                             .where(eq(Tables.Monoton.QUEUENAME, queueName.get()));
+                                             .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()));
 
         session.execute(delete);
     }
@@ -59,10 +61,10 @@ public class MonotonicRepoImpl extends RepositoryBase implements MonotonicReposi
 
         Statement stat = QueryBuilder.update(Tables.Monoton.TABLE_NAME)
                                      .with(set(Tables.Monoton.VALUE, next))
-                                     .where(eq(Tables.Monoton.QUEUENAME, queueName.get()))
+                                     .where(eq(Tables.Monoton.QUEUE_ID, queueId.get()))
                                      .onlyIf(eq(Tables.Monoton.VALUE, current));
 
-        if(session.execute(stat).wasApplied()) {
+        if (session.execute(stat).wasApplied()) {
             return MonotonicIndex.valueOf(current);
         }
 

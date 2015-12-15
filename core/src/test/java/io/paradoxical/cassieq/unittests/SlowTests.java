@@ -110,7 +110,7 @@ public class SlowTests extends TestBase {
                 final QueueName queueName,
                 final Collection<Integer> collection,
                 final ExecutorService executorService) {
-            super(client, queueName, collection, executorService, null);
+            super(client, queueName, collection, executorService, new TestClock());
         }
 
         @Override

@@ -1,51 +1,24 @@
 package io.paradoxical.cassieq.workers.repair;
 
+import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toSet;
 
-@Data
-class RepairWorkerKey {
-    private QueueDefinition getQueueDefinition() {
-        return repairWorker.forDefinition();
-    }
-
-    private final RepairWorker repairWorker;
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof RepairWorkerKey)) {
-            return false;
-        }
-
-        final RepairWorkerKey that = (RepairWorkerKey) o;
-
-        return !(getQueueDefinition() != null ? !getQueueDefinition().equals(that.getQueueDefinition()) : that.getQueueDefinition() != null);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return getQueueDefinition() != null ? getQueueDefinition().hashCode() : 0;
-    }
-}
-
 public class SimpleRepairWorkerManager implements RepairWorkerManager {
+    private static final Logger logger = getLogger(SimpleRepairWorkerManager.class);
+
     private final RepairWorkerFactory repairWorkerFactory;
     private final Provider<QueueRepository> queueRepositoryProvider;
     @Getter
@@ -61,7 +34,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     public synchronized void start() {
         final Set<RepairWorkerKey> expectedWorkers =
                 queueRepositoryProvider.get()
-                                       .getQueues()
+                                       .getActiveQueues()
                                        .stream()
                                        .map(repairWorkerFactory::forQueue)
                                        .map(RepairWorkerKey::new)
@@ -70,6 +43,9 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
         final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();
 
         final ImmutableSet<RepairWorkerKey> itemsToStop = Sets.difference(currentRepairWorkers, expectedWorkers).immutableCopy();
+
+        logger.with("count", itemsToStop.size()).info("Removing workers");
+        logger.with("count", newWorkers.size()).info("Workers to add");
 
         itemsToStop.forEach(this::stop);
 

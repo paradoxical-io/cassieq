@@ -22,6 +22,7 @@ import org.joda.time.Seconds;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -40,6 +41,8 @@ public class RepairWorkerImpl implements RepairWorker {
 
     private final Object nextRun = new Object();
 
+    private ScheduledFuture<?> activeSchedule;
+
     @Inject
     public RepairWorkerImpl(
             ServiceConfiguration configuration,
@@ -53,7 +56,8 @@ public class RepairWorkerImpl implements RepairWorker {
         this.configuration = configuration.getBucketConfiguration();
         dataContext = factory.forQueue(definition);
 
-        logger = logger.with("queue-name", definition.getQueueName());
+        logger = logger.with("queue-name", definition.getQueueName())
+                       .with("verison", definition.getVersion());
     }
 
     @Override
@@ -69,7 +73,9 @@ public class RepairWorkerImpl implements RepairWorker {
     public void stop() {
         isStarted = false;
 
-        scheduledExecutorService.shutdown();
+        if (activeSchedule != null) {
+            activeSchedule.cancel(false);
+        }
     }
 
     @Override
@@ -84,8 +90,8 @@ public class RepairWorkerImpl implements RepairWorker {
     }
 
     private void schedule() {
-        scheduledExecutorService.schedule(this::process,
-                                          configuration.getRepairWorkerPollFrequency().getMillis(), TimeUnit.MILLISECONDS);
+        activeSchedule = scheduledExecutorService.schedule(this::process,
+                                                           configuration.getRepairWorkerPollFrequency().getMillis(), TimeUnit.MILLISECONDS);
     }
 
     private void process() {

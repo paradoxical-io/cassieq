@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
@@ -10,13 +11,11 @@ import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessageTag;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.workers.BucketConfiguration;
-import io.paradoxical.cassieq.workers.repair.RepairWorker;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
-import io.paradoxical.cassieq.model.QueueName;
-import com.google.inject.Injector;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
 import org.joda.time.Duration;
@@ -25,7 +24,6 @@ import org.junit.Test;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 public class RepairTests extends TestBase {
     @Test
@@ -122,7 +120,7 @@ public class RepairTests extends TestBase {
                                  .index(index)
                                  .build();
 
-        final RepairWorkerImpl repairWorker = (RepairWorkerImpl)repairWorkerFactory.forQueue(queueDefinition);
+        final RepairWorkerImpl repairWorker = (RepairWorkerImpl) repairWorkerFactory.forQueue(queueDefinition);
 
         RepairBucketPointer repairCurrentBucketPointer = dataContext.getPointerRepository().getRepairCurrentBucketPointer();
 
@@ -169,21 +167,45 @@ public class RepairTests extends TestBase {
 
         final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
-        final QueueName queueName = QueueName.valueOf("repairer_moves_off_ghost_messages");
+        final QueueName queueName = QueueName.valueOf("repair_manager_adds_new_workers");
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
         final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
 
-        contextFactory.createQueue(queueDefinition);
-
-        manager.refresh();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.deleteQueueDefinition(queueName);
+        contextFactory.tryMarkForDeletion(queueDefinition);
 
-        manager.refresh();
+        manager.notifyChanges();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void repair_manager_properly_keeps_track_of_existing_workers() throws Exception {
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+
+        final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+
+        final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
+
+        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+
+        // refreshing twice should not add or remove anyone since no queues were added/deleted
+        manager.notifyChanges();
+        manager.notifyChanges();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+
+        contextFactory.tryMarkForDeletion(queueDefinition);
+
+        manager.notifyChanges();
+        manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
     }

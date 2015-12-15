@@ -3,9 +3,18 @@ package io.paradoxical.cassieq.workers.reader;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.model.*;
+import io.paradoxical.cassieq.model.BucketPointer;
+import io.paradoxical.cassieq.model.Clock;
+import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
+import io.paradoxical.cassieq.model.Message;
+import io.paradoxical.cassieq.model.MessagePointer;
+import io.paradoxical.cassieq.model.MonotonicIndex;
+import io.paradoxical.cassieq.model.PopReceipt;
+import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import org.joda.time.Duration;
 
 import java.util.List;
@@ -81,14 +90,17 @@ public class ReaderImpl implements Reader {
     private static final Logger logger = getLogger(ReaderImpl.class);
 
     private final DataContext dataContext;
+    private final QueueRepository queueRepository;
     private final Clock clock;
     private final QueueDefinition queueDefinition;
 
     @Inject
     public ReaderImpl(
             DataContextFactory dataContextFactory,
+            QueueRepository queueRepository,
             Clock clock,
             @Assisted QueueDefinition queueDefinition) {
+        this.queueRepository = queueRepository;
         this.clock = clock;
         this.queueDefinition = queueDefinition;
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -96,7 +108,7 @@ public class ReaderImpl implements Reader {
 
     @Override
     public Optional<Message> nextMessage(Duration invisibility) {
-        if (getQueueStatus().orElse(null) != QueueStatus.Active) {
+        if (!isActive()) {
             return Optional.empty();
         }
 
@@ -118,8 +130,8 @@ public class ReaderImpl implements Reader {
         return nextMessage;
     }
 
-    private Optional<QueueStatus> getQueueStatus() {
-        return dataContext.getQueueRepository().getQueue(queueDefinition.getQueueName()).map(QueueDefinition::getStatus);
+    private boolean isActive() {
+        return queueRepository.getActiveQueue(queueDefinition.getQueueName()).isPresent();
     }
 
     @Override

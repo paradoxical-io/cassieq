@@ -29,14 +29,13 @@ public class DataContextFactoryImpl implements DataContextFactory {
     public DataContext forQueue(QueueDefinition definition) {
         return new DataContext(
                 messageRepoFactory.forQueue(definition),
-                monotonicRepoFactory.forQueue(definition.getQueueName()),
-                pointerRepoFactory.forQueue(definition.getQueueName()),
-                queueRepositoryProvider.get());
+                monotonicRepoFactory.forQueue(definition.getId()),
+                pointerRepoFactory.forQueue(definition.getId()));
     }
 
     @Override
     public Optional<QueueDefinition> getDefinition(final QueueName name) {
-        return queueRepositoryProvider.get().getQueue(name);
+        return queueRepositoryProvider.get().getActiveQueue(name);
     }
 }
 

@@ -27,6 +27,8 @@ public class Message {
 
     private MessageTag tag;
 
+    private final QueueId queueId;
+
     public boolean isVisible(Clock clock) {
         return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now());
     }
@@ -62,7 +64,6 @@ public class Message {
                       .tag(tag)
                       .build();
     }
-
 
     public Message withNewVersion(int version) {
         return Message.builder()

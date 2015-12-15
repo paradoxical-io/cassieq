@@ -56,17 +56,18 @@ public final class PopReceipt {
         return new PopReceipt(monotonicIndex, messageVersion, messageTag);
     }
 
-
     public static class JsonDeserializeAdapater extends JsonDeserializer<PopReceipt> {
 
-        @Override public PopReceipt deserialize(final JsonParser jp, final DeserializationContext ctxt)
+        @Override
+        public PopReceipt deserialize(final JsonParser jp, final DeserializationContext ctxt)
                 throws IOException {
             return PopReceipt.valueOf(jp.getValueAsString());
         }
     }
 
     public static class JsonSerializeAdapter extends JsonSerializer<PopReceipt> {
-        @SuppressWarnings("ConstantConditions") @Override
+        @SuppressWarnings("ConstantConditions")
+        @Override
         public void serialize(final PopReceipt value, final JsonGenerator jgen, final SerializerProvider provider)
                 throws IOException {
             jgen.writeString(value.getPopReceipt());

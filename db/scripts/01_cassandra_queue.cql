@@ -1,25 +1,33 @@
 CREATE TABLE queue (
   queuename text PRIMARY KEY,
   bucket_size int,
-  max_dequeue_count int,
-  status text
+  max_delivery_count int,
+  status int,
+  version int
 );
 
 CREATE TABLE pointer (
-  queuename text,
+  queueid text,
   pointer_type text,
   value bigint,
 
-  PRIMARY KEY (queuename, pointer_type)
+  PRIMARY KEY (queueid, pointer_type)
 );
 
 CREATE TABLE monoton (
-  queuename text PRIMARY KEY,
+  queueid text PRIMARY KEY,
   value bigint
 );
 
+CREATE TABLE deletion_job (
+    queuename text,
+    version int,
+    bucket_size int,
+    PRIMARY KEY (queuename, version)
+);
+
 CREATE TABLE message (
-  queuename text,
+  queueid text,
   bucket_num bigint,
   monoton bigint,
   message text,
@@ -30,5 +38,5 @@ CREATE TABLE message (
   delivery_count int,
   tag text,
 
-  PRIMARY KEY ((queuename, bucket_num), monoton)
+  PRIMARY KEY ((queueid, bucket_num), monoton)
 );

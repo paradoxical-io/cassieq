@@ -38,7 +38,7 @@ public abstract class BaseQueueResource {
     }
 
     protected Optional<QueueDefinition> getQueueDefinition(final QueueName queueName) {
-        return queueRepository.getQueue(queueName);
+        return queueRepository.getActiveQueue(queueName);
     }
 
     protected Response buildQueueNotFoundResponse(final QueueName queue) {

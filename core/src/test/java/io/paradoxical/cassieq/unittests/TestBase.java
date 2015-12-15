@@ -6,7 +6,6 @@ import com.godaddy.logging.Logger;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import io.dropwizard.logging.BootstrapLogging;
-import io.dropwizard.logging.LoggingFactory;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
@@ -26,20 +25,44 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestBase {
     private static final Logger logger = getLogger(TestBase.class);
 
-    public static final Session session;
+    public static Session session;
+
+    private static final Object lock = new Object();
 
     static {
-        try {
-            session = CqlDb.create();
-        }
-        catch (Exception e) {
-            logger.error(e, "Error");
+        final String environmentLogLevel = System.getenv("LOG_LEVEL");
 
-            throw new RuntimeException(e);
+        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.ERROR);
+
+        LogMapping.register();
+
+        String[] disableLogging = new String[]{ "uk.co.jemos.podam",
+                                                "com.datastax",
+                                                "org.cassandraunit",
+                                                "io.netty",
+                                                "org.apache"
+        };
+
+        Arrays.stream(disableLogging).forEach(i -> {
+            ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(i)).setLevel(Level.OFF);
+        });
+
+        synchronized (lock) {
+            if (session == null) {
+                try {
+                    session = CqlDb.create();
+                }
+                catch (Exception e) {
+                    logger.error(e, "Error");
+
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 
@@ -47,29 +70,7 @@ public class TestBase {
     private final TestClock testClock = new TestClock();
 
     public TestBase() {
-        final String environmentLogLevel = System.getenv("LOG_LEVEL");
 
-        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.ERROR);
-
-        LogMapping.register();
-
-        String[] disableLogging = new String[]{ "uk.co.jemos.podam.api.PodamFactoryImpl",
-                                                "uk.co.jemos.podam.common.BeanValidationStrategy",
-                                                "org.apache.cassandra.service.CassandraDaemon",
-                                                "org.apache.cassandra.service.CacheService",
-                                                "org.apache.cassandra.db.Memtable",
-                                                "org.apache.cassandra.db.ColumnFamilyStore",
-                                                "org.apache.cassandra.config.DatabaseDescriptor",
-                                                "org.apache.cassandra.db.compaction.CompactionTask",
-                                                "org.apache.cassandra.db.DefsTables",
-                                                "org.apache.cassandra.service.MigrationManager",
-                                                "org.apache.cassandra.config.YamlConfigurationLoader",
-                                                "org.apache.cassandra.service.StorageService"
-        };
-
-        Arrays.stream(disableLogging).forEach(i -> {
-            ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(i)).setLevel(Level.OFF);
-        });
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
@@ -111,7 +112,7 @@ public class TestBase {
 
         queueRepository.createQueue(queueDefinition);
 
-        queueRepository.getQueue(queueDefinition.getQueueName()).get();
+        assertThat(queueRepository.getQueueUnsafe(queueDefinition.getQueueName()).isPresent()).isTrue();
     }
 
     protected void createQueue(final QueueDefinition queueDefinition) {

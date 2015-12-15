@@ -1,60 +1,51 @@
 package io.paradoxical.cassieq.workers;
 
 import com.google.inject.Inject;
-import io.paradoxical.cassieq.factories.DataContext;
-import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
-import io.paradoxical.cassieq.model.MessagePointer;
-import io.paradoxical.cassieq.model.MonotonicIndex;
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
+import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 
+import java.util.Optional;
+
 public class QueueDeleter {
-    private final DataContextFactory factory;
+    private final QueueRepository queueRepository;
+    private final MessageDeleterJobProcessorFactory messageDeleterJobProcessorFactory;
     private final RepairWorkerManager repairWorkerManager;
 
     @Inject
     public QueueDeleter(
-            DataContextFactory factory,
+            QueueRepository queueRepository,
+            MessageDeleterJobProcessorFactory messageDeleterJobProcessorFactory,
             RepairWorkerManager repairWorkerManager) {
-        this.factory = factory;
+        this.queueRepository = queueRepository;
+        this.messageDeleterJobProcessorFactory = messageDeleterJobProcessorFactory;
         this.repairWorkerManager = repairWorkerManager;
     }
 
-    public void delete(QueueName queueName) {
-        final QueueDefinition queueDefinition = factory.getDefinition(queueName).get();
+    public void delete(QueueName queueName) throws QueueAlreadyDeletingException {
+        final Optional<QueueDefinition> optionalDefinition = queueRepository.getActiveQueue(queueName);
 
-        final DataContext dataContext = factory.forQueue(queueDefinition);
-
-        final MessagePointer startPointer = getMinStartPointer(dataContext, queueDefinition);
-
-        final MessagePointer endPointer = dataContext.getMonotonicRepository().getCurrent();
-
-        dataContext.getQueueRepository().setQueueStatus(queueName, QueueStatus.Deleting);
-
-        dataContext.getMessageRepository().deleteAllMessages(startPointer, endPointer);
-
-        dataContext.getMonotonicRepository().deleteAll();
-
-        dataContext.getPointerRepository().deleteAll();
-
-        // actally delete the queue definition
-        dataContext.getQueueRepository().deleteQueueDefinition(queueDefinition.getQueueName());
-
-        repairWorkerManager.refresh();
-    }
-
-    private MessagePointer getMinStartPointer(DataContext dataContext, QueueDefinition queueDefinition) {
-        final MonotonicIndex repairPointer = dataContext.getPointerRepository().getRepairCurrentBucketPointer().startOf(queueDefinition.getBucketSize());
-
-        final InvisibilityMessagePointer currentInvisPointer = dataContext.getPointerRepository().getCurrentInvisPointer();
-
-        if (repairPointer.get() < currentInvisPointer.get()) {
-            return repairPointer;
+        if (!optionalDefinition.isPresent()) {
+            return;
         }
 
-        return currentInvisPointer;
+        final QueueDefinition queueDefinition = optionalDefinition.get();
+
+        // This should be the first thing. this way the pointers below can't be modified further.
+        final Optional<DeletionJob> deletionJob = queueRepository.tryMarkForDeletion(queueDefinition);
+
+        if (!deletionJob.isPresent()) {
+            throw new QueueAlreadyDeletingException(queueDefinition);
+        }
+
+        // delegate actual work to another processor that handles the job
+        // this can be used to spin up deletion jobs after the fact
+        messageDeleterJobProcessorFactory.createDeletionProcessor(deletionJob.get()).start();
+
+        repairWorkerManager.notifyChanges();
     }
 }

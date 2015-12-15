@@ -1,8 +1,11 @@
 package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
+import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeletorJobProcessor;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -157,7 +160,12 @@ public class MessageRepositoryTester extends TestBase {
 
         assertThat(messages.size()).isEqualTo(1).withFailMessage("Found incorrect number of messages in queue");
 
-        context.getMessageRepository().deleteAllMessages(MonotonicIndex.valueOf(0), context.getMonotonicRepository().getCurrent());
+        final DeletionJob deletionJob = new DeletionJob(queueDefinition);
+
+        final MessageDeletorJobProcessor messageDeletorJobProcessor =
+                defaultInjector.getInstance(MessageDeleterJobProcessorFactory.class).createDeletionProcessor(deletionJob);
+
+        messageDeletorJobProcessor.start();
 
         assertThat(context.getMessageRepository().getMessages(() -> 0L).size()).isEqualTo(0).withFailMessage("Values still existed in queue");
     }
