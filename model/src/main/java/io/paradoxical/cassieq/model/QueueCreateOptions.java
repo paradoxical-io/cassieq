@@ -20,14 +20,30 @@ public class QueueCreateOptions {
     @NotNull
     private final QueueName queueName;
 
+    /**
+     * The number of messages that go into a bucket.
+     */
     private final Integer bucketSize;
 
+    /**
+     * Maximum number of times a message can be delivered on this queue
+     */
     private final Integer maxDeliveryCount;
 
+    /**
+     * How long the repair worker checks the current bucket for tombstoning
+     */
     private final Integer repairWorkerPollSeconds;
 
+    /**
+     * When a bucket is tombstoned, how long we will wait for delayed messages before finalizing the bucket
+     */
     private final Integer repairWorkerBucketFinalizeTimeSeconds;
 
+    /**
+     * After finalization, if the bucket is _full_ and all acked whether or not to delete it
+     * Unfull buckets will not be deleted
+     */
     private final Boolean deleteBucketsAfterFinalize;
 
     public QueueCreateOptions(QueueName queueName) {
