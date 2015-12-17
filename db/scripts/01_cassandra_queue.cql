@@ -29,6 +29,7 @@ CREATE TABLE deletion_job (
     PRIMARY KEY (queuename, version)
 );
 
+
 CREATE TABLE message (
   queueid text,
   bucket_num bigint,
@@ -42,4 +43,9 @@ CREATE TABLE message (
   tag text,
 
   PRIMARY KEY ((queueid, bucket_num), monoton)
+);
+
+CREATE TABLE leadership_election (
+    group text PRIMARY KEY,
+    leader_id text
 );
