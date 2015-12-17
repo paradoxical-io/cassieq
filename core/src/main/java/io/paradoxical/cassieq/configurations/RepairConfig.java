@@ -4,11 +4,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.NotEmpty;
 
+import java.time.Duration;
+
 public class RepairConfig {
 
     @NotEmpty
     @Getter
     @Setter
-    private String raftConfigPath = "docker/data/conf/raft.xml";
-
+    private Integer managerRefreshRateSeconds = Long.valueOf(Duration.ofMinutes(1).getSeconds()).intValue();
 }

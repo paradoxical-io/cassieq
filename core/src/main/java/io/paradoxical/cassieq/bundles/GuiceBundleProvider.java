@@ -1,7 +1,11 @@
 package io.paradoxical.cassieq.bundles;
 
+import com.google.inject.Injector;
 import com.google.inject.Module;
+import com.google.inject.Stage;
 import com.hubspot.dropwizard.guice.GuiceBundle;
+import com.hubspot.dropwizard.guice.InjectorFactory;
+import com.netflix.governator.Governator;
 import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
@@ -31,12 +35,11 @@ public class GuiceBundleProvider {
         final GuiceBundle.Builder<ServiceConfiguration> builder = GuiceBundle.<ServiceConfiguration>newBuilder();
 
         builder.enableAutoConfig(ServiceApplication.class.getPackage().getName())
-               .setConfigClass(ServiceConfiguration.class);
+               .setConfigClass(ServiceConfiguration.class)
+               .setInjectorFactory((stage, modules) -> Governator.createInjector(modules));
 
         getModules().stream().forEach(builder::addModule);
 
-        final GuiceBundle<ServiceConfiguration> guiceBundle = builder.build();
-
-        return guiceBundle;
+        return builder.build();
     }
 }

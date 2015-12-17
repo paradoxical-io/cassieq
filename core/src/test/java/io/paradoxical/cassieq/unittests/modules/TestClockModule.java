@@ -1,6 +1,6 @@
 package io.paradoxical.cassieq.unittests.modules;
 
-import io.paradoxical.cassieq.model.Clock;
+import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.modules.ClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.OverridableModule;

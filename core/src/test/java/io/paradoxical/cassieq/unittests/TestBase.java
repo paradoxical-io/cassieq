@@ -3,8 +3,8 @@ package io.paradoxical.cassieq.unittests;
 import ch.qos.logback.classic.Level;
 import com.datastax.driver.core.Session;
 import com.godaddy.logging.Logger;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.netflix.governator.Governator;
 import io.dropwizard.logging.BootstrapLogging;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
@@ -78,7 +78,7 @@ public class TestBase {
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
-        return Guice.createInjector(
+        return Governator.createInjector(
                 ModuleUtils.mergeModules(DefaultApplicationModules.getModules(),
                                          new InMemorySessionProvider(session),
                                          new MockEnvironmentModule(configuration),
@@ -101,9 +101,12 @@ public class TestBase {
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queueName)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
+                                                               .repairWorkerPollFrequencySeconds(1)
+                                                               .repairWorkerTombstonedBucketTimeoutSeconds(3)
                                                                .build();
 
         createQueue(queueDefinition, injector);
+
         return queueDefinition;
     }
 

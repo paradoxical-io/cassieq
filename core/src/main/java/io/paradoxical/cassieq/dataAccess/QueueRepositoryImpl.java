@@ -37,6 +37,12 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
 
+    /**
+     * Move the queue into an inoperable state and create a job
+     *
+     * @param definition
+     * @return
+     */
     @Override
     public Optional<DeletionJob> tryMarkForDeletion(final QueueDefinition definition) {
 
@@ -122,13 +128,17 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     private boolean insertQueueIfNotExist(final QueueDefinition queueDefinition) {
 
-        final Insert insertQueue = QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
-                                               .ifNotExists()
-                                               .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
-                                               .value(Tables.Queue.VERSION, 0)
-                                               .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                                               .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
-                                               .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
+        final Insert insertQueue =
+                QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
+                            .ifNotExists()
+                            .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
+                            .value(Tables.Queue.VERSION, 0)
+                            .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
+                            .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, queueDefinition.getDeleteBucketsAfterFinaliziation())
+                            .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, queueDefinition.getRepairWorkerPollFrequencySeconds())
+                            .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, queueDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
+                            .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
+                            .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
 
         final boolean queueInserted = session.execute(insertQueue).wasApplied();
 

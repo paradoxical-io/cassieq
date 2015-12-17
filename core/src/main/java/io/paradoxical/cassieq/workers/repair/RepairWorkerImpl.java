@@ -3,22 +3,21 @@ package io.paradoxical.cassieq.workers.repair;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.BucketPointer;
-import io.paradoxical.cassieq.model.Clock;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
+import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.modules.annotations.RepairPool;
-import io.paradoxical.cassieq.workers.BucketConfiguration;
 import org.joda.time.DateTime;
 import org.joda.time.Instant;
 import org.joda.time.Seconds;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class RepairWorkerImpl implements RepairWorker {
-    private final BucketConfiguration configuration;
     private final Clock clock;
     private final ScheduledExecutorService scheduledExecutorService;
     private final QueueDefinition queueDefinition;
@@ -45,7 +43,6 @@ public class RepairWorkerImpl implements RepairWorker {
 
     @Inject
     public RepairWorkerImpl(
-            ServiceConfiguration configuration,
             DataContextFactory factory,
             Clock clock,
             @RepairPool ScheduledExecutorService executorService,
@@ -53,7 +50,6 @@ public class RepairWorkerImpl implements RepairWorker {
         this.clock = clock;
         scheduledExecutorService = executorService;
         queueDefinition = definition;
-        this.configuration = configuration.getBucketConfiguration();
         dataContext = factory.forQueue(definition);
 
         logger = logger.with("queue-name", definition.getQueueName())
@@ -90,8 +86,10 @@ public class RepairWorkerImpl implements RepairWorker {
     }
 
     private void schedule() {
-        activeSchedule = scheduledExecutorService.schedule(this::process,
-                                                           configuration.getRepairWorkerPollFrequency().getMillis(), TimeUnit.MILLISECONDS);
+        activeSchedule = scheduledExecutorService.scheduleWithFixedDelay(this::process,
+                                                                         clock.jitter(20), // randomly start within a 20 second range as a jitter
+                                                                         queueDefinition.getRepairWorkerPollFrequencySeconds(),
+                                                                         TimeUnit.SECONDS);
     }
 
     private void process() {
@@ -108,9 +106,6 @@ public class RepairWorkerImpl implements RepairWorker {
         }
         catch (Throwable ex) {
             logger.error(ex, "Error processing!");
-        }
-        finally {
-            schedule();
         }
     }
 
@@ -143,7 +138,7 @@ public class RepairWorkerImpl implements RepairWorker {
 
     private void waitForTimeout(final DateTime tombstoneTime) {
 
-        final DateTime plus = tombstoneTime.plus(configuration.getRepairWorkerTimeout());
+        final DateTime plus = tombstoneTime.plus(Duration.ofSeconds(queueDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds()).toMillis());
 
         final Instant now = clock.now();
 
@@ -213,7 +208,7 @@ public class RepairWorkerImpl implements RepairWorker {
     }
 
     private void deleteMessagesInBucket(final RepairBucketPointer currentBucket) {
-        if (configuration.isDeleteBucketsAfterRepair()) {
+        if (queueDefinition.getDeleteBucketsAfterFinaliziation()) {
             dataContext.getMessageRepository().deleteAllMessages(currentBucket);
         }
     }

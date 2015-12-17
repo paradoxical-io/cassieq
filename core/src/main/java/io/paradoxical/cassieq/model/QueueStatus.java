@@ -12,6 +12,9 @@ public enum QueueStatus {
      */
     Provisioning,
 
+    /**
+     * The queue is provisioned and ready for use
+     */
     Active,
 
     /**
@@ -21,7 +24,7 @@ public enum QueueStatus {
     PendingDelete,
 
     /**
-     * ONce the deletion job tables are populated we can move to this state. You can now
+     * Once the deletion job tables are populated we can move to this state. You can now
      * create a queue with the same name if is in this state
      */
     Deleting,

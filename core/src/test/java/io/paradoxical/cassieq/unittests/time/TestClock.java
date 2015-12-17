@@ -1,6 +1,6 @@
 package io.paradoxical.cassieq.unittests.time;
 
-import io.paradoxical.cassieq.model.Clock;
+import io.paradoxical.cassieq.model.time.Clock;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.joda.time.Duration;
@@ -36,13 +36,13 @@ public class TestClock implements Clock {
         tickSeconds(1L);
     }
 
-    public void tickSeconds(Long seconds){
+    public void tickSeconds(Long seconds) {
         time = time.plus(Duration.standardSeconds(seconds));
 
         SleepItem peek;
-        while ((peek = sleepItems.peek()) != null && peek.getSleepUntil().isBefore(now())){
+        while ((peek = sleepItems.peek()) != null && peek.getSleepUntil().isBefore(now())) {
             final Object notificationObject = peek.getNotificationObject();
-            synchronized (notificationObject){
+            synchronized (notificationObject) {
                 notificationObject.notify();
             }
             sleepItems.remove();
@@ -60,8 +60,13 @@ public class TestClock implements Clock {
 
         sleepItems.add(new SleepItem(now().plus(duration), sleepObject));
 
-        synchronized (sleepObject){
+        synchronized (sleepObject) {
             sleepObject.wait();
         }
+    }
+
+    @Override
+    public long jitter(final int i) {
+        return 0;
     }
 }
