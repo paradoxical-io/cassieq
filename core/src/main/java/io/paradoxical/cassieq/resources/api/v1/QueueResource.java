@@ -72,11 +72,15 @@ public class QueueResource extends BaseQueueResource {
         final QueueName queueName = createOptions.getQueueName();
 
         try {
-            final QueueDefinition newQueueDefinition = QueueDefinition.builder()
-                                                                      .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
-                                                                      .maxDeliveryCount(createOptions.getMaxDeliveryCount())
-                                                                      .queueName(createOptions.getQueueName())
-                                                                      .build();
+            final QueueDefinition newQueueDefinition =
+                    QueueDefinition.builder()
+                                   .bucketSize(BucketSize.valueOf(createOptions.getBucketSize()))
+                                   .maxDeliveryCount(createOptions.getMaxDeliveryCount())
+                                   .repairWorkerPollFrequencySeconds(createOptions.getRepairWorkerPollSeconds())
+                                   .repairWorkerTombstonedBucketTimeoutSeconds(createOptions.getRepairWorkerBucketFinalizeTimeSeconds())
+                                   .deleteBucketsAfterFinaliziation(createOptions.getDeleteBucketsAfterFinalize())
+                                   .queueName(createOptions.getQueueName())
+                                   .build();
 
             final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
 

@@ -37,7 +37,7 @@ public class QueueDefinition {
         this.maxDeliveryCount = maxDeliveryCount == null ? 5 : maxDeliveryCount;
         this.status = status == null ? QueueStatus.Active : status;
         this.repairWorkerPollFrequencySeconds = repairWorkerPollFrequencySeconds == null ? 5 : repairWorkerPollFrequencySeconds;
-        this.repairWorkerTombstonedBucketTimeoutSeconds = repairWorkerTombstonedBucketTimeoutSeconds == null ? 30 : repairWorkerTombstonedBucketTimeoutSeconds;
+        this.repairWorkerTombstonedBucketTimeoutSeconds = repairWorkerTombstonedBucketTimeoutSeconds == null ? 15 : repairWorkerTombstonedBucketTimeoutSeconds;
     }
 
     public static QueueDefinition fromRow(final Row row) {
