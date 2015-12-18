@@ -37,8 +37,9 @@ public final class Tables {
         public static final String DELIVERY_COUNT = "delivery_count";
         public static final String ACKED = "acked";
         public static final String NEXT_VISIBLE_ON = "next_visible_on";
-        public static final String CREATED_DATE = "created_date";
         public static final String TAG = "tag";
+        public static final String CREATED_DATE = "created_date";
+        public static final String UPDATED_DATE = "updated_date";
     }
 
     public static class DeletionJob {

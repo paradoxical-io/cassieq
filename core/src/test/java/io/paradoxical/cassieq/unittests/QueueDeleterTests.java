@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import com.godaddy.logging.Logger;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.assistedinject.Assisted;
@@ -23,6 +24,7 @@ import org.junit.Test;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -30,6 +32,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class QueueDeleterTests extends TestBase {
+    private static final Logger logger = getLogger(QueueDeleterTests.class);
+
     @Test
     public void can_create_queue_while_job_is_deleting() throws QueueAlreadyDeletingException, InterruptedException {
 
@@ -60,8 +64,8 @@ public class QueueDeleterTests extends TestBase {
                     // but we have already created a new active queue so this should NOT occur
                     realDeletor.start();
                 }
-                catch (Exception e) {
-                    System.out.println(e);
+                catch (Exception ex) {
+                    logger.error(ex, "Error creating deleter");
                 }
             });
 
@@ -94,15 +98,15 @@ public class QueueDeleterTests extends TestBase {
         assertThat(queue).isPresent();
         assertThat(queue.get().getVersion()).isEqualTo(1);
 
-        // let the deletor process v0
+        // let the deleter process v0
         start.release();
 
-        // wiat for deletor to finish
+        // wait for deleter to finish
         deletion[0].join();
 
         final QueueDefinition activeQueue = instance.getActiveQueue(queue.get().getQueueName()).get();
 
-        // make sure the deletor when it completed didn't just kill this active queue (v1)
+        // make sure the deleter when it completed didn't just kill this active queue (v1)
         assertThat(activeQueue.getVersion()).isEqualTo(queue.get().getVersion());
     }
 
