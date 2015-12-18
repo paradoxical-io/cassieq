@@ -4,6 +4,7 @@ import com.godaddy.logging.Logger;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassandra.loader.db.CqlUnitDb;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.MessageDeletorJobProcessorImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
@@ -17,8 +18,12 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -35,11 +40,12 @@ public class QueueDeleterTests extends TestBase {
     private static final Logger logger = getLogger(QueueDeleterTests.class);
 
     @Test
-    public void can_create_queue_while_job_is_deleting() throws QueueAlreadyDeletingException, InterruptedException {
+    public void can_create_queue_while_job_is_deleting() throws Exception {
 
         final MessageDeleterJobProcessorFactory jobSpy = spy(MessageDeleterJobProcessorFactory.class);
 
-        final Injector defaultInjector = getDefaultInjector(new MessageDeletorJobModule(jobSpy));
+        final Injector defaultInjector = getDefaultInjector(new MessageDeletorJobModule(jobSpy),
+                                                            new InMemorySessionProvider(CqlDb.createFresh()));
 
         final Semaphore start = new Semaphore(1);
 
