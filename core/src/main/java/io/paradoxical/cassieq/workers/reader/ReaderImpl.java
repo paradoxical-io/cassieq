@@ -218,7 +218,7 @@ public class ReaderImpl implements Reader {
             return newlyAliveMessage;
         }
 
-        return tryConsumeNextVisibleMessage(getPointerForNextBucket(pointer), invisiblity));
+        return tryConsumeNextVisibleMessage(getPointerForNextBucket(pointer), invisiblity);
     }
 
     /**
