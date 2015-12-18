@@ -115,7 +115,7 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
-        final Optional<Message> nowVisibleMessage = tryGetNowVisibleMessage(getCurrentInvisPointer(), invisibility);
+        final Optional<Message> nowVisibleMessage = tryConsumeNextVisibleMessage(getCurrentInvisPointer(), invisibility);
 
         if (nowVisibleMessage.isPresent()) {
 
@@ -157,21 +157,22 @@ public class ReaderImpl implements Reader {
         return dataContext.getPointerRepository().getReaderCurrentBucket();
     }
 
-    private Optional<Message> tryGetNowVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
+    private Optional<Message> tryConsumeNextVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
         final Message messageAt = dataContext.getMessageRepository().getMessage(pointer);
 
         if (messageAt == null) {
             // invis pointer points to garbage, try and find something else
-            return findNextInvisMessage(pointer, invisiblity);
+            return findAndConsumeNextVisible(pointer, invisiblity);
         }
 
         if (messageAt.getDeliveryCount() == 0) {
             // it hasn't been sent out for delivery yet so can't be invisible
+            // dont ever move past non delivered messages with invis
             return Optional.empty();
         }
 
         if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
-            // the message has come back alive
+            // the message we are pointing at has come back alive
             final Optional<Message> message = dataContext.getMessageRepository().consumeMessage(messageAt, invisiblity);
 
             // were able to consume
@@ -179,18 +180,19 @@ public class ReaderImpl implements Reader {
                 return message;
             }
 
-            return findNextInvisMessage(pointer, invisiblity);
+            // scan for the next visible if we have one
+            return findAndConsumeNextVisible(pointer, invisiblity);
         }
         else if (messageAt.isAcked()) {
             // current message is acked that the invis pointer was pointing to
             // try and move the invis pointer to the next lowest monotonic invisible
-            return findNextInvisMessage(pointer, invisiblity);
+            return findAndConsumeNextVisible(pointer, invisiblity);
         }
 
         return Optional.empty();
     }
 
-    private Optional<Message> findNextInvisMessage(final InvisibilityMessagePointer pointer, Duration invisiblity) {
+    private Optional<Message> findAndConsumeNextVisible(final InvisibilityMessagePointer pointer, Duration invisiblity) {
         // check all the messages in the bucket the invis pointer is currently on
         final ReaderBucketPointer bucketPointer = pointer.toBucketPointer(queueDefinition.getBucketSize());
 
@@ -206,9 +208,26 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
-        // in the active bucket, if there is a not acked, is currenlty invisible, and has been at least once delivered message
-        // then if its ID is LESS than the current active pointer, move the pointer to that
-        // otherwise pointer stays the same
+        if (stopAtInvisMessageInBucket(messages, pointer)) {
+            return Optional.empty();
+        }
+
+        final Optional<Message> newlyAliveMessage = consumeNewlyAliveMessageInBucket(messages, invisiblity, pointer);
+
+        if (newlyAliveMessage.isPresent()) {
+            return newlyAliveMessage;
+        }
+
+        return tryConsumeNextVisibleMessage(getPointerForNextBucket(pointer), invisiblity));
+    }
+
+    /**
+     * in the active bucket, if there is a not acked, is currenlty invisible, and has been at least once delivered message
+     * then if its ID is LESS than the current active pointer, move the pointer to that
+     * otherwise pointer stays the same
+     **/
+    private boolean stopAtInvisMessageInBucket(final List<Message> messages, final InvisibilityMessagePointer pointer) {
+
         final Optional<Message> stoppingPoint = messages.stream()
                                                         .filter(m -> m.isNotAcked() &&
                                                                      m.isNotVisible(clock) &&
@@ -219,14 +238,28 @@ public class ReaderImpl implements Reader {
 
             logger.with(stoppingPoint.get()).info("Found invis message in current bucket");
 
-            return Optional.empty();
+            return true;
         }
 
+        return false;
+    }
+
+    /**
+     * Look in this message bucket list and find a message that has now become alive and consume it
+     * @param messagesInBucket
+     * @param invisiblity
+     * @param currentPointer
+     * @return
+     */
+    private Optional<Message> consumeNewlyAliveMessageInBucket(
+            final List<Message> messagesInBucket,
+            final Duration invisiblity,
+            InvisibilityMessagePointer currentPointer) {
         // since we're scanning, look for a message that has been delivered
         // is visible, and is not acked. this guy is now alive
-        final Optional<Message> nextNewlyAlive = messages.stream()
-                                                         .filter(m -> m.isNotAcked() && m.isVisible(clock) && m.getDeliveryCount() > 0)
-                                                         .findFirst();
+        final Optional<Message> nextNewlyAlive = messagesInBucket.stream()
+                                                                 .filter(m -> m.isNotAcked() && m.isVisible(clock) && m.getDeliveryCount() > 0)
+                                                                 .findFirst();
 
         if (nextNewlyAlive.isPresent()) {
             // stop here since we're scanning and we can't have anyone else behind us
@@ -236,16 +269,14 @@ public class ReaderImpl implements Reader {
 
             // if we were able to consume the message, try and move the invis pointer to this isnce its going to now be invis.
             // if someone else finds an earlier invis, it'll get moved to that
-            if(tryConsumedMessage.isPresent()){
-                trySetNewInvisPointer(pointer, nextNewlyAlive.get().getIndex());
+            if (tryConsumedMessage.isPresent()) {
+                trySetNewInvisPointer(currentPointer, nextNewlyAlive.get().getIndex());
 
                 return tryConsumedMessage;
             }
         }
 
-        InvisibilityMessagePointer pointerForNextBucket = getPointerForNextBucket(pointer);
-
-        return tryGetNowVisibleMessage(pointerForNextBucket, invisiblity);
+        return Optional.empty();
     }
 
 
