@@ -2,7 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
-import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeletorJobProcessor;
+import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
@@ -162,7 +162,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final DeletionJob deletionJob = new DeletionJob(queueDefinition);
 
-        final MessageDeletorJobProcessor messageDeletorJobProcessor =
+        final MessageDeleterJobProcessor messageDeletorJobProcessor =
                 defaultInjector.getInstance(MessageDeleterJobProcessorFactory.class).createDeletionProcessor(deletionJob);
 
         messageDeletorJobProcessor.start();

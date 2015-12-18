@@ -69,13 +69,20 @@ public class QueueRepositoryTester extends TestBase {
 
         assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
+        assertThat(repo.getQueueUnsafe(queueName).get().getStatus()).isEqualTo(QueueStatus.Active);
+
+        // no skipping a state
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isFalse();
+
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.PendingDelete)).isTrue();
 
         // ok to move to the same again
+        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
 
+        // can't go backwards
         assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
     }
 
