@@ -6,6 +6,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Update;
+import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
@@ -23,14 +24,18 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
 
 public class MessageRepositoryImpl extends RepositoryBase implements MessageRepository {
+    private Logger logger = getLogger(MessageRepositoryImpl.class);
+
     private final Session session;
     private final Clock clock;
     private final QueueDefinition queueDefinition;
@@ -43,6 +48,9 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         this.session = session.get();
         this.clock = clock;
         this.queueDefinition = queueDefinition;
+
+        logger = logger.with("queue-name", queueDefinition.getQueueName())
+                       .with("version", queueDefinition.getVersion());
     }
 
     @Override
@@ -184,22 +192,29 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     public Optional<Message> updateMessage(MessageUpdateRequest message) {
         final DateTime now = getNow();
 
+        final Date nextVisibleOn = now.plus(message.getInvisibilityDuration()).toDate();
+
         final Update.Assignments updater =
                 QueryBuilder.update(Tables.Message.TABLE_NAME)
                             .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                             .and(eq(Tables.Message.BUCKET_NUM, message.getIndex().toBucketPointer(queueDefinition.getBucketSize()).get()))
                             .and(eq(Tables.Message.MONOTON, message.getIndex().get()))
-                            .with(set(Tables.Message.NEXT_VISIBLE_ON, now.plus(message.getInvisibilityDuration())));
+                            .with(set(Tables.Message.NEXT_VISIBLE_ON, nextVisibleOn));
 
         if (message.getNewBlob() != null) {
             updater.and(set(Tables.Message.MESSAGE, message.getNewBlob()));
         }
 
         updater.onlyIf(eq(Tables.Message.VERSION, message.getVersion()))
-               .and(eq(Tables.Message.TAG, message.getTag()))
-               .with(set(Tables.Message.UPDATED_DATE, now));
+               .and(eq(Tables.Message.TAG, message.getTag().get()))
+               .with(set(Tables.Message.UPDATED_DATE, now.toDate()));
 
         if (session.execute(updater).wasApplied()) {
+            logger.with("monoton", message.getIndex())
+                  .with("tag", message.getTag())
+                  .with("next-visible-on", nextVisibleOn)
+                  .debug("Updating message");
+
             return Optional.of(getMessage(message.getIndex()));
         }
 
