@@ -13,7 +13,7 @@ public interface Scheduler {
      * @param unit
      * @return
      */
-    QueryableScheduledFuture<?> periodicWithDelay(Runnable runnable, long delay, long duration, TimeUnit unit);
+    ScheduledFuture<?> periodicWithDelay(Runnable runnable, long delay, long duration, TimeUnit unit);
 
-    QueryableScheduledFuture<?> scheduleOnce(Runnable runnableFuture, long duration, TimeUnit unit);
+    ScheduledFuture<?> scheduleOnce(Runnable runnableFuture, long duration, TimeUnit unit);
 }

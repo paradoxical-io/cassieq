@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.model.time;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ExecutionServiceScheduler implements Scheduler {
@@ -12,12 +13,12 @@ public class ExecutionServiceScheduler implements Scheduler {
     }
 
     @Override
-    public QueryableScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
-        return new WrappedScheduledFuture<>(scheduledExecutorService.scheduleWithFixedDelay(runnable, delay, duration, unit));
+    public ScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
+        return scheduledExecutorService.scheduleWithFixedDelay(runnable, delay, duration, unit);
     }
 
     @Override
-    public QueryableScheduledFuture<?> scheduleOnce(final Runnable runnable, final long duration, final TimeUnit unit) {
-        return new WrappedScheduledFuture<>(scheduledExecutorService.schedule(runnable, duration, unit));
+    public ScheduledFuture<?> scheduleOnce(final Runnable runnable, final long duration, final TimeUnit unit) {
+        return scheduledExecutorService.schedule(runnable, duration, unit);
     }
 }

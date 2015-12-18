@@ -8,6 +8,8 @@ public interface Clock {
 
     void sleepFor(Duration duration) throws InterruptedException;
 
+    void sleepTill(Instant instant) throws InterruptedException;
+
     long jitter(int i);
 }
 

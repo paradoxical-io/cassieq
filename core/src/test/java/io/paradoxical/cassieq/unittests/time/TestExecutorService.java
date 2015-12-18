@@ -3,9 +3,7 @@ package io.paradoxical.cassieq.unittests.time;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.model.time.Clock;
-import io.paradoxical.cassieq.model.time.QueryableScheduledFuture;
 import io.paradoxical.cassieq.model.time.Scheduler;
-import org.joda.time.Duration;
 import org.joda.time.Instant;
 
 import java.util.concurrent.CompletableFuture;
@@ -14,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
@@ -32,28 +29,17 @@ class ClosedClockExecutor implements Scheduler {
 
 
     @Override
-    public QueryableScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
-        final QueryableScheduledFuture<?> scheduledFuture = scheduleOnce(runnable, duration, unit);
+    public ScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
+        final ScheduledFuture<?> scheduledFuture = scheduleOnce(runnable, duration, unit);
 
         final Boolean[] isCancelled = { false };
-        final Boolean[] isReady = { false };
 
         final Thread loopedScheduler = new Thread(() -> {
             while (!isCancelled[0]) {
                 try {
                     final Instant stop = start.plus(duration);
 
-                    if (clock.now().isBefore(stop)) {
-                        final long millis = unit.toMillis(duration);
-
-                        isReady[0] = true;
-
-                        clock.sleepFor(Duration.millis(millis));
-
-                        isReady[0] = false;
-                    }
-
-                    start = clock.now();
+                    clock.sleepTill(stop);
                 }
                 catch (InterruptedException e) {
                     logger.error(e, "Error waiting for duration");
@@ -61,6 +47,8 @@ class ClosedClockExecutor implements Scheduler {
 
                 if (!isCancelled[0]) {
                     runnable.run();
+
+                    start = clock.now();
                 }
             }
         });
@@ -84,44 +72,32 @@ class ClosedClockExecutor implements Scheduler {
             }
         });
 
-        return scheduledFutureFromCompletble(voidCompletableFuture, () -> isCancelled[0] = true, () -> scheduledFuture.isReady() || isReady[0]);
+        return scheduledFutureFromCompletble(voidCompletableFuture, () -> isCancelled[0] = true);
     }
 
     @Override
-    public QueryableScheduledFuture<?> scheduleOnce(final Runnable runnable, final long duration, final TimeUnit unit) {
-        final Boolean[] isReady = { false };
+    public ScheduledFuture<?> scheduleOnce(final Runnable runnable, final long duration, final TimeUnit unit) {
 
         final CompletableFuture<Void> onceSchedule = CompletableFuture.runAsync(() -> {
             try {
-                final long millis = unit.toMillis(duration);
-
                 final Instant stop = start.plus(duration);
 
-                if (clock.now().isBefore(stop)) {
-                    isReady[0] = true;
-
-                    clock.sleepFor(Duration.millis(millis));
-                }
+                clock.sleepTill(stop);
 
                 runnable.run();
+
+                start = clock.now();
             }
             catch (InterruptedException e) {
                 logger.error(e, "Error waiting for duration");
             }
         });
 
-        return scheduledFutureFromCompletble(onceSchedule,
-                                             () -> {},
-                                             () -> isReady[0]);
+        return scheduledFutureFromCompletble(onceSchedule, () -> {});
     }
 
-    private QueryableScheduledFuture<?> scheduledFutureFromCompletble(final CompletableFuture<Void> voidCompletableFuture, Runnable onCancel, Supplier<Boolean> isReady) {
-        return new QueryableScheduledFuture<Object>() {
-            @Override
-            public boolean isReady() {
-                return isReady.get();
-            }
-
+    private ScheduledFuture<?> scheduledFutureFromCompletble(final CompletableFuture<Void> voidCompletableFuture, Runnable onCancel) {
+        return new ScheduledFuture<Object>() {
             @Override
             public long getDelay(final TimeUnit unit) {
                 return 0;
@@ -180,12 +156,12 @@ public class TestExecutorService implements Scheduler {
 
 
     @Override
-    public QueryableScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
+    public ScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
         return new ClosedClockExecutor(clock, clock.now()).periodicWithDelay(runnable, delay, duration, unit);
     }
 
     @Override
-    public QueryableScheduledFuture<?> scheduleOnce(final Runnable runnableFuture, final long duration, final TimeUnit unit) {
+    public ScheduledFuture<?> scheduleOnce(final Runnable runnableFuture, final long duration, final TimeUnit unit) {
         return new ClosedClockExecutor(clock, clock.now()).scheduleOnce(runnableFuture, duration, unit);
     }
 }
