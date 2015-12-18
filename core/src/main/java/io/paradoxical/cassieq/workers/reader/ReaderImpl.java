@@ -7,7 +7,6 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.BucketPointer;
-import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessagePointer;
@@ -15,9 +14,11 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.time.Clock;
 import org.joda.time.Duration;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -87,7 +88,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
  * 3 *
  */
 public class ReaderImpl implements Reader {
-    private static final Logger logger = getLogger(ReaderImpl.class);
+    private Logger logger = getLogger(ReaderImpl.class);
 
     private final DataContext dataContext;
     private final QueueRepository queueRepository;
@@ -104,6 +105,8 @@ public class ReaderImpl implements Reader {
         this.clock = clock;
         this.queueDefinition = queueDefinition;
         dataContext = dataContextFactory.forQueue(queueDefinition);
+
+        logger = logger.with("q", queueDefinition.getQueueName()).with("version", queueDefinition.getVersion());
     }
 
     @Override
@@ -159,7 +162,7 @@ public class ReaderImpl implements Reader {
 
         if (messageAt == null) {
             // invis pointer points to garbage, try and find something else
-            return tryGetNextInvisMessage(pointer, invisiblity);
+            return findNextInvisMessage(pointer, invisiblity);
         }
 
         if (messageAt.getDeliveryCount() == 0) {
@@ -169,49 +172,69 @@ public class ReaderImpl implements Reader {
 
         if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
             // the message has come back alive
-            return dataContext.getMessageRepository().consumeMessage(messageAt, invisiblity);
+            final Optional<Message> message = dataContext.getMessageRepository().consumeMessage(messageAt, invisiblity);
+
+            // were able to consume
+            if (message.isPresent()) {
+                return message;
+            }
+
+            return findNextInvisMessage(pointer, invisiblity);
         }
         else if (messageAt.isAcked()) {
             // current message is acked that the invis pointer was pointing to
             // try and move the invis pointer to the next lowest monotonic invisible
-            return tryGetNextInvisMessage(pointer, invisiblity);
+            return findNextInvisMessage(pointer, invisiblity);
         }
 
         return Optional.empty();
     }
 
-    private Optional<Message> tryGetNextInvisMessage(final InvisibilityMessagePointer pointer, Duration invisiblity) {
+    private Optional<Message> findNextInvisMessage(final InvisibilityMessagePointer pointer, Duration invisiblity) {
         // check all the messages in the bucket the invis pointer is currently on
         final ReaderBucketPointer bucketPointer = pointer.toBucketPointer(queueDefinition.getBucketSize());
 
         final List<Message> messages = dataContext.getMessageRepository()
                                                   .getMessages(bucketPointer);
 
-        if (messages.isEmpty()) {
-            // no messages, can't move pointer since nothing to move to
+        final BucketPointer maxMonotonBucketPointer = dataContext.getMonotonicRepository().getCurrent().toBucketPointer(queueDefinition.getBucketSize());
+
+        final BucketPointer invisBucketPointer = pointer.toBucketPointer(queueDefinition.getBucketSize());
+
+        if (messages.isEmpty() && invisBucketPointer.get() >= maxMonotonBucketPointer.get()) {
+            // no messages, and we're at the last bucket anyways, can't move pointer since nothing to move to
             return Optional.empty();
         }
 
-        // in the active bucket, if there is a not acked, not visible, at least once delivered message
+        // in the active bucket, if there is a not acked, is currenlty invisible, and has been at least once delivered message
         // then if its ID is LESS than the current active pointer, move the pointer to that
         // otherwise pointer stays the same
-        final Optional<Message> first = messages.stream()
-                                                .filter(m -> m.isNotAcked() &&
-                                                             m.isNotVisible(clock) &&
-                                                             m.getDeliveryCount() > 0).findFirst();
+        final Optional<Message> stoppingPoint = messages.stream()
+                                                        .filter(m -> m.isNotAcked() &&
+                                                                     m.isNotVisible(clock) &&
+                                                                     m.getDeliveryCount() > 0).findFirst();
 
-        if (first.isPresent()) {
-            trySetNewInvisPointer(pointer, first.get().getIndex());
+        if (stoppingPoint.isPresent()) {
+            trySetNewInvisPointer(pointer, stoppingPoint.get().getIndex());
 
-            logger.with(first.get()).info("Found invis message in current bucket");
+            logger.with(stoppingPoint.get()).info("Found invis message in current bucket");
 
             return Optional.empty();
         }
 
-        final InvisibilityMessagePointer pointerForNextBucket = getPointerForNextBucket(pointer);
+        final Optional<Message> nextNewlyAlive = messages.stream()
+                                                         .filter(m -> m.isNotAcked() && m.isVisible(clock) && m.getDeliveryCount() > 0)
+                                                         .findFirst();
+
+        if (nextNewlyAlive.isPresent()) {
+            return nextNewlyAlive;
+        }
+
+        InvisibilityMessagePointer pointerForNextBucket = getPointerForNextBucket(pointer);
 
         return tryGetNowVisibleMessage(pointerForNextBucket, invisiblity);
     }
+
 
     /**
      * Given the current pointer, returns a new pointer that jumps to the start of the next bucket
@@ -270,9 +293,9 @@ public class ReaderImpl implements Reader {
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {
-        logger.with(bucket).info("Tombstoning reader");
-
-        dataContext.getMessageRepository().tombstone(bucket);
+        if (dataContext.getMessageRepository().tombstone(bucket)) {
+            logger.with(bucket).info("Tombestoned reader");
+        }
     }
 
     private boolean monotonPastBucket(final ReaderBucketPointer currentBucket) {
@@ -282,16 +305,20 @@ public class ReaderImpl implements Reader {
     }
 
     private ReaderBucketPointer advanceBucket(ReaderBucketPointer currentBucket) {
-        logger.with(currentBucket).info("Advancing reader bucket");
+        final ReaderBucketPointer nextBucket = dataContext.getPointerRepository().advanceMessageBucketPointer(currentBucket, currentBucket.next());
 
-        return dataContext.getPointerRepository().advanceMessageBucketPointer(currentBucket, currentBucket.next());
+        if (!Objects.equals(nextBucket.get(), currentBucket.get())) {
+            logger.with(currentBucket).info("Advancing reader bucket");
+        }
+
+        return nextBucket;
     }
 
     private MonotonicIndex getLatestMonotonic() {
         return dataContext.getMonotonicRepository().getCurrent();
     }
 
-    private void trySetNewInvisPointer(final InvisibilityMessagePointer currentInvis, MessagePointer potentialNextInvisPointer) {
-        dataContext.getPointerRepository().tryMoveInvisiblityPointerTo(currentInvis, InvisibilityMessagePointer.valueOf(potentialNextInvisPointer.get()));
+    private InvisibilityMessagePointer trySetNewInvisPointer(final InvisibilityMessagePointer currentInvis, MessagePointer potentialNextInvisPointer) {
+        return dataContext.getPointerRepository().tryMoveInvisiblityPointerTo(currentInvis, InvisibilityMessagePointer.valueOf(potentialNextInvisPointer.get()));
     }
 }

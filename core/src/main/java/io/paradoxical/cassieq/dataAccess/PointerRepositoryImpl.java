@@ -5,6 +5,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
@@ -22,10 +23,13 @@ import java.util.function.Function;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gt;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class PointerRepositoryImpl extends RepositoryBase implements PointerRepository {
     private final Session session;
     private final QueueId id;
+
+    private static final Logger logger = getLogger(PointerRepositoryImpl.class);
 
     @Inject
     public PointerRepositoryImpl(
@@ -40,6 +44,8 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
             @NonNull final ReaderBucketPointer original,
             @NonNull final ReaderBucketPointer next) {
         if (tryMovePointer(PointerType.BUCKET_POINTER, next, pointerEqualsClause(original))) {
+            logger.with("original", original).with("destination", next).info("Moved bucket pointer");
+
             return next;
         }
 
@@ -52,13 +58,19 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
             @NonNull final InvisibilityMessagePointer original,
             @NonNull final InvisibilityMessagePointer destination) {
 
+        final Logger moveLogger = logger.with("original", original).with("destination", destination);
         //If the destination is less than the current pointer value, move the pointer.
         if (tryMovePointer(PointerType.INVISIBILITY_POINTER, destination, pointerGreaterThanClause(destination))) {
+
+            moveLogger.info("Moved because destination is less than original");
+
             return destination;
         }
 
         //If the pointer was not moved, attempt to move the pointer to the destination if the original pointer value equals the current pointer value.
         if (tryMovePointer(PointerType.INVISIBILITY_POINTER, destination, pointerEqualsClause(original))) {
+            moveLogger.info("Moved because original equals what is in the db");
+
             return destination;
         }
 

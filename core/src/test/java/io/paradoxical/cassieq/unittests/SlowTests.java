@@ -2,6 +2,8 @@ package io.paradoxical.cassieq.unittests;
 
 import categories.StressTests;
 import com.godaddy.logging.Logger;
+import com.google.common.collect.ConcurrentHashMultiset;
+import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
@@ -17,13 +19,10 @@ import org.jooq.lambda.Unchecked;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import retrofit.Response;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +32,7 @@ import java.util.stream.IntStream;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
 @Category(StressTests.class)
 public class SlowTests extends TestBase {
@@ -41,15 +41,14 @@ public class SlowTests extends TestBase {
     @Rule
     public RetryRule retryRule = new RetryRule(3);
 
-    @Test
+    @Test(timeout = 30000)
     public void test_multiple_parallel_readers() throws Exception {
-        parallel_read_worker(250, // messages
+        parallel_read_worker(1000, // messages
                              10,  // good workers
-                             1,   // bad workers
-                             Duration.ofSeconds(30));
+                             1);  // bad workers
     }
 
-    private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers, Duration testTimeout) throws InterruptedException, IOException {
+    private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers) throws InterruptedException, IOException {
 
         final TestClock testClock = new TestClock();
 
@@ -59,7 +58,7 @@ public class SlowTests extends TestBase {
 
         server.start();
 
-        final Collection<Integer> payloads = Collections.synchronizedCollection(new ArrayList<>());
+        final Collection<Integer> counter = ConcurrentHashMultiset.create();
 
         final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri());
 
@@ -72,38 +71,38 @@ public class SlowTests extends TestBase {
                                              .build())
               .execute();
 
-        new Thread(() -> {
+        final Thread thread = new Thread(() -> {
             IntStream.range(0, numMessages)
                      .forEach(Unchecked.intConsumer(i -> {
                          client.addMessage(queueName, i).execute();
                      }));
-        }).start();
+        });
+
+        thread.start();
+
+        thread.join();
 
         final ExecutorService executorService = Executors.newFixedThreadPool(40);
 
         final List<Worker> goodWorkers = IntStream.range(0, numGoodWorkers)
-                                                  .mapToObj(i -> new Worker(client, queueName, payloads, executorService, testClock))
+                                                  .mapToObj(i -> new Worker(client, queueName, counter, executorService, testClock))
                                                   .collect(toList());
 
         final List<Worker> badWorkers = IntStream.range(0, numBadWorkers)
-                                                 .mapToObj(i -> new FailingWorker(client, queueName, payloads, executorService))
+                                                 .mapToObj(i -> new FailingWorker(client, queueName, counter, executorService))
                                                  .collect(toList());
 
         final List<Worker> workers = ListUtils.union(badWorkers, goodWorkers);
 
         workers.forEach(executorService::submit);
 
-        final LocalTime start = LocalTime.now();
-
-        final LocalTime end = start.plus(testTimeout);
-
-        while (payloads.size() != numMessages && LocalTime.now().isBefore(end)) {
+        while (counter.stream().distinct().count() != numMessages) {
             Thread.sleep(50);
         }
 
         workers.forEach(Worker::stop);
 
-        assertThat(payloads.size()).isEqualTo(numMessages);
+        assertThat(counter.stream().distinct().count()).isEqualTo(numMessages);
     }
 
     class BadWorkerException extends RuntimeException {}
@@ -112,21 +111,23 @@ public class SlowTests extends TestBase {
         public FailingWorker(
                 final CassandraQueueApi client,
                 final QueueName queueName,
-                final Collection<Integer> collection,
+                final Collection<Integer> counter,
                 final ExecutorService executorService) {
-            super(client, queueName, collection, executorService, new TestClock());
+            super(client, queueName, counter, executorService, new TestClock());
         }
 
         @Override
         protected Integer getMessage() throws IOException {
+            client.getMessage(queueName, 10L).execute().body();
+
             throw new BadWorkerException();
         }
     }
 
     class Worker implements Runnable {
-        private final CassandraQueueApi client;
-        private final QueueName queueName;
-        private final Collection<Integer> collection;
+        protected final CassandraQueueApi client;
+        protected final QueueName queueName;
+        private final Collection<Integer> counter;
         private final ExecutorService executorService;
         private final TestClock testClock;
         private volatile boolean running = true;
@@ -135,11 +136,11 @@ public class SlowTests extends TestBase {
         public Worker(
                 CassandraQueueApi client,
                 QueueName queueName,
-                Collection<Integer> results,
+                Collection<Integer> counter,
                 final ExecutorService executorService, final TestClock testClock) {
             this.client = client;
             this.queueName = queueName;
-            this.collection = results;
+            this.counter = counter;
             this.executorService = executorService;
             this.testClock = testClock;
         }
@@ -156,12 +157,12 @@ public class SlowTests extends TestBase {
                 if (i != null) {
                     logger.success("Message: " + i);
 
-                    collection.add(i);
+                    counter.add(i);
                 }
                 else if (testClock != null) {
                     logger.info("TICK!");
 
-                    testClock.tickSeconds(5L);
+                    testClock.tickSeconds(1L);
                 }
             }
             catch (BadWorkerException ex) {
@@ -186,11 +187,19 @@ public class SlowTests extends TestBase {
         }
 
         protected Integer getMessage() throws IOException {
-            final GetMessageResponse body = client.getMessage(queueName, 2L).execute().body();
+            final GetMessageResponse body = client.getMessage(queueName, 10L).execute().body();
 
             if (body != null) {
-                if (client.ackMessage(queueName, body.getPopReceipt()).execute().isSuccess()) {
+                final Response<ResponseBody> execute = client.ackMessage(queueName, body.getPopReceipt()).execute();
+                if (execute.isSuccess()) {
+                    logger.info("ACKED!");
+
                     return Integer.parseInt(body.getMessage());
+                }
+                else {
+                    testClock.tickSeconds(1L);
+
+                    fail("Failure to ack!");
                 }
             }
 

@@ -123,7 +123,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     }
 
     @Override
-    public void tombstone(final ReaderBucketPointer bucketPointer) {
+    public boolean tombstone(final ReaderBucketPointer bucketPointer) {
         // mark the bucket as tombstoned
 
         final DateTime now = getNow();
@@ -136,7 +136,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                           .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
                                           .value(Tables.Message.CREATED_DATE, now.toDate());
 
-        session.execute(statement);
+        return session.execute(statement).wasApplied();
     }
 
     private Select.Where getReadMessageQuery(final BucketPointer bucketPointer) {
