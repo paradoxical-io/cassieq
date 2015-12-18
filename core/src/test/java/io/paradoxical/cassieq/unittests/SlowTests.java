@@ -71,16 +71,11 @@ public class SlowTests extends TestBase {
                                              .build())
               .execute();
 
-        final Thread thread = new Thread(() -> {
-            IntStream.range(0, numMessages)
-                     .forEach(Unchecked.intConsumer(i -> {
-                         client.addMessage(queueName, i).execute();
-                     }));
-        });
-
-        thread.start();
-
-        thread.join();
+        IntStream.range(0, numMessages)
+                 .parallel()
+                 .forEach(Unchecked.intConsumer(i -> {
+                     client.addMessage(queueName, i).execute();
+                 }));
 
         final ExecutorService executorService = Executors.newFixedThreadPool(40);
 

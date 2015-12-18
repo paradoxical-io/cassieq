@@ -222,11 +222,17 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
+        // since we're scanning, look for a message that has been delivered
+        // is visible, and is not acked. this guy is now alive
         final Optional<Message> nextNewlyAlive = messages.stream()
                                                          .filter(m -> m.isNotAcked() && m.isVisible(clock) && m.getDeliveryCount() > 0)
                                                          .findFirst();
 
         if (nextNewlyAlive.isPresent()) {
+            // stop here since we're scanning and we can't have anyone else behind us
+            // since they are either invis, OR they are acked
+            trySetNewInvisPointer(pointer, nextNewlyAlive.get().getIndex());
+
             return nextNewlyAlive;
         }
 
