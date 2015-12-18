@@ -43,7 +43,7 @@ public class SlowTests extends TestBase {
 
     @Test(timeout = 30000)
     public void test_multiple_parallel_readers() throws Exception {
-        parallel_read_worker(1000, // messages
+        parallel_read_worker(250, // messages
                              10,  // good workers
                              1);  // bad workers
     }
