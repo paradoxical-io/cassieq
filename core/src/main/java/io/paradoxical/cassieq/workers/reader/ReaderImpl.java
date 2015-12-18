@@ -231,9 +231,16 @@ public class ReaderImpl implements Reader {
         if (nextNewlyAlive.isPresent()) {
             // stop here since we're scanning and we can't have anyone else behind us
             // since they are either invis, OR they are acked
-            trySetNewInvisPointer(pointer, nextNewlyAlive.get().getIndex());
+            // attempt to consume the message
+            final Optional<Message> tryConsumedMessage = dataContext.getMessageRepository().consumeMessage(nextNewlyAlive.get(), invisiblity);
 
-            return nextNewlyAlive;
+            // if we were able to consume the message, try and move the invis pointer to this isnce its going to now be invis.
+            // if someone else finds an earlier invis, it'll get moved to that
+            if(tryConsumedMessage.isPresent()){
+                trySetNewInvisPointer(pointer, nextNewlyAlive.get().getIndex());
+
+                return tryConsumedMessage;
+            }
         }
 
         InvisibilityMessagePointer pointerForNextBucket = getPointerForNextBucket(pointer);
