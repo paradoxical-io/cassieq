@@ -79,11 +79,6 @@ public class TestBase {
 
     }
 
-    @After
-    public void after_test(){
-        getDefaultInjector().getInstance(RepairWorkerManager.class).stop();
-    }
-
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
         return getDefaultInjector(configuration, session);
     }

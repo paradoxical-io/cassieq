@@ -91,6 +91,10 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     @Override
     public synchronized void notifyChanges() {
         try {
+            if(!running){
+                return;
+            }
+
             final Set<RepairWorkerKey> expectedWorkers = getExpectedWorkers();
 
             final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();

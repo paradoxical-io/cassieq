@@ -4,7 +4,6 @@ import com.godaddy.logging.Logger;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassandra.loader.db.CqlUnitDb;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.MessageDeletorJobProcessorImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
@@ -21,9 +20,6 @@ import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;
-import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Test;
 
 import java.util.Optional;
@@ -45,11 +41,13 @@ public class QueueDeleterTests extends TestBase {
         final MessageDeleterJobProcessorFactory jobSpy = spy(MessageDeleterJobProcessorFactory.class);
 
         final Injector defaultInjector = getDefaultInjector(new MessageDeletorJobModule(jobSpy),
-                                                            new InMemorySessionProvider(CqlDb.createFresh()));
+                                                            new InMemorySessionProvider(session));
 
         final Semaphore start = new Semaphore(1);
 
         final Thread[] deletion = new Thread[1];
+
+        start.acquire();
 
         // delay the actual queue deletion as if it was an async job
         when(jobSpy.createDeletionProcessor(any())).thenAnswer(answer -> {
@@ -68,7 +66,12 @@ public class QueueDeleterTests extends TestBase {
 
                     // the job starts, and after completion tries to mark the queue as inactive
                     // but we have already created a new active queue so this should NOT occur
+
+                    logger.info("Starting deleter");
+
                     realDeletor.start();
+
+                    logger.info("Done deleter");
                 }
                 catch (Exception ex) {
                     logger.error(ex, "Error creating deleter");
@@ -94,7 +97,7 @@ public class QueueDeleterTests extends TestBase {
         // make sure we got a v0 queue
         assertThat(initialQueue.get().getVersion()).isEqualTo(0);
 
-        // delete v0
+        // delete v0 async
         queueDeleter.delete(name);
 
         // should be able to make new queue
