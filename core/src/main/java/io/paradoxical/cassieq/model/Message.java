@@ -2,6 +2,8 @@ package io.paradoxical.cassieq.model;
 
 import com.datastax.driver.core.Row;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.godaddy.logging.LoggingScope;
+import com.godaddy.logging.Scope;
 import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.dataAccess.Tombstone;
 import io.paradoxical.cassieq.model.time.Clock;
@@ -15,6 +17,7 @@ import org.joda.time.Duration;
 public class Message {
     private final MonotonicIndex index;
 
+    @LoggingScope(scope = Scope.HASH)
     private final String blob;
 
     private DateTime nextVisiblityAt;

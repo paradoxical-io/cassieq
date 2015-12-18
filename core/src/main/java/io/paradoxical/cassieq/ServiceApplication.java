@@ -102,7 +102,9 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
         environment.jersey().register(new CorrelationIdFilter());
 
-        //environment.jersey().register(new JerseyRequestLogging());
+        if(serviceConfiguration.getLogConfig().getLogRawJerseyRequests()) {
+            environment.jersey().register(new JerseyRequestLogging());
+        }
     }
 
     private void configureLogging(final ServiceConfiguration serviceConfiguration, final Environment environment) {

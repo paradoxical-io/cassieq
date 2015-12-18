@@ -6,6 +6,8 @@ import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.UpdateMessageRequest;
+import io.paradoxical.cassieq.model.UpdateMessageResponse;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import org.junit.AfterClass;
@@ -126,7 +128,40 @@ public class ApiTester extends TestBase {
         }
     }
 
-    @Test(timeout=30000)
+    @Test
+    public void delete_queue() throws IOException {
+        final QueueName delete_queue = QueueName.valueOf("delete_queue");
+
+        client.createQueue(new QueueCreateOptions(delete_queue)).execute();
+
+        assertThat(client.deleteQueue(delete_queue).execute().isSuccess()).isTrue();
+
+        assertThat(client.purgeInactiveQueues().execute().isSuccess()).isTrue();
+
+        assertThat(client.getMessage(delete_queue).execute().isSuccess()).isFalse();
+    }
+
+    @Test
+    public void update_message() throws Exception {
+        final QueueName delete_queue = QueueName.valueOf("update_message");
+
+        client.createQueue(new QueueCreateOptions(delete_queue)).execute();
+
+
+        client.addMessage(delete_queue, "foo").execute();
+
+        final GetMessageResponse body = client.getMessage(delete_queue).execute().body();
+
+        final UpdateMessageResponse updateResponse = client.updateMessage(delete_queue, body.getPopReceipt(),
+                                                                          new UpdateMessageRequest("foo2", 10L)).execute()
+                                                           .body();
+
+        client.ackMessage(delete_queue, updateResponse.getPopReceipt()).execute();
+
+        assertThat(client.getMessage(delete_queue).execute().code()).isEqualTo(javax.ws.rs.core.Response.Status.NO_CONTENT.getStatusCode());
+    }
+
+    @Test(timeout = 30000)
     public void invis() throws Exception {
         final QueueName queueName = QueueName.valueOf("test");
 

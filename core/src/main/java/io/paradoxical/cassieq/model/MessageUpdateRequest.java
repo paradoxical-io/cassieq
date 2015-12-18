@@ -15,9 +15,7 @@ public class MessageUpdateRequest {
 
     private final String newBlob;
 
-    public static MessageUpdateRequest from(UpdateMessageRequest request) {
-        final PopReceipt popReceipt = PopReceipt.valueOf(request.getPopReceipt());
-
+    public static MessageUpdateRequest from(UpdateMessageRequest request, PopReceipt popReceipt) {
         return new MessageUpdateRequest(Duration.standardSeconds(request.getNewInvisibilitySeconds()),
                                 popReceipt.getMessageTag(),
                                 popReceipt.getMessageVersion(),

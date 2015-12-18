@@ -210,8 +210,45 @@ public class ReaderTester extends TestBase {
     }
 
     @Test
-    public void update_message_should_succeed() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("update_message_should_succeed", 3);
+    public void update_message_should_extend_invisiblity_time_and_be_ackable() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisiblity_time_and_be_ackable", 3);
+
+        testContext.putMessage("init");
+
+        final Message message = testContext.readNextMessage(10).get();
+
+        final MessageUpdateRequest messageUpdateRequest =
+                new MessageUpdateRequest(Duration.standardSeconds(20),
+                                         message.getTag(),
+                                         message.getVersion(),
+                                         message.getIndex(),
+                                         "init2");
+
+        final Optional<Message> updatedMessage = testContext.getContext().getMessageRepository().updateMessage(messageUpdateRequest);
+
+        assertThat(updatedMessage).isPresent();
+
+        // make sure that updating didn't actually change any reader logic
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // the initial request _would_ have expired here
+        getTestClock().tickSeconds(12L);
+
+        // make sure that we haven't actually expired yet
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // ack the extended message
+        assertThat(testContext.getReader().ackMessage(updatedMessage.get().getPopReceipt())).isTrue();
+
+        // make sure there isn't anything left
+        final Optional<Message> newlyExpiredMessage = testContext.readNextMessage(10);
+
+        assertThat(newlyExpiredMessage).isEmpty();
+    }
+
+    @Test
+    public void update_message_should_extend_invisibility_time_and_still_expire() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisibility_time_and_still_expire", 3);
 
         testContext.putMessage("init");
 
