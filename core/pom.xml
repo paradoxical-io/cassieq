@@ -51,11 +51,6 @@
 
         <dependency>
             <groupId>io.paradoxical</groupId>
-            <artifactId>cassandra-leadership</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.paradoxical</groupId>
             <artifactId>common-web</artifactId>
         </dependency>
 
