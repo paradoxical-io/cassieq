@@ -36,9 +36,10 @@ cassandra:
 metrics:
   reporters:
     - type: graphite
-      host: ${env.GRAPHITE_URL}
-      port: ${env.GRAPHITE_PORT!2003}
-      prefix: ${env.GRAPHITE_PREFIX}
+      host: ${env.GRAPHITE_URL!'192.168.99.100'}
+      port: ${env.GRAPHITE_PORT!'2003'}
+      prefix: ${env.GRAPHITE_PREFIX!''}
+      frequency: 1 second
 </#if>
 
 
@@ -77,6 +78,3 @@ logging:
       currentLogFilename: /data/logs/error.log
       archivedLogFilenamePattern: /data/logs/error-%d{yyyy-MM-dd-hh}.log.gz
       archivedFileCount: 6
-
-repair:
-  raftConfigPath: "docker/data/conf/raft.xml"
