@@ -1,5 +1,7 @@
 package io.paradoxical.cassieq.workers.reader;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -14,11 +16,13 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import lombok.Cleanup;
 import org.joda.time.Duration;
 
 import java.util.List;
 import java.util.Optional;
 
+import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 /**
@@ -89,6 +93,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public class InvisLocatorImpl implements InvisLocator {
     private final QueueRepository queueRepository;
     private final Clock clock;
+    private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
     private Logger logger = getLogger(InvisLocatorImpl.class);
     private final DataContext dataContext;
@@ -99,9 +104,11 @@ public class InvisLocatorImpl implements InvisLocator {
             DataContextFactory dataContextFactory,
             QueueRepository queueRepository,
             Clock clock,
+            MetricRegistry metricRegistry,
             @Assisted QueueDefinition queueDefinition) {
         this.queueRepository = queueRepository;
         this.clock = clock;
+        this.metricRegistry = metricRegistry;
         this.queueDefinition = queueDefinition;
         this.dataContext = dataContextFactory.forQueue(queueDefinition);
 
@@ -110,6 +117,10 @@ public class InvisLocatorImpl implements InvisLocator {
 
 
     public Optional<Message> tryConsumeNextVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
+        @Cleanup("close")
+        @SuppressWarnings("unused")
+        final Timer.Context timer = metricRegistry.timer(name("reader", "invisibility", "try-consume")).time();
+
         final Message messageAt = dataContext.getMessageRepository().getMessage(pointer);
 
         if (messageAt == null) {
@@ -129,6 +140,8 @@ public class InvisLocatorImpl implements InvisLocator {
 
             // were able to consume
             if (message.isPresent()) {
+                metricRegistry.counter(name("reader", "revived", "messages")).inc();
+
                 return message;
             }
 
@@ -147,6 +160,7 @@ public class InvisLocatorImpl implements InvisLocator {
     /**
      * Either find an invis message to stop at, or look for messages that _were_ invis but
      * now have come back alive.
+     *
      * @param pointer
      * @param invisiblity
      * @return
@@ -205,6 +219,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
     /**
      * Look in this message bucket list and find a message that has now become alive and consume it
+     *
      * @param messagesInBucket
      * @param invisiblity
      * @param currentPointer

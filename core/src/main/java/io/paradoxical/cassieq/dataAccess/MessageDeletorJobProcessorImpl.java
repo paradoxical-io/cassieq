@@ -1,8 +1,11 @@
 package io.paradoxical.cassieq.dataAccess;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -25,15 +28,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static com.codahale.metrics.MetricRegistry.name;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
+import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcessor {
     private final Session session;
     private final QueueRepository queueRepository;
+    private final MetricRegistry metricRegistry;
     private final DeletionJob job;
     private final PointerRepository pointerRepository;
     private final MonotonicRepository monotonicRepository;
+
+    private static final Logger logger = getLogger(MessageDeletorJobProcessorImpl.class);
 
     @Inject
     public MessageDeletorJobProcessorImpl(
@@ -41,9 +49,11 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
             PointerRepoFactory pointerRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
             QueueRepository queueRepository,
+            MetricRegistry metricRegistry,
             @Assisted DeletionJob job) {
         this.session = session;
         this.queueRepository = queueRepository;
+        this.metricRegistry = metricRegistry;
         this.job = job;
 
         QueueId queueId = QueueId.valueOf(job.getQueueName(), job.getVersion());
@@ -57,17 +67,19 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
      */
     @Override
     public void start() {
-        final MessagePointer startPointer = getMinStartPointer(pointerRepository, job.getBucketSize());
+        try (Timer.Context ignored = getMetricTimer()) {
+            final MessagePointer startPointer = getMinStartPointer(pointerRepository, job.getBucketSize());
 
-        final MessagePointer endPointer = monotonicRepository.getCurrent();
+            final MessagePointer endPointer = monotonicRepository.getCurrent();
 
-        delete(startPointer, endPointer);
+            delete(startPointer, endPointer);
 
-        monotonicRepository.deleteAll();
+            monotonicRepository.deleteAll();
 
-        pointerRepository.deleteAll();
+            pointerRepository.deleteAll();
 
-        complete();
+            complete();
+        }
     }
 
     private void complete() {
@@ -76,7 +88,6 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
         queueRepository.deleteCompletionJob(job);
     }
-
 
     private MessagePointer getMinStartPointer(PointerRepository pointerRepository, BucketSize bucketSize) {
         final MonotonicIndex repairPointer = pointerRepository.getRepairCurrentBucketPointer().startOf(bucketSize);
@@ -89,6 +100,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
         return currentInvisPointer;
     }
+
 
     private void delete(MessagePointer from, MessagePointer to) {
 
@@ -128,5 +140,17 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
                                              .and(in(Tables.Message.BUCKET_NUM, deletableBuckets));
 
         session.execute(delete);
+    }
+
+    private Timer.Context getMetricTimer() {
+
+        try {
+            return metricRegistry.timer(name("deletion", job.getQueueName().get())).time();
+        }
+        catch (Exception ex) {
+            logger.warn(ex, "Error getting deletion metric");
+
+            return new Timer().time();
+        }
     }
 }

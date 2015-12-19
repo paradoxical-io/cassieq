@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.workers.reader;
 
+import com.codahale.metrics.MetricRegistry;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -29,6 +30,7 @@ public class ReaderImpl implements Reader {
     private final DataContext dataContext;
     private final QueueRepository queueRepository;
     private final Clock clock;
+    private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
     private final InvisLocatorImpl invisLocator;
 
@@ -37,10 +39,12 @@ public class ReaderImpl implements Reader {
             DataContextFactory dataContextFactory,
             QueueRepository queueRepository,
             Clock clock,
+            MetricRegistry metricRegistry,
             InvisLocaterFactory invisLocaterFactory,
             @Assisted QueueDefinition queueDefinition) {
         this.queueRepository = queueRepository;
         this.clock = clock;
+        this.metricRegistry = metricRegistry;
         this.queueDefinition = queueDefinition;
 
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -84,6 +88,7 @@ public class ReaderImpl implements Reader {
 
         if (messageAt.getVersion() != popReceipt.getMessageVersion() ||
             !messageAt.getTag().equals(popReceipt.getMessageTag())) {
+            
             return false;
         }
 

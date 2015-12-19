@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.workers.repair;
 
+import com.codahale.metrics.MetricRegistry;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -24,11 +25,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class RepairWorkerImpl implements RepairWorker {
     private final Clock clock;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
 
     private Logger logger = getLogger(RepairWorkerImpl.class);
@@ -41,16 +44,28 @@ public class RepairWorkerImpl implements RepairWorker {
 
     private ScheduledFuture<?> activeSchedule;
 
+    private final Runnable republishStatCounter;
+    private final Runnable danglingDetectedCounter;
+    private final Runnable deletingFinalizedCounter;
+
     @Inject
     public RepairWorkerImpl(
             DataContextFactory factory,
             Clock clock,
             @RepairPool ScheduledExecutorService executorService,
+            MetricRegistry metricRegistry,
             @Assisted QueueDefinition definition) {
         this.clock = clock;
         scheduledExecutorService = executorService;
+        this.metricRegistry = metricRegistry;
         queueDefinition = definition;
         dataContext = factory.forQueue(definition);
+
+        final String repairMetricKey = name("repair", queueDefinition.getQueueName().get());
+
+        republishStatCounter = () -> metricRegistry.counter(name(repairMetricKey, "republish")).inc();
+        danglingDetectedCounter = () -> metricRegistry.counter(name(repairMetricKey, "dangling-detected")).inc();
+        deletingFinalizedCounter = () -> metricRegistry.counter(name(repairMetricKey, "deleting-finalized")).inc();
 
         logger = logger.with("queue-name", definition.getQueueName())
                        .with("verison", definition.getVersion());
@@ -134,6 +149,9 @@ public class RepairWorkerImpl implements RepairWorker {
         if (messages.stream().allMatch(Message::isAcked)) {
             deleteMessagesInBucket(context.getPointer());
         }
+        else{
+            danglingDetectedCounter.run();
+        }
     }
 
     private void waitForTimeout(final DateTime tombstoneTime) {
@@ -210,20 +228,30 @@ public class RepairWorkerImpl implements RepairWorker {
     private void deleteMessagesInBucket(final RepairBucketPointer currentBucket) {
         if (queueDefinition.getDeleteBucketsAfterFinaliziation()) {
             dataContext.getMessageRepository().deleteAllMessages(currentBucket);
+
+            deletingFinalizedCounter.run();
         }
     }
 
     private void republishMessage(Message message) {
         try {
+            final Logger withLogger = logger.with(message);
+
+            republishStatCounter.run();
+
             final MonotonicIndex nextIndex = dataContext.getMonotonicRepository().nextMonotonic();
+
+            withLogger.debug("Republishing message");
 
             dataContext.getMessageRepository().putMessage(message.createNewWithIndex(nextIndex));
 
-            dataContext.getMessageRepository().ackMessage(message);
+            withLogger.success("Republished message");
 
-            logger.with(message)
-                  .with("next-index", nextIndex)
-                  .info("Message needs republishing, acking original and publishing new one");
+            if(dataContext.getMessageRepository().ackMessage(message)) {
+                withLogger
+                      .with("next-index", nextIndex)
+                      .success("Message neededrepublishing, acked original and publishing new one");
+            }
         }
         catch (Exception e) {
             logger.error(e, "Error publishing message");
