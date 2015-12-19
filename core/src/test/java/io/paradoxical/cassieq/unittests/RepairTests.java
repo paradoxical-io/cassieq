@@ -2,7 +2,6 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
-import io.paradoxical.cassieq.configurations.RepairConfig;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
@@ -20,7 +19,6 @@ import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
 import lombok.Cleanup;
-import org.joda.time.Duration;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutionException;
@@ -157,7 +155,9 @@ public class RepairTests extends TestBase {
     public void repair_manager_adds_new_workers() throws Exception {
         final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
 
-        final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+        @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+
+        manager.start();
 
         final QueueName queueName = QueueName.valueOf("repair_manager_adds_new_workers");
 
@@ -180,7 +180,9 @@ public class RepairTests extends TestBase {
     public void repair_manager_properly_keeps_track_of_existing_workers() throws Exception {
         final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
 
-        final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+        @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
+
+        manager.start();
 
         final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
 
