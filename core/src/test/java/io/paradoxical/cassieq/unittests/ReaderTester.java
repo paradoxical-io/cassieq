@@ -89,10 +89,49 @@ public class ReaderTester extends TestBase {
 
             return reader.ackMessage(popReceipt);
         }
+
+        private boolean readAndAckMessage(String blob) {
+            return readAndAckMessage(blob, 10L);
+        }
     }
 
     @Before
     public void setup() {
+    }
+
+    @Test
+    public void initial_inivis_picked_up() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("initial_inivis_picked_up", 3);
+
+        testContext.putMessage(10, "1");
+        testContext.putMessage(5, "2");
+        testContext.putMessage(12, "3");
+        testContext.putMessage(0, "4 (new bucket)");
+        testContext.putMessage(0, "5");
+        testContext.putMessage(1, "6");
+
+        // reader skipped all the invis and tombstoned the
+        // buckets
+        testContext.readAndAckMessage("4 (new bucket");
+        testContext.readAndAckMessage("5");
+
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        getTestClock().tickSeconds(10L);
+
+        // 1 is alive now
+        testContext.readAndAckMessage("1");
+
+        // 2 should also be alive since it was blocked by 1
+        testContext.readAndAckMessage("2");
+
+        // 3 is bocked
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        getTestClock().tickSeconds(5L);
+
+        testContext.readAndAckMessage("3");
+        testContext.readAndAckMessage("6");
     }
 
     @Test

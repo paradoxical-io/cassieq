@@ -25,6 +25,7 @@ import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
+import lombok.Getter;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
@@ -37,11 +38,13 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public class ServiceApplication extends Application<ServiceConfiguration> {
 
     private static final Logger logger = getLogger(ServiceApplication.class);
+
+    @Getter
     private final GuiceBundleProvider guiceBundleProvider;
+
     private Environment env;
 
     public ServiceApplication(final GuiceBundleProvider guiceBundleProvider) {
-
         this.guiceBundleProvider = guiceBundleProvider;
     }
 
@@ -101,6 +104,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     @Override
     public void run(ServiceConfiguration config, final Environment env) throws Exception {
         this.env = env;
+
         ArrayList<BiConsumer<ServiceConfiguration, Environment>> run = new ArrayList<>();
 
         run.add(this::configureJson);

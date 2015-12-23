@@ -46,6 +46,11 @@ public class Message {
     }
 
     @JsonIgnore
+    public boolean isRevived(Clock clock){
+        return isNotAcked() && isVisible(clock) && getDeliveryCount() > 0;
+    }
+
+    @JsonIgnore
     public boolean isNotVisible(Clock clock) {
         return !isVisible(clock);
     }

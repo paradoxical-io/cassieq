@@ -52,6 +52,10 @@ public class SelfHostServer implements AutoCloseable {
         serviceConfigurationTestServiceServiceTestRunner.run(serviceConfiguration, ImmutableList.copyOf(overridableModules));
     }
 
+    public TestService getService(){
+        return serviceConfigurationTestServiceServiceTestRunner.getApplication();
+    }
+
     public void start() {
         start(getDefaultConfig());
     }
