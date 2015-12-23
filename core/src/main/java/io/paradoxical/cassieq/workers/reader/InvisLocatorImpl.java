@@ -191,7 +191,7 @@ public class InvisLocatorImpl implements InvisLocator {
         // unwind the recursion since this may take a bit
         while (true) {
             // try what the current pointer is on
-            final InvisMessagePointerProcessResult invisMessagePointerProcessResult = validateMessageAtPointer(activePointer, invisiblity);
+            final InvisMessagePointerProcessResult invisMessagePointerProcessResult = processCurrentInvisPointer(activePointer, invisiblity);
 
             switch (invisMessagePointerProcessResult.getResultAction()) {
                 // if the current pointer is invalid or needs more scanning, check the bucket we're in
@@ -224,7 +224,7 @@ public class InvisLocatorImpl implements InvisLocator {
         }
     }
 
-    private InvisMessagePointerProcessResult validateMessageAtPointer(InvisibilityMessagePointer pointer, Duration invisibility) {
+    private InvisMessagePointerProcessResult processCurrentInvisPointer(InvisibilityMessagePointer pointer, Duration invisibility) {
         final Message messageAt = dataContext.getMessageRepository().getMessage(pointer);
 
         if (messageAt == null) {
@@ -264,10 +264,6 @@ public class InvisLocatorImpl implements InvisLocator {
         final List<Message> messagesInBucket = dataContext.getMessageRepository()
                                                           .getMessages(invisBucketPointer);
 
-        final BucketPointer maxMonotonBucketPointer = dataContext.getMonotonicRepository()
-                                                                 .getCurrent()
-                                                                 .toBucketPointer(queueDefinition.getBucketSize());
-
         // no messages
         if (messagesInBucket.isEmpty()) {
             // if we're at the last bucket anyways, can't move pointer since nothing to move to
@@ -275,11 +271,17 @@ public class InvisLocatorImpl implements InvisLocator {
                 return InvisBucketProcessResult.of(Optional.empty());
             }
 
-            // otherwise the repair has cleaned up since, and we should move on
-            return InvisBucketProcessResult.nextBucket();
+            // a finalizer exists so this bucket is done but the messages are deleted
+            // we can be safe to move on, since a delete can occur only if all were ack'd and its finalized
+            if(dataContext.getMessageRepository().finalizedExists(invisBucketPointer)) {
+                return InvisBucketProcessResult.nextBucket();
+            }
+
+            // else we're on a fresh bucket, just stay where we are
+            return InvisBucketProcessResult.of(Optional.empty());
         }
 
-        // if the reader has moved past the current bucket, check
+        // if the reader has moved past the current invis bucket, check
         // if there are messages that are alive and were skipped
         if (invisBucketPointer.get() < currentReaderBucketPointer.get()) {
             // in the bucket, see if there is a revived message
@@ -303,11 +305,16 @@ public class InvisLocatorImpl implements InvisLocator {
             return InvisBucketProcessResult.of(Optional.empty());
         }
 
+        // if everything is ack'd but there are messages
+        // (either the queue hasn't run the finalizer, or its a test
+        // or the user elected to not delete messages on finalization)
+        // then move to the next bucket since there are no invis here
         if (allAcked(messagesInBucket, invisBucketPointer)) {
             return InvisBucketProcessResult.nextBucket();
         }
 
         // not all messages are acked and the bucket isn't finalized yet
+        // and no invis or revived messages were found
         return InvisBucketProcessResult.of(Optional.empty());
     }
 
