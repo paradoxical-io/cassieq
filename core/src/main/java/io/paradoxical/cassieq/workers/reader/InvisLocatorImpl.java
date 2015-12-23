@@ -283,7 +283,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
         // if the reader has moved past the current invis bucket, check
         // if there are messages that are alive and were skipped
-        if (invisBucketPointer.get() < currentReaderBucketPointer.get()) {
+        if (currentReaderBucketPointer.get() > invisBucketPointer.get()) {
             // in the bucket, see if there is a revived message
             final Optional<Message> newlyAliveMessage = consumeRevivedMessageInBucket(messagesInBucket, invisiblity, activePointer);
 

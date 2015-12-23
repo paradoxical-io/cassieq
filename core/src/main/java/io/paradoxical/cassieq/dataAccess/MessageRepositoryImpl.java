@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.incr;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
@@ -79,6 +80,8 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         if (!wasInserted) {
             throw new ExistingMonotonFoundException(String.format("Tried to insert a message with the monoton value of '%s' which already exists", message.getIndex()));
         }
+
+        updateQueueSize(1);
     }
 
     public Optional<Message> consumeMessage(final Message message, final Duration duration) {
@@ -130,7 +133,13 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
         final ResultSet resultSet = session.execute(statement);
 
-        return resultSet.wasApplied();
+        final boolean wasApplied = resultSet.wasApplied();
+
+        if(wasApplied) {
+            updateQueueSize(-1);
+        }
+
+        return wasApplied;
     }
 
     @Override
@@ -243,5 +252,13 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                           .value(Tables.Message.CREATED_DATE, now.toDate());
 
         return session.execute(statement).wasApplied();
+    }
+
+    private void updateQueueSize(int amount){
+        final Statement with = QueryBuilder.update(Tables.QueueSize.TABLE_NAME)
+                                           .where(eq(Tables.QueueSize.QUEUE_ID, queueDefinition.getId().get()))
+                                           .with(incr(Tables.QueueSize.SIZE, amount));
+
+        session.execute(with);
     }
 }

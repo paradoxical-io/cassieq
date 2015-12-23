@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.dataAccess.interfaces;
 
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import lombok.NonNull;
@@ -19,6 +20,8 @@ public interface QueueRepository {
      * @param definition
      */
     Optional<DeletionJob> tryMarkForDeletion(QueueDefinition definition);
+
+    Optional<Long> getQueueSize(QueueDefinition definition);
 
     /**
      * Attemps to create a queue with this name
@@ -46,4 +49,6 @@ public interface QueueRepository {
     }
 
     void deleteCompletionJob(DeletionJob queue);
+
+    void deleteQueueStats(QueueId id);
 }
