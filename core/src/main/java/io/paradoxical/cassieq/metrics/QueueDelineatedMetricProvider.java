@@ -77,7 +77,12 @@ public class QueueDelineatedMetricProvider implements ApplicationEventListener {
 
                 }
                 else if (requestEvent.getType() == RequestEvent.Type.RESOURCE_METHOD_FINISHED) {
-                    t.ifPresent(Timer.Context::close);
+                    final int status = requestEvent.getContainerResponse().getStatus();
+
+                    // only log successes
+                    if(status >= 200 || status < 300) {
+                        t.ifPresent(Timer.Context::close);
+                    }
                 }
             }
         };
