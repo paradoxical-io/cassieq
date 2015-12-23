@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;

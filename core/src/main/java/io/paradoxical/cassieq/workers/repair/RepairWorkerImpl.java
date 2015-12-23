@@ -149,11 +149,11 @@ public class RepairWorkerImpl implements RepairWorker {
         if (messages.stream().allMatch(Message::isAcked)) {
             deleteMessagesInBucket(context.getPointer());
         }
-        else{
+        else {
             danglingDetectedCounter.run();
-
-            dataContext.getMessageRepository().finalize(context.getPointer());
         }
+
+        markAsFinalized(context.getPointer());
     }
 
     private void waitForTimeout(final DateTime tombstoneTime) {
@@ -233,8 +233,13 @@ public class RepairWorkerImpl implements RepairWorker {
 
             deletingFinalizedCounter.run();
         }
-        else{
-            dataContext.getMessageRepository().finalize(currentBucket);
+
+        markAsFinalized(currentBucket);
+    }
+
+    private void markAsFinalized(final RepairBucketPointer currentBucket) {
+        if (dataContext.getMessageRepository().finalize(currentBucket)) {
+            logger.with("current-repair-bucket", currentBucket).info("Finalizing bucket");
         }
     }
 
@@ -252,10 +257,10 @@ public class RepairWorkerImpl implements RepairWorker {
 
             withLogger.success("Republished message");
 
-            if(dataContext.getMessageRepository().ackMessage(message)) {
+            if (dataContext.getMessageRepository().ackMessage(message)) {
                 withLogger
-                      .with("next-index", nextIndex)
-                      .success("Message neededrepublishing, acked original and publishing new one");
+                        .with("next-index", nextIndex)
+                        .success("Message neededrepublishing, acked original and publishing new one");
             }
         }
         catch (Exception e) {

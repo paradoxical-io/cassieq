@@ -22,6 +22,7 @@ import org.joda.time.Duration;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -205,7 +206,7 @@ public class InvisLocatorImpl implements InvisLocator {
                             final Optional<InvisibilityMessagePointer> nextBucketStartPointer = tryAdvancePointerToNextBucket(activePointer);
 
                             // if we got a new pointer, move to the next bucket
-                            if(nextBucketStartPointer.isPresent()){
+                            if (nextBucketStartPointer.isPresent()) {
                                 activePointer = nextBucketStartPointer.get();
                                 continue;
                             }
@@ -270,7 +271,7 @@ public class InvisLocatorImpl implements InvisLocator {
         // no messages
         if (messagesInBucket.isEmpty()) {
             // if we're at the last bucket anyways, can't move pointer since nothing to move to
-            if( invisBucketPointer.get() >= currentReaderBucketPointer.get()) {
+            if (invisBucketPointer.get() >= currentReaderBucketPointer.get()) {
                 return InvisBucketProcessResult.of(Optional.empty());
             }
 
@@ -302,7 +303,7 @@ public class InvisLocatorImpl implements InvisLocator {
             return InvisBucketProcessResult.of(Optional.empty());
         }
 
-        if (fullAndAcked(messagesInBucket) || finalizedAndAllAcked(messagesInBucket, invisBucketPointer)) {
+        if (allAcked(messagesInBucket, invisBucketPointer)) {
             return InvisBucketProcessResult.nextBucket();
         }
 
@@ -310,14 +311,16 @@ public class InvisLocatorImpl implements InvisLocator {
         return InvisBucketProcessResult.of(Optional.empty());
     }
 
-    private boolean fullAndAcked(final List<Message> messagesInBucket) {
-        return messagesInBucket.stream().allMatch(Message::isAcked) &&
-               messagesInBucket.size() == queueDefinition.getBucketSize().get();
-    }
+    private boolean allAcked(final List<Message> messagesInBucket, final BucketPointer invisBucketPointer) {
+        final boolean bucketIsFullAndAcked = messagesInBucket.stream().allMatch(Message::isAcked) &&
+                                             messagesInBucket.size() == queueDefinition.getBucketSize().get();
 
-    private boolean finalizedAndAllAcked(final List<Message> messagesInBucket, final BucketPointer invisBucketPointer) {
-        return messagesInBucket.stream().allMatch(Message::isAcked) &&
-               dataContext.getMessageRepository().finalizedExists(invisBucketPointer);
+
+        final Supplier<Boolean> bucketisFinalizedAndFull = () ->
+                messagesInBucket.stream().allMatch(Message::isAcked) &&
+                dataContext.getMessageRepository().finalizedExists(invisBucketPointer);
+
+        return bucketIsFullAndAcked || bucketisFinalizedAndFull.get();
     }
 
     /**
