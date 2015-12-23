@@ -4,7 +4,7 @@ import com.datastax.driver.core.Row;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.godaddy.logging.LoggingScope;
 import com.godaddy.logging.Scope;
-import io.paradoxical.cassieq.dataAccess.SpecialIndexes;
+import io.paradoxical.cassieq.dataAccess.SpecialIndex;
 import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.model.time.Clock;
 import lombok.Builder;
@@ -37,9 +37,9 @@ public class Message {
         return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now()) || nextVisiblityAt.isEqual(clock.now());
     }
 
-    public boolean isTombstone() { return getIndex().equals(SpecialIndexes.tombstone); }
+    public boolean isTombstone() { return getIndex().equals(SpecialIndex.Tombstone.getIndex()); }
 
-    public boolean isFinalized() { return getIndex().equals(SpecialIndexes.finalized); }
+    public boolean isFinalized() { return getIndex().equals(SpecialIndex.Finalizer.getIndex()); }
 
     @JsonIgnore
     public boolean isNotAcked() {

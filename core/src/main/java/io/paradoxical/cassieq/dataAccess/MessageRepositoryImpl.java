@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
@@ -136,36 +135,12 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     @Override
     public boolean finalize(final RepairBucketPointer bucketPointer) {
-        // mark the bucket as tombstoned
-
-        final DateTime now = getNow();
-        Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
-                                          .ifNotExists()
-                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
-                                          .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
-                                          .value(Tables.Message.ACKED, true)
-                                          .value(Tables.Message.MONOTON, SpecialIndexes.finalized.get())
-                                          .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
-                                          .value(Tables.Message.CREATED_DATE, now.toDate());
-
-        return session.execute(statement).wasApplied();
+        return insertSpecialIndex(SpecialIndex.Finalizer, bucketPointer);
     }
 
     @Override
     public boolean tombstone(final ReaderBucketPointer bucketPointer) {
-        // mark the bucket as tombstoned
-
-        final DateTime now = getNow();
-        Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
-                                          .ifNotExists()
-                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
-                                          .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
-                                          .value(Tables.Message.ACKED, true)
-                                          .value(Tables.Message.MONOTON, SpecialIndexes.tombstone.get())
-                                          .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
-                                          .value(Tables.Message.CREATED_DATE, now.toDate());
-
-        return session.execute(statement).wasApplied();
+        return insertSpecialIndex(SpecialIndex.Tombstone, bucketPointer);
     }
 
     @Override
@@ -182,7 +157,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     @Override
     public Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer) {
-        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndexes.tombstone.get()));
+        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndex.Tombstone.getIndex().get()));
 
         return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getDate(Tables.Message.CREATED_DATE))));
     }
@@ -242,7 +217,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     @Override
     public boolean finalizedExists(final BucketPointer bucketPointer) {
-        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndexes.finalized.get()));
+        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndex.Finalizer.getIndex().get()));
 
         return Optional.ofNullable(getOne(session.execute(query), row -> true)).orElse(false);
     }
@@ -253,5 +228,20 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                            .from(Tables.Message.TABLE_NAME)
                            .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                            .and(eq(Tables.Message.BUCKET_NUM, bucketPointer.get()));
+    }
+
+    private boolean insertSpecialIndex(SpecialIndex specialIndex, BucketPointer bucketPointer) {
+        final DateTime now = getNow();
+
+        Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
+                                          .ifNotExists()
+                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
+                                          .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
+                                          .value(Tables.Message.ACKED, true)
+                                          .value(Tables.Message.MONOTON, specialIndex.getIndex().get())
+                                          .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
+                                          .value(Tables.Message.CREATED_DATE, now.toDate());
+
+        return session.execute(statement).wasApplied();
     }
 }
