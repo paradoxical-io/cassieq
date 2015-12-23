@@ -95,19 +95,39 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 class InvisBucketProcessResult {
     private final Optional<Message> message;
 
-    private final BucketResult resultAction;
+    private final BucketScanResultAction resultAction;
 
-    public static InvisBucketProcessResult nextBucket(){
-        return new InvisBucketProcessResult(Optional.empty(), BucketResult.GoNext);
+    public static InvisBucketProcessResult nextBucket() {
+        return new InvisBucketProcessResult(Optional.empty(), BucketScanResultAction.NextBucket);
     }
 
-    public static InvisBucketProcessResult of(Optional<Message> message){
-        return new InvisBucketProcessResult(message, BucketResult.Stop);
+    public static InvisBucketProcessResult of(Optional<Message> message) {
+        return new InvisBucketProcessResult(message, BucketScanResultAction.Stop);
     }
 }
 
-enum BucketResult {
-    GoNext,
+@Data
+class InvisMessagePointerProcessResult {
+    private final Optional<Message> message;
+
+    private final PointerEvaluateResultAction resultAction;
+
+    public static InvisMessagePointerProcessResult scanBucket() {
+        return new InvisMessagePointerProcessResult(Optional.empty(), PointerEvaluateResultAction.ScanBucket);
+    }
+
+    public static InvisMessagePointerProcessResult of(Optional<Message> message) {
+        return new InvisMessagePointerProcessResult(message, PointerEvaluateResultAction.Stop);
+    }
+}
+
+enum PointerEvaluateResultAction {
+    ScanBucket,
+    Stop
+}
+
+enum BucketScanResultAction {
+    NextBucket,
     Stop
 }
 
@@ -139,46 +159,13 @@ public class InvisLocatorImpl implements InvisLocator {
         logger = logger.with("q", queueDefinition.getQueueName()).with("version", queueDefinition.getVersion());
     }
 
-
+    @Override
     public Optional<Message> tryConsumeNextVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
         @Cleanup("close")
         @SuppressWarnings("unused")
         final Timer.Context timer = metricRegistry.timer(name("reader", "invisibility", "try-consume")).time();
 
-        final Message messageAt = dataContext.getMessageRepository().getMessage(pointer);
-
-        if (messageAt == null) {
-            // invis pointer points to garbage, try and find something else
-            return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
-        }
-
-        if (messageAt.isNotVisible(clock) && messageAt.isNotAcked()) {
-            // not acked, not visible, invis poiter is still valid
-            // do not advance
-            return Optional.empty();
-        }
-
-        if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
-            // the message we are pointing at has come back alive
-            final Optional<Message> message = dataContext.getMessageRepository().consumeMessage(messageAt, invisiblity);
-
-            // were able to consume
-            if (message.isPresent()) {
-                metricRegistry.counter(name("reader", "revived", "messages")).inc();
-
-                return message;
-            }
-
-            // scan for the next visible if we have one
-            return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
-        }
-        else if (messageAt.isAcked()) {
-            // current message is acked that the invis pointer was pointing to
-            // try and move the invis pointer to the next lowest monotonic invisible
-            return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
-        }
-
-        return Optional.empty();
+        return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
     }
 
     /**
@@ -200,17 +187,70 @@ public class InvisLocatorImpl implements InvisLocator {
 
         InvisibilityMessagePointer activePointer = startingPointer;
 
+        // unwind the recursion since this may take a bit
         while (true) {
-            final InvisBucketProcessResult invisBucketProcessResult = processBucket(activePointer, currentReaderBucketPointer, invisiblity);
+            // try what the current pointer is on
+            final InvisMessagePointerProcessResult invisMessagePointerProcessResult = validateMessageAtPointer(activePointer, invisiblity);
 
-            switch(invisBucketProcessResult.getResultAction()){
-                case GoNext:
-                    activePointer = getPointerForNextBucket(activePointer);
-                    break;
+            switch (invisMessagePointerProcessResult.getResultAction()) {
+                // if the current pointer is invalid or needs more scanning, check the bucket we're in
+                case ScanBucket:
+                    final InvisBucketProcessResult invisBucketProcessResult = processBucket(activePointer, currentReaderBucketPointer, invisiblity);
+
+                    switch (invisBucketProcessResult.getResultAction()) {
+                        // if the bucket we're in needs to scan, advance the pointer and try again
+                        case NextBucket:
+                            // however advancing the pointer may be reset to another active pointer elsewhere,
+                            // so try and set the active pointer so we can re-test it
+                            final Optional<InvisibilityMessagePointer> nextBucketStartPointer = tryAdvancePointerToNextBucket(activePointer);
+
+                            // if we got a new pointer, move to the next bucket
+                            if(nextBucketStartPointer.isPresent()){
+                                activePointer = nextBucketStartPointer.get();
+                                continue;
+                            }
+
+                            return Optional.empty();
+
+                        case Stop:
+                            // found something or were told to stop scanning, return
+                            return invisBucketProcessResult.getMessage();
+                    }
                 case Stop:
-                    return invisBucketProcessResult.getMessage();
+                    // found something or were told to stop scanning, return
+                    return invisMessagePointerProcessResult.getMessage();
             }
         }
+    }
+
+    private InvisMessagePointerProcessResult validateMessageAtPointer(InvisibilityMessagePointer pointer, Duration invisibility) {
+        final Message messageAt = dataContext.getMessageRepository().getMessage(pointer);
+
+        if (messageAt == null) {
+            // invis pointer points to garbage, try and find something else
+            return InvisMessagePointerProcessResult.scanBucket();
+        }
+
+        if (messageAt.isNotVisible(clock) && messageAt.isNotAcked()) {
+            // not acked, not visible, invis poiter is still valid
+            // do not advance
+            return InvisMessagePointerProcessResult.of(Optional.empty());
+        }
+
+        if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
+            // the message we are pointing at has come back alive
+            final Optional<Message> message = dataContext.getMessageRepository().consumeMessage(messageAt, invisibility);
+
+            // were able to consume
+            if (message.isPresent()) {
+                metricRegistry.counter(name("reader", "revived", "messages")).inc();
+
+                return InvisMessagePointerProcessResult.of(message);
+            }
+        }
+
+        // scan for the next visible if we have one
+        return InvisMessagePointerProcessResult.scanBucket();
     }
 
     private InvisBucketProcessResult processBucket(
@@ -227,9 +267,15 @@ public class InvisLocatorImpl implements InvisLocator {
                                                                  .getCurrent()
                                                                  .toBucketPointer(queueDefinition.getBucketSize());
 
-        // no messages, and we're at the last bucket anyways, can't move pointer since nothing to move to
-        if (messagesInBucket.isEmpty() && invisBucketPointer.get() >= maxMonotonBucketPointer.get()) {
-            return InvisBucketProcessResult.of(Optional.empty());
+        // no messages
+        if (messagesInBucket.isEmpty()) {
+            // if we're at the last bucket anyways, can't move pointer since nothing to move to
+            if( invisBucketPointer.get() >= currentReaderBucketPointer.get()) {
+                return InvisBucketProcessResult.of(Optional.empty());
+            }
+
+            // otherwise the repair has cleaned up since, and we should move on
+            return InvisBucketProcessResult.nextBucket();
         }
 
         // if the reader has moved past the current bucket, check
@@ -256,7 +302,22 @@ public class InvisLocatorImpl implements InvisLocator {
             return InvisBucketProcessResult.of(Optional.empty());
         }
 
-        return InvisBucketProcessResult.nextBucket();
+        if (fullAndAcked(messagesInBucket) || finalizedAndAllAcked(messagesInBucket, invisBucketPointer)) {
+            return InvisBucketProcessResult.nextBucket();
+        }
+
+        // not all messages are acked and the bucket isn't finalized yet
+        return InvisBucketProcessResult.of(Optional.empty());
+    }
+
+    private boolean fullAndAcked(final List<Message> messagesInBucket) {
+        return messagesInBucket.stream().allMatch(Message::isAcked) &&
+               messagesInBucket.size() == queueDefinition.getBucketSize().get();
+    }
+
+    private boolean finalizedAndAllAcked(final List<Message> messagesInBucket, final BucketPointer invisBucketPointer) {
+        return messagesInBucket.stream().allMatch(Message::isAcked) &&
+               dataContext.getMessageRepository().finalizedExists(invisBucketPointer);
     }
 
     /**
@@ -348,12 +409,20 @@ public class InvisLocatorImpl implements InvisLocator {
      * @param pointer
      * @return
      */
-    private InvisibilityMessagePointer getPointerForNextBucket(InvisibilityMessagePointer pointer) {
-        final ReaderBucketPointer bucketPointer = pointer.toBucketPointer(queueDefinition.getBucketSize());
+    private Optional<InvisibilityMessagePointer> tryAdvancePointerToNextBucket(InvisibilityMessagePointer pointer) {
+        final BucketPointer bucketPointer = pointer.toBucketPointer(queueDefinition.getBucketSize());
+
+        if (bucketPointer.get().equals(currentReaderBucket.get())) {
+            logger.with("reader-bucket", currentReaderBucket)
+                  .with("current-invis-bucket", bucketPointer)
+                  .warn("Attempting to move past reader bucket");
+
+            return Optional.empty();
+        }
 
         final MonotonicIndex monotonicIndex = bucketPointer.next().startOf(queueDefinition.getBucketSize());
 
-        return InvisibilityMessagePointer.valueOf(monotonicIndex);
+        return Optional.of(trySetNewInvisPointer(pointer, InvisibilityMessagePointer.valueOf(monotonicIndex)));
     }
 
     private InvisibilityMessagePointer trySetNewInvisPointer(final InvisibilityMessagePointer currentInvis, MessagePointer potentialNextInvisPointer) {

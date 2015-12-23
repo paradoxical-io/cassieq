@@ -35,10 +35,6 @@ public final class ReaderBucketPointer extends LongValue implements BucketPointe
         return new ReaderBucketPointer(get() + 1);
     }
 
-    public MonotonicIndex startOf(BucketSize bucketsize) {
-        return MonotonicIndex.valueOf(get() * bucketsize.get());
-    }
-
     public static ReaderBucketPointer map(Row row) {
         return ReaderBucketPointer.valueOf(row.getLong(Tables.Pointer.VALUE));
     }

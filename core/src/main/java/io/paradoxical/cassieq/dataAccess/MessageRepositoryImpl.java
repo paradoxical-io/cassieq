@@ -19,6 +19,7 @@ import io.paradoxical.cassieq.model.MessageTag;
 import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -133,6 +134,23 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     }
 
     @Override
+    public boolean finalize(final RepairBucketPointer bucketPointer) {
+        // mark the bucket as tombstoned
+
+        final DateTime now = getNow();
+        Statement statement = QueryBuilder.insertInto(Tables.Message.TABLE_NAME)
+                                          .ifNotExists()
+                                          .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
+                                          .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
+                                          .value(Tables.Message.ACKED, true)
+                                          .value(Tables.Message.MONOTON, SpecialIndexes.finalized.get())
+                                          .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
+                                          .value(Tables.Message.CREATED_DATE, now.toDate());
+
+        return session.execute(statement).wasApplied();
+    }
+
+    @Override
     public boolean tombstone(final ReaderBucketPointer bucketPointer) {
         // mark the bucket as tombstoned
 
@@ -142,7 +160,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                           .value(Tables.Message.QUEUE_ID, queueDefinition.getId().get())
                                           .value(Tables.Message.BUCKET_NUM, bucketPointer.get())
                                           .value(Tables.Message.ACKED, true)
-                                          .value(Tables.Message.MONOTON, Tombstone.index.get())
+                                          .value(Tables.Message.MONOTON, SpecialIndexes.tombstone.get())
                                           .value(Tables.Message.NEXT_VISIBLE_ON, now.toDate())
                                           .value(Tables.Message.CREATED_DATE, now.toDate());
 
@@ -163,7 +181,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     @Override
     public Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer) {
-        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, Tombstone.index.get()));
+        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndexes.tombstone.get()));
 
         return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getDate(Tables.Message.CREATED_DATE))));
     }
@@ -219,6 +237,13 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public boolean finalizedExists(final BucketPointer bucketPointer) {
+        Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndexes.finalized.get()));
+
+        return Optional.ofNullable(getOne(session.execute(query), row -> true)).orElse(false);
     }
 
     private Select.Where getReadMessageQuery(final BucketPointer bucketPointer) {

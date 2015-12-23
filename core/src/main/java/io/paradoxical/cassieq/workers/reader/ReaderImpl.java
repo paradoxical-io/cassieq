@@ -75,7 +75,6 @@ public class ReaderImpl implements Reader {
                                                                        .tryConsumeNextVisibleMessage(getCurrentInvisPointer(), invisibility);
 
         if (nowVisibleMessage.isPresent()) {
-
             logger.with(nowVisibleMessage.get()).info("Got newly visible message");
 
             return nowVisibleMessage;

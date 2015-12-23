@@ -151,6 +151,8 @@ public class RepairWorkerImpl implements RepairWorker {
         }
         else{
             danglingDetectedCounter.run();
+
+            dataContext.getMessageRepository().finalize(context.getPointer());
         }
     }
 
@@ -230,6 +232,9 @@ public class RepairWorkerImpl implements RepairWorker {
             dataContext.getMessageRepository().deleteAllMessages(currentBucket);
 
             deletingFinalizedCounter.run();
+        }
+        else{
+            dataContext.getMessageRepository().finalize(currentBucket);
         }
     }
 
