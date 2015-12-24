@@ -62,6 +62,7 @@ logging:
     - type: console
       threshold: INFO
       target: stderr
+      logFormat: "%d [%p] %marker [%mdc{corrId}] %logger %m%n"
 
     # Log info, warnings and errors to our apps' main log.
     # Rolled over daily and retained for 5 days.

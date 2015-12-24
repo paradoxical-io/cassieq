@@ -325,7 +325,7 @@ public class QueueResource extends BaseQueueResource {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response ackMessage(
+    public Response getQueueSize(
             @NotNull @PathParam("queueName") QueueName queueName) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
