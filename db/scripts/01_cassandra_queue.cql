@@ -3,6 +3,9 @@ CREATE TABLE queue (
   bucket_size int,
   max_delivery_count int,
   status int,
+  repair_worker_poll_freq_seconds int,
+  repair_worker_tombstone_bucket_timeout_seconds int,
+  delete_buckets_after_finalization boolean,
   version int
 );
 

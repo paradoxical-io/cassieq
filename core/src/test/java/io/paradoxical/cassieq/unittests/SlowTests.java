@@ -2,7 +2,6 @@ package io.paradoxical.cassieq.unittests;
 
 import categories.StressTests;
 import com.godaddy.logging.Logger;
-import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
@@ -66,7 +65,12 @@ public class SlowTests extends TestBase {
 
         final QueueName queueName = QueueName.valueOf(String.valueOf(new Random().nextInt()));
 
-        client.createQueue(new QueueCreateOptions(queueName)).execute();
+
+        client.createQueue(QueueCreateOptions.builder()
+                                             .queueName(queueName)
+                                             .repairWorkerPollSeconds(1)
+                                             .build())
+              .execute();
 
         new Thread(() -> {
             IntStream.range(0, numMessages)

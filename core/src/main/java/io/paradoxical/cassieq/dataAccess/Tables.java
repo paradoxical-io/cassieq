@@ -22,6 +22,9 @@ public final class Tables {
         public static final String STATUS = "status";
         public static final String QUEUE_NAME = "queuename";
         public static final String VERSION = "version";
+        public static final String REPAIR_WORKER_POLL_FREQ_SECONDS = "repair_worker_poll_freq_seconds";
+        public static final String REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS = "repair_worker_tombstone_bucket_timeout_seconds";
+        public static final String DELETE_BUCKETS_AFTER_FINALIZATION = "delete_buckets_after_finalization";
     }
 
     public static class Message {

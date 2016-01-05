@@ -11,7 +11,7 @@ import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
 import io.paradoxical.cassieq.model.BucketPointer;
-import io.paradoxical.cassieq.model.Clock;
+import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MessageTag;

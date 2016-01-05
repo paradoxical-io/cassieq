@@ -4,6 +4,7 @@ import com.datastax.driver.core.Row;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.dataAccess.Tombstone;
+import io.paradoxical.cassieq.model.time.Clock;
 import lombok.Builder;
 import lombok.Data;
 import org.joda.time.DateTime;
