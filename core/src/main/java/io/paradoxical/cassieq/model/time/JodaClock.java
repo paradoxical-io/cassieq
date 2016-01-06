@@ -18,6 +18,11 @@ public final class JodaClock implements Clock {
     }
 
     @Override
+    public void sleepTill(final Instant instant) throws InterruptedException {
+        Thread.sleep(instant.minus(Instant.now().getMillis()).getMillis());
+    }
+
+    @Override
     public long jitter(final int i) {
         return new Random().nextInt(i);
     }

@@ -31,7 +31,7 @@ public class Message {
     private final QueueId queueId;
 
     public boolean isVisible(Clock clock) {
-        return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now());
+        return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now()) || nextVisiblityAt.isEqual(clock.now());
     }
 
     public boolean isTombstone() { return getIndex().equals(Tombstone.index); }

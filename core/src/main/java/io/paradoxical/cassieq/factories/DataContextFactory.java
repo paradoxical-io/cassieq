@@ -10,3 +10,4 @@ public interface DataContextFactory {
 
     Optional<QueueDefinition> getDefinition(QueueName name);
 }
+

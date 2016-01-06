@@ -45,6 +45,7 @@ public class TestBase {
                                                 "com.datastax",
                                                 "org.cassandraunit",
                                                 "io.netty",
+                                                "org.glassfish",
                                                 "org.apache"
         };
 

@@ -23,6 +23,8 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
+import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
+import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
@@ -88,11 +90,19 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureJson);
 
+        run.add(this::configureFilters);
+
         run.add(this::configureDiscoverableApiHelp);
 
         run.add(this::configureLogging);
 
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
+    }
+
+    private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
+        environment.jersey().register(new CorrelationIdFilter());
+
+        //environment.jersey().register(new JerseyRequestLogging());
     }
 
     private void configureLogging(final ServiceConfiguration serviceConfiguration, final Environment environment) {

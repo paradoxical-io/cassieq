@@ -150,6 +150,45 @@ public class ReaderTester extends TestBase {
     }
 
     @Test
+    public void invis_pointer_scan_finds_newly_alive_messages() throws Exception {
+        // make the queue bucket size smaller so that the reader moves past it
+        final ReaderQueueContext testContext = setupTestContext("invis_pointer_scan_finds_newly_alive_messages", 3);
+
+        testContext.putMessage(0, "ok");
+        testContext.putMessage(0, "invis blocker");
+        testContext.putMessage(0, "invis shorter");
+        testContext.putMessage(0, "ok2");
+        testContext.putMessage(0, "ok3");
+        testContext.putMessage(0, "ok4");
+
+        final TestClock testClock = getTestClock();
+
+        testContext.readAndAckMessage("message 1", 1L);
+
+        testClock.tickSeconds(1L);
+
+        final Message invisBlocker = testContext.getReader().nextMessage(Duration.standardSeconds(5)).get();
+
+        final Message invisShorter = testContext.getReader().nextMessage(Duration.standardSeconds(1)).get();
+
+        // the reader bucket is advanced here to bucket 1
+        testContext.readAndAckMessage("ok2", 10L);
+
+        // inivs shorter is alive now but we can't get to it since
+        // its held up by invis blocker
+        testClock.tickSeconds(2L);
+
+        testContext.readAndAckMessage("ok3", 0L);
+
+        // invisBlocker is alive
+        testClock.tickSeconds(10L);
+
+        testContext.readAndAckMessage("invis blocker", 0L);
+        testContext.readAndAckMessage("invis shorter", 0L);
+        testContext.readAndAckMessage("ok4", 0L);
+    }
+
+    @Test
     public void test_monoton_skipped() throws Exception {
         final int bucketSize = 5;
         final ReaderQueueContext testContext = setupTestContext("test_monoton_skipped", bucketSize);

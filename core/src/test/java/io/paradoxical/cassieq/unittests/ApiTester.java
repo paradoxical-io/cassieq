@@ -126,7 +126,7 @@ public class ApiTester extends TestBase {
         }
     }
 
-    @Test
+    @Test(timeout=30000)
     public void invis() throws Exception {
         final QueueName queueName = QueueName.valueOf("test");
 
@@ -141,7 +141,7 @@ public class ApiTester extends TestBase {
         GetMessageResponse body;
         int i = 0;
 
-        while ((body = getMessage(client, queueName)) != null) {
+        while ((body = getMessage(client, queueName)) != null && count > 0) {
 
             final String popReceipt = body.getPopReceipt();
 
@@ -157,6 +157,8 @@ public class ApiTester extends TestBase {
                 final Response<ResponseBody> ackResponse = client.ackMessage(queueName, popReceipt).execute();
 
                 assertThat(ackResponse.isSuccess()).isTrue();
+
+                count--;
             }
 
         }
