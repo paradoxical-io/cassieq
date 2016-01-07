@@ -2,8 +2,6 @@ package io.paradoxical.cassieq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
-import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
-import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import com.wordnik.swagger.config.ConfigFactory;
 import com.wordnik.swagger.config.ScannerFactory;
 import com.wordnik.swagger.config.SwaggerConfig;
@@ -23,8 +21,11 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
+import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
+import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
+import lombok.Getter;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
@@ -37,10 +38,13 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public class ServiceApplication extends Application<ServiceConfiguration> {
 
     private static final Logger logger = getLogger(ServiceApplication.class);
+
+    @Getter
     private final GuiceBundleProvider guiceBundleProvider;
 
-    public ServiceApplication(final GuiceBundleProvider guiceBundleProvider) {
+    private Environment env;
 
+    public ServiceApplication(final GuiceBundleProvider guiceBundleProvider) {
         this.guiceBundleProvider = guiceBundleProvider;
     }
 
@@ -66,6 +70,20 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         initializeViews(bootstrap);
 
         initializeDepedencyInjection(bootstrap);
+
+    }
+
+    public void stop() {
+        try {
+            logger.info("Stopping!");
+
+            env.getApplicationContext().getServer().stop();
+
+            logger.info("Stopped");
+        }
+        catch (Exception ex) {
+            logger.error(ex, "Unclean stop occurred!");
+        }
     }
 
     private void initializeViews(final Bootstrap<ServiceConfiguration> bootstrap) {
@@ -85,6 +103,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
     @Override
     public void run(ServiceConfiguration config, final Environment env) throws Exception {
+        this.env = env;
 
         ArrayList<BiConsumer<ServiceConfiguration, Environment>> run = new ArrayList<>();
 
@@ -102,7 +121,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
         environment.jersey().register(new CorrelationIdFilter());
 
-        if(serviceConfiguration.getLogConfig().getLogRawJerseyRequests()) {
+        if (serviceConfiguration.getLogConfig().getLogRawJerseyRequests()) {
             environment.jersey().register(new JerseyRequestLogging());
         }
     }

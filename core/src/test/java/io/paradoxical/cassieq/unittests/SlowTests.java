@@ -3,11 +3,17 @@ package io.paradoxical.cassieq.unittests;
 import categories.StressTests;
 import com.godaddy.logging.Logger;
 import com.google.common.collect.ConcurrentHashMultiset;
+import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.factories.DataContext;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
+import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
+import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
@@ -24,6 +30,7 @@ import retrofit.Response;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,10 +72,14 @@ public class SlowTests extends TestBase {
         final QueueName queueName = QueueName.valueOf(String.valueOf(new Random().nextInt()));
 
 
-        client.createQueue(QueueCreateOptions.builder()
-                                             .queueName(queueName)
-                                             .repairWorkerPollSeconds(1)
-                                             .build())
+        final QueueCreateOptions queueCreateOptions =
+                QueueCreateOptions.builder()
+                                  .queueName(queueName)
+                                  .deleteBucketsAfterFinalize(false)
+                                  .repairWorkerPollSeconds(1)
+                                  .build();
+
+        client.createQueue(queueCreateOptions)
               .execute();
 
         IntStream.range(0, numMessages)
@@ -98,6 +109,37 @@ public class SlowTests extends TestBase {
         workers.forEach(Worker::stop);
 
         assertThat(counter.stream().distinct().count()).isEqualTo(numMessages);
+
+        assertAllMessagesDeliveredAtLeastOnce(server, numMessages, queueCreateOptions);
+    }
+
+    private void assertAllMessagesDeliveredAtLeastOnce(
+            final SelfHostServer server,
+            final int numMessages,
+            final QueueCreateOptions queueCreateOptions) {
+        final Injector injector = server.getService().getGuiceBundleProvider().getBundle().getInjector();
+
+        final DataContextFactory instance = injector.getInstance(DataContextFactory.class);
+
+        final Optional<QueueDefinition> definition = instance.getDefinition(queueCreateOptions.getQueueName());
+
+        final DataContext dataContext = instance.forQueue(definition.get());
+
+        int messagesFound = 0;
+
+        for (int i = 0; ; i++) {
+            final List<Message> messages = dataContext.getMessageRepository().getMessages(ReaderBucketPointer.valueOf(i));
+
+            assertThat(messages.stream().allMatch(Message::isAcked)).isTrue();
+
+            messagesFound += messages.stream().filter(m -> m.isAcked() && m.getDeliveryCount() > 0).count();
+
+            if (messages.size() == 0) {
+                break;
+            }
+        }
+
+        assertThat(messagesFound).isEqualTo(numMessages);
     }
 
     class BadWorkerException extends RuntimeException {}
