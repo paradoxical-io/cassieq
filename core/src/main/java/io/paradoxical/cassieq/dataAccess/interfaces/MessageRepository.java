@@ -30,7 +30,7 @@ public interface MessageRepository {
 
     List<Message> getBucketContents(final BucketPointer bucketPointer);
 
-    void tombstone(final ReaderBucketPointer bucketPointer);
+    boolean tombstone(final ReaderBucketPointer bucketPointer);
 
     Message getMessage(final MessagePointer pointer);
 

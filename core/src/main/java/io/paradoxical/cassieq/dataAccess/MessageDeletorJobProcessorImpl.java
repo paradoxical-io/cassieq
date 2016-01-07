@@ -6,7 +6,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeletorJobProcessor;
+import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
 
-public class MessageDeletorJobProcessorImpl implements MessageDeletorJobProcessor {
+public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcessor {
     private final Session session;
     private final QueueRepository queueRepository;
     private final DeletionJob job;

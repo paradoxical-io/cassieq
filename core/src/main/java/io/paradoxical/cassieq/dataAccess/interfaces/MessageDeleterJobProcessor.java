@@ -1,5 +1,5 @@
 package io.paradoxical.cassieq.dataAccess.interfaces;
 
-public interface MessageDeletorJobProcessor {
+public interface MessageDeleterJobProcessor {
     void start();
 }

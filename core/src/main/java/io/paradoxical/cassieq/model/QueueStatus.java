@@ -2,9 +2,10 @@ package io.paradoxical.cassieq.model;
 
 /**
  * The order of this matters as we will not let
- * people go down the stack. You can only move forward
+ * people go down the stack. You can only move forward (but circularly)
  *
- * active -> inactive -> deleting
+ * This means if you are at deleting you can go to inactive, but if you are inactive
+ * you can't go to deleting
  */
 public enum QueueStatus {
     /**
@@ -19,7 +20,7 @@ public enum QueueStatus {
 
     /**
      * This is the beginning of being marked for a deletion. You cannot create a new queue
-     * while in this sate
+     * while in this state
      */
     PendingDelete,
 
@@ -34,5 +35,5 @@ public enum QueueStatus {
      * we set to inactive. This is the only time you can _actually_ remove the queue entry
      * from the table
      */
-    Inactive
+    Inactive,
 }

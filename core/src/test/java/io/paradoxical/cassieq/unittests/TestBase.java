@@ -18,11 +18,14 @@ import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.ModuleUtils;
+import io.paradoxical.common.test.guice.OverridableModule;
 import lombok.AccessLevel;
 import lombok.Getter;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +48,7 @@ public class TestBase {
                                                 "com.datastax",
                                                 "org.cassandraunit",
                                                 "io.netty",
+                                                "org.glassfish",
                                                 "org.apache"
         };
 
@@ -74,19 +78,34 @@ public class TestBase {
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
-        return getDefaultInjector(configuration, session);
+        return getDefaultInjector(configuration, new OverridableModule[]{});
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
-        return Governator.createInjector(
-                ModuleUtils.mergeModules(DefaultApplicationModules.getModules(),
-                                         new InMemorySessionProvider(session),
-                                         new MockEnvironmentModule(configuration),
-                                         new TestClockModule(testClock)));
+        return getDefaultInjectorRaw(Arrays.asList(new InMemorySessionProvider(session),
+                                                   new MockEnvironmentModule(configuration),
+                                                   new TestClockModule(testClock)));
     }
 
     protected Injector getDefaultInjector() {
         return getDefaultInjector(new ServiceConfiguration());
+    }
+
+    protected Injector getDefaultInjector(OverridableModule... modules) {
+        return getDefaultInjector(new ServiceConfiguration(), modules);
+    }
+
+    protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
+        return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
+                                                     Arrays.asList(new InMemorySessionProvider(session),
+                                                                                         new MockEnvironmentModule(serviceConfiguration),
+                                                                                         new TestClockModule(testClock))));
+    }
+
+    private Injector getDefaultInjectorRaw(final List<OverridableModule> overridableModules) {
+        return Governator.createInjector(
+                ModuleUtils.mergeModules(DefaultApplicationModules.getModules(),
+                                         overridableModules));
     }
 
     protected QueueDefinition setupQueue(QueueName queueName) {

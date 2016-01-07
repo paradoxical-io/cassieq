@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.dataAccess;
 
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.querybuilder.Clause;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -17,6 +18,8 @@ import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
@@ -92,6 +95,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     /**
      * Set the status but only if its allowed to move to that status
      *
+     * i.e. we MUST move gracefully between the states, no state jumping
+     *
      * @param queueName
      * @param status
      */
@@ -100,21 +105,33 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
             @NonNull final QueueName queueName,
             @NonNull final QueueStatus status) {
 
-        final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
-                                             .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
-                                             .with(set(Tables.Queue.STATUS, status.ordinal()))
-                                             .onlyIf(lte(Tables.Queue.STATUS, status.ordinal()));
+        final Clause andIsPrevious = eq(Tables.Queue.STATUS, status.ordinal() - 1);
+        final Clause orIsEqual = eq(Tables.Queue.STATUS, status.ordinal());
 
-        if (session.execute(update).wasApplied()) {
-            logger.with("queue-name", queueName)
-                  .with("new-status", status)
-                  .success("Advancing queue status");
+        Function<Clause, Boolean> applier = clause -> {
+            final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
+                                                 .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
+                                                 .with(set(Tables.Queue.STATUS, status.ordinal()))
+                                                 .onlyIf(clause);
 
+            if (session.execute(update).wasApplied()) {
+                logger.with("queue-name", queueName)
+                      .with("new-status", status)
+                      .success("Advancing queue status");
+
+                return true;
+            }
+
+            return false;
+        };
+
+        if(applier.apply(andIsPrevious)){
             return true;
         }
 
-        return false;
+        return applier.apply(orIsEqual);
     }
+
 
     @Override
     public boolean deleteIfInActive(QueueName queueName) {

@@ -189,6 +189,7 @@ public class QueueResource extends BaseQueueResource {
                 messageInstance.getTag()
         );
 
+
         return Response.ok(response)
                        .status(Response.Status.OK)
                        .build();
@@ -222,6 +223,10 @@ public class QueueResource extends BaseQueueResource {
             getMessageRepoFactory().forQueue(queueDefinition.get())
                                    .putMessage(messageToInsert,
                                                initialInvisibility);
+
+            logger.with("index", messageToInsert.getIndex())
+                  .with("tag", messageToInsert.getTag())
+                  .debug("Adding message");
         }
         catch (ExistingMonotonFoundException e) {
             logger.error(e, "Error");

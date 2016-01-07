@@ -1,8 +1,8 @@
 package io.paradoxical.cassieq.factories;
 
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
-import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeletorJobProcessor;
+import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 
 public interface MessageDeleterJobProcessorFactory {
-    MessageDeletorJobProcessor createDeletionProcessor(DeletionJob job);
+    MessageDeleterJobProcessor createDeletionProcessor(DeletionJob job);
 }
