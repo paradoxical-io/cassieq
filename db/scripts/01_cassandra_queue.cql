@@ -38,9 +38,10 @@ CREATE TABLE message (
   version int,
   acked boolean,
   next_visible_on timestamp,
-  created_date timestamp,
   delivery_count int,
   tag text,
+  created_date timestamp,
+  updated_date timestamp,
 
   PRIMARY KEY ((queueid, bucket_num), monoton)
 );

@@ -52,6 +52,8 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
             return;
         }
 
+        logger.info("Starting repair manager");
+
         running = true;
 
         schedule();
@@ -59,6 +61,8 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
 
     @Override
     public synchronized void stop() {
+        logger.info("Stopping repair manager");
+
         running = false;
 
         if (cancellationToken != null) {
@@ -87,6 +91,10 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     @Override
     public synchronized void notifyChanges() {
         try {
+            if(!running){
+                return;
+            }
+
             final Set<RepairWorkerKey> expectedWorkers = getExpectedWorkers();
 
             final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();

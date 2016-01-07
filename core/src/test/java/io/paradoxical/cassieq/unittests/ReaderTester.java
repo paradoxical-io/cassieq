@@ -7,14 +7,16 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
+import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.workers.reader.Reader;
+import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.Value;
 import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,25 +32,44 @@ public class ReaderTester extends TestBase {
         this.defaultInjector = getDefaultInjector();
     }
 
-    @Value
+    @Data
     class ReaderQueueContext {
 
         @NonNull
-        QueueName queueName;
+        private final QueueName queueName;
 
         @NonNull
-        QueueDefinition queueDefinition;
+        private final QueueDefinition queueDefinition;
 
         @NonNull
-        Reader reader;
+        private final Reader reader;
+
+        @Getter
+        private DataContext context;
+
+        public ReaderQueueContext(QueueDefinition queueDefinition, Reader reader) {
+            this.reader = reader;
+            this.queueDefinition = queueDefinition;
+            this.queueName = queueDefinition.getQueueName();
+
+            final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
+
+            context = factory.forQueue(queueDefinition);
+        }
 
         public Optional<Message> readNextMessage(Duration invisiblity) {
             return reader.nextMessage(invisiblity);
         }
 
+        public Optional<Message> readNextMessage(int invisiblitySeconds) {
+            return reader.nextMessage(Duration.standardSeconds(invisiblitySeconds));
+        }
+
+        private void putMessage(String blob) throws Exception {
+            putMessage(0, blob);
+        }
+
         private void putMessage(int seconds, String blob) throws Exception {
-            final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
-            final DataContext context = factory.forQueue(getQueueDefinition());
 
             final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -189,6 +210,117 @@ public class ReaderTester extends TestBase {
     }
 
     @Test
+    public void update_message_should_extend_invisiblity_time_and_be_ackable() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisiblity_time_and_be_ackable", 3);
+
+        testContext.putMessage("init");
+
+        final Message message = testContext.readNextMessage(10).get();
+
+        final MessageUpdateRequest messageUpdateRequest =
+                new MessageUpdateRequest(Duration.standardSeconds(20),
+                                         message.getTag(),
+                                         message.getVersion(),
+                                         message.getIndex(),
+                                         "init2");
+
+        final Optional<Message> updatedMessage = testContext.getContext().getMessageRepository().updateMessage(messageUpdateRequest);
+
+        assertThat(updatedMessage).isPresent();
+
+        // make sure that updating didn't actually change any reader logic
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // the initial request _would_ have expired here
+        getTestClock().tickSeconds(12L);
+
+        // make sure that we haven't actually expired yet
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // ack the extended message
+        assertThat(testContext.getReader().ackMessage(updatedMessage.get().getPopReceipt())).isTrue();
+
+        // make sure there isn't anything left
+        final Optional<Message> newlyExpiredMessage = testContext.readNextMessage(10);
+
+        assertThat(newlyExpiredMessage).isEmpty();
+    }
+
+    @Test
+    public void update_message_should_extend_invisibility_time_and_still_expire() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisibility_time_and_still_expire", 3);
+
+        testContext.putMessage("init");
+
+        final Message message = testContext.readNextMessage(10).get();
+
+        final MessageUpdateRequest messageUpdateRequest =
+                new MessageUpdateRequest(Duration.standardSeconds(20),
+                                         message.getTag(),
+                                         message.getVersion(),
+                                         message.getIndex(),
+                                         "init2");
+
+        final Optional<Message> updatedMessage = testContext.getContext().getMessageRepository().updateMessage(messageUpdateRequest);
+
+
+        assertThat(updatedMessage).isPresent();
+
+        // make sure that updating didn't actually change any reader logic
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // the initial request _would_ have expired here
+        getTestClock().tickSeconds(12L);
+
+        // make sure that we haven't actually expired yet
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // actually expire
+        getTestClock().tickSeconds(10L);
+
+        final Optional<Message> newlyExpiredMessage = testContext.readNextMessage(10);
+
+        assertThat(newlyExpiredMessage).isPresent();
+
+        assertThat(newlyExpiredMessage.get().getTag()).isEqualTo(message.getTag());
+        assertThat(newlyExpiredMessage.get().getVersion()).isGreaterThan(message.getVersion());
+        assertThat(newlyExpiredMessage.get().getBlob()).isEqualTo(messageUpdateRequest.getNewBlob());
+    }
+
+    @Test
+    public void test_nack_via_update() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("test_nack_via_update", 3);
+
+        testContext.putMessage("init");
+
+        final Message originalMessage = testContext.readNextMessage(10).get();
+
+        final MessageUpdateRequest messageUpdateRequest =
+                new MessageUpdateRequest(Duration.standardSeconds(0),
+                                         originalMessage.getTag(),
+                                         originalMessage.getVersion(),
+                                         originalMessage.getIndex(),
+                                         "init2");
+
+        final Optional<Message> updatedMessage = testContext.getContext().getMessageRepository().updateMessage(messageUpdateRequest);
+
+
+        assertThat(updatedMessage).isPresent();
+
+        // we nacked the original, so see if it comes back
+        final Optional<Message> previouslyNackedMessage = testContext.readNextMessage(10);
+
+        assertThat(previouslyNackedMessage).isPresent();
+        assertThat(previouslyNackedMessage.get().getTag()).isEqualTo(originalMessage.getTag());
+        assertThat(previouslyNackedMessage.get().getVersion()).isGreaterThan(originalMessage.getVersion());
+        assertThat(previouslyNackedMessage.get().getBlob()).isEqualTo(messageUpdateRequest.getNewBlob());
+        assertThat(previouslyNackedMessage.get().getDeliveryCount()).isEqualTo(originalMessage.getDeliveryCount() + 1);
+
+        // we nacked the original pop reciept so we shouldn't be able to ack it anymore
+        assertThat(testContext.getReader().ackMessage(originalMessage.getPopReceipt())).isFalse();
+    }
+
+    @Test
     public void test_monoton_skipped() throws Exception {
         final int bucketSize = 5;
         final ReaderQueueContext testContext = setupTestContext("test_monoton_skipped", bucketSize);
@@ -232,7 +364,7 @@ public class ReaderTester extends TestBase {
 
         final Reader reader = readerFactory.forQueue(queueDefinition);
 
-        return new ReaderQueueContext(queue, queueDefinition, reader);
+        return new ReaderQueueContext(queueDefinition, reader);
     }
 
     private QueueRepository getQueueRepository() {

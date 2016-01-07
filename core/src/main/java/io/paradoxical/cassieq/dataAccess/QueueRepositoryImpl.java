@@ -132,7 +132,6 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return applier.apply(orIsEqual);
     }
 
-
     @Override
     public boolean deleteIfInActive(QueueName queueName) {
         final Statement delete = QueryBuilder.delete()

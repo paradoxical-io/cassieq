@@ -8,6 +8,7 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
+import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
@@ -27,6 +28,7 @@ public class MessageRepositoryTester extends TestBase {
         final Injector defaultInjector = getDefaultInjector();
 
         final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
+
         final QueueName queueName = QueueName.valueOf("put_message_should_succeed");
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
@@ -44,7 +46,6 @@ public class MessageRepositoryTester extends TestBase {
         final List<Message> messages = context.getMessageRepository().getMessages(() -> 0L);
 
         assertThat(messages.size()).isEqualTo(1);
-
     }
 
     @Test
