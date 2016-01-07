@@ -57,6 +57,7 @@
         <!-- Project Settings -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <guice.version>4.0</guice.version>
+        <hazelcast.version>3.5.4</hazelcast.version>
 
         <apache.collections4.version>4.0</apache.collections4.version>
         <dockerRepo>paradoxical</dockerRepo>
@@ -91,6 +92,7 @@
         <retrofit.version>2.0.0-beta2</retrofit.version>
         <retrofit.converter.jackson.version>2.0.0-beta2</retrofit.converter.jackson.version>
         <apache.commons.version>3.3.2</apache.commons.version>
+        <apache.commons.io.version>2.4</apache.commons.io.version>
 
         <!-- Maven Plugin versions -->
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
@@ -168,6 +170,12 @@
                 <groupId>com.google.inject.extensions</groupId>
                 <artifactId>guice-assistedinject</artifactId>
                 <version>${guice.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.hazelcast</groupId>
+                <artifactId>hazelcast</artifactId>
+                <version>${hazelcast.version}</version>
             </dependency>
 
             <dependency>
@@ -348,6 +356,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${apache.commons.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${apache.commons.io.version}</version>
             </dependency>
 
 
