@@ -66,7 +66,7 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
 
         final Set<String> members = hazelcastInstance.getCluster().getMembers().stream().map(Member::getUuid).collect(toSet());
 
-        // whoever owned this before isn't in the cluster anymore
+        // whoever owned this before isn't in the cluster anymore, so this instance now can own it
         if (!members.contains(owningIds.get(0))) {
             owningIds.set(0, localId);
 
