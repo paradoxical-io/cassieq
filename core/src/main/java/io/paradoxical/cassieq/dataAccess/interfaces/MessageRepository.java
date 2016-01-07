@@ -4,6 +4,7 @@ import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundExceptio
 import io.paradoxical.cassieq.model.BucketPointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessagePointer;
+import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
@@ -37,4 +38,6 @@ public interface MessageRepository {
     Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer);
 
     void deleteAllMessages(BucketPointer bucket);
+
+    Optional<Message> updateMessage(MessageUpdateRequest message);
 }

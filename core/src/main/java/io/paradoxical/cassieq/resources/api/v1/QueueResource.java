@@ -13,17 +13,11 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.model.BucketSize;
-import io.paradoxical.cassieq.model.GetMessageResponse;
-import io.paradoxical.cassieq.model.Message;
-import io.paradoxical.cassieq.model.PopReceipt;
-import io.paradoxical.cassieq.model.QueueCreateOptions;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
+import retrofit.http.Body;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -31,6 +25,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -154,11 +149,12 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response getMessage(
-            @PathParam("queueName") QueueName queueName,
-            @QueryParam("invisibilityTime") @DefaultValue("30") Long invisibilityTime) {
+            @NotNull @PathParam("queueName") QueueName queueName,
+            @NotNull @QueryParam("invisibilityTimeSeconds") @DefaultValue("30") Long invisibilityTimeSeconds) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
+
+        if (!active(queueDefinition)) {
             return buildQueueNotFoundResponse(queueName);
         }
 
@@ -166,7 +162,7 @@ public class QueueResource extends BaseQueueResource {
 
         try {
             messageOptional = getReaderFactory().forQueue(queueDefinition.get())
-                                                .nextMessage(Duration.standardSeconds(invisibilityTime));
+                                                .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
             logger.error(e, "Error");
@@ -195,6 +191,39 @@ public class QueueResource extends BaseQueueResource {
                        .build();
     }
 
+
+    @PUT
+    @Path("/{queueName}/messages")
+    @ApiOperation(value = "Update Message")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK", response = UpdateMessageResponse.class),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 409, message = "CONFLICT: PopReceipt is stale"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response updateMessage(
+            @NotNull @PathParam("queueName") QueueName queueName,
+            @NotNull @QueryParam("popReceipt") String popReceiptRaw,
+            UpdateMessageRequest clientUpdateRequest) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!active(queueDefinition)) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final MessageUpdateRequest updateRequest = MessageUpdateRequest.from(clientUpdateRequest, PopReceipt.valueOf(popReceiptRaw));
+
+        final Optional<Message> message = getMessageRepoFactory().forQueue(queueDefinition.get()).updateMessage(updateRequest);
+
+        if (message.isPresent()) {
+            final UpdateMessageResponse updateMessageResponse =
+                    new UpdateMessageResponse(PopReceipt.from(message.get()).toString(), message.get().getTag());
+
+            return Response.ok().entity(updateMessageResponse).build();
+        }
+
+        return buildConflictResponse("Pop reciept is stale");
+    }
+
     @POST
     @Path("/{queueName}/messages")
     @ApiOperation(value = "Put Message")
@@ -202,12 +231,13 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response putMessage(
-            @PathParam("queueName") QueueName queueName,
+            @NotNull @PathParam("queueName") QueueName queueName,
             @QueryParam("initialInvisibilityTime") @DefaultValue("0") Long initialInvisibilityTime,
             String message) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent() || queueDefinition.get().getStatus() != QueueStatus.Active) {
+
+        if (!active(queueDefinition)) {
             return buildQueueNotFoundResponse(queueName);
         }
 
@@ -230,6 +260,7 @@ public class QueueResource extends BaseQueueResource {
         }
         catch (ExistingMonotonFoundException e) {
             logger.error(e, "Error");
+
             return buildErrorResponse("PutMessage", queueName, e);
         }
 
@@ -245,8 +276,8 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 409, message = "CONFLICT: PopReceipt is stale"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response ackMessage(
-            @PathParam("queueName") QueueName queueName,
-            @QueryParam("popReceipt") String popReceiptRaw) {
+            @NotNull @PathParam("queueName") QueueName queueName,
+            @NotNull @QueryParam("popReceipt") String popReceiptRaw) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
         if (!queueDefinition.isPresent()) {
@@ -270,6 +301,10 @@ public class QueueResource extends BaseQueueResource {
             return Response.noContent().build();
         }
 
-        return Response.status(Response.Status.CONFLICT).entity("The message is already being reprocessed").build();
+        return buildConflictResponse("The message is already being reprocessed");
+    }
+
+    private boolean active(final Optional<QueueDefinition> queueDefinition) {
+        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
     }
 }

@@ -77,6 +77,7 @@
         <io.paradoxical.common.web>1.0-SNAPSHOT</io.paradoxical.common.web>
         <io.paradoxical.cassandra.leadership>1.0-SNAPSHOT</io.paradoxical.cassandra.leadership>
         <io.paradoxical.cassandra-loader>1.0-SNAPSHOT</io.paradoxical.cassandra-loader>
+
         <godaddy.logging.version>1.0</godaddy.logging.version>
 
         <javax.validation.version>1.1.0.Final</javax.validation.version>
@@ -264,12 +265,6 @@
                 <groupId>io.paradoxical</groupId>
                 <artifactId>common-web</artifactId>
                 <version>${io.paradoxical.common.web}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.paradoxical</groupId>
-                <artifactId>cassandra-leadership</artifactId>
-                <version>${io.paradoxical.cassandra.leadership}</version>
             </dependency>
 
             <dependency>

@@ -17,11 +17,13 @@ import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
+import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.common.test.guice.ModuleUtils;
 import io.paradoxical.common.test.guice.OverridableModule;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
+import org.junit.After;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
@@ -78,13 +80,11 @@ public class TestBase {
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
-        return getDefaultInjector(configuration, new OverridableModule[]{});
+        return getDefaultInjector(configuration, session);
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
-        return getDefaultInjectorRaw(Arrays.asList(new InMemorySessionProvider(session),
-                                                   new MockEnvironmentModule(configuration),
-                                                   new TestClockModule(testClock)));
+        return getDefaultInjector(configuration, new InMemorySessionProvider(session));
     }
 
     protected Injector getDefaultInjector() {
@@ -97,9 +97,8 @@ public class TestBase {
 
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
         return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
-                                                     Arrays.asList(new InMemorySessionProvider(session),
-                                                                                         new MockEnvironmentModule(serviceConfiguration),
-                                                                                         new TestClockModule(testClock))));
+                                                     Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
+                                                                   new TestClockModule(testClock))));
     }
 
     private Injector getDefaultInjectorRaw(final List<OverridableModule> overridableModules) {

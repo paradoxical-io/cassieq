@@ -51,6 +51,17 @@ public abstract class BaseQueueResource {
         }).build();
     }
 
+
+    protected Response buildConflictResponse(String reason) {
+        return Response.status(Response.Status.CONFLICT)
+                       .entity(new Object() {
+                           public final String result = "conflict";
+
+                           public final String message = reason;
+                       })
+                       .build();
+    }
+
     protected Response buildErrorResponse(final String operation, final QueueName queue, final Exception e) {
 
         final String errorMessage = e.getMessage();
