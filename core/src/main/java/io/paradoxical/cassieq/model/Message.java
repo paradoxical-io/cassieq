@@ -4,13 +4,12 @@ import com.datastax.driver.core.Row;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.godaddy.logging.LoggingScope;
 import com.godaddy.logging.Scope;
+import io.paradoxical.cassieq.dataAccess.SpecialIndex;
 import io.paradoxical.cassieq.dataAccess.Tables;
-import io.paradoxical.cassieq.dataAccess.Tombstone;
 import io.paradoxical.cassieq.model.time.Clock;
 import lombok.Builder;
 import lombok.Data;
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 
 @Data
 @Builder
@@ -38,11 +37,18 @@ public class Message {
         return nextVisiblityAt == null || nextVisiblityAt.isBefore(clock.now()) || nextVisiblityAt.isEqual(clock.now());
     }
 
-    public boolean isTombstone() { return getIndex().equals(Tombstone.index); }
+    public boolean isTombstone() { return getIndex().equals(SpecialIndex.Tombstone.getIndex()); }
+
+    public boolean isFinalized() { return getIndex().equals(SpecialIndex.Finalizer.getIndex()); }
 
     @JsonIgnore
     public boolean isNotAcked() {
         return !isAcked;
+    }
+
+    @JsonIgnore
+    public boolean isRevived(Clock clock) {
+        return isNotAcked() && isVisible(clock) && getDeliveryCount() > 0;
     }
 
     @JsonIgnore
@@ -51,7 +57,7 @@ public class Message {
     }
 
     @JsonIgnore
-    public boolean isNotTombstone() { return !isTombstone(); }
+    public boolean isNotSpecial() { return !isTombstone() && !isFinalized(); }
 
     public PopReceipt getPopReceipt() {
         return PopReceipt.from(this);

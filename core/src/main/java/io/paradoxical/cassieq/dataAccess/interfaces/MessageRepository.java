@@ -6,6 +6,7 @@ import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.RepairBucketPointer;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
@@ -26,10 +27,12 @@ public interface MessageRepository {
     boolean ackMessage(final Message message);
 
     default List<Message> getMessages(final BucketPointer bucketPointer) {
-        return getBucketContents(bucketPointer).stream().filter(Message::isNotTombstone).collect(toList());
+        return getBucketContents(bucketPointer).stream().filter(Message::isNotSpecial).collect(toList());
     }
 
     List<Message> getBucketContents(final BucketPointer bucketPointer);
+
+    boolean finalize(RepairBucketPointer bucketPointer);
 
     boolean tombstone(final ReaderBucketPointer bucketPointer);
 
@@ -40,4 +43,6 @@ public interface MessageRepository {
     void deleteAllMessages(BucketPointer bucket);
 
     Optional<Message> updateMessage(MessageUpdateRequest message);
+
+    boolean finalizedExists(BucketPointer bucketPointer);
 }

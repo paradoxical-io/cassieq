@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.workers.reader;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -16,12 +17,15 @@ import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import lombok.Cleanup;
 import org.joda.time.Duration;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
+import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class ReaderImpl implements Reader {
@@ -31,8 +35,9 @@ public class ReaderImpl implements Reader {
     private final QueueRepository queueRepository;
     private final Clock clock;
     private final MetricRegistry metricRegistry;
+    private final InvisLocaterFactory invisLocaterFactory;
     private final QueueDefinition queueDefinition;
-    private final InvisLocatorImpl invisLocator;
+    private final Supplier<Timer.Context> timerSupplier;
 
     @Inject
     public ReaderImpl(
@@ -45,13 +50,15 @@ public class ReaderImpl implements Reader {
         this.queueRepository = queueRepository;
         this.clock = clock;
         this.metricRegistry = metricRegistry;
+        this.invisLocaterFactory = invisLocaterFactory;
         this.queueDefinition = queueDefinition;
 
         dataContext = dataContextFactory.forQueue(queueDefinition);
 
-        invisLocator = invisLocaterFactory.forQueue(queueDefinition);
-
         logger = logger.with("q", queueDefinition.getQueueName()).with("version", queueDefinition.getVersion());
+
+        timerSupplier = () -> metricRegistry.timer(name("reader", "queue", queueDefinition.getQueueName().get(), "v" + queueDefinition.getVersion()))
+                                            .time();
     }
 
     @Override
@@ -60,10 +67,14 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
-        final Optional<Message> nowVisibleMessage = invisLocator.tryConsumeNextVisibleMessage(getCurrentInvisPointer(), invisibility);
+        @SuppressWarnings("unused")
+        @Cleanup("stop")
+        final Timer.Context readerTimer = timerSupplier.get();
+
+        final Optional<Message> nowVisibleMessage = invisLocaterFactory.forQueue(queueDefinition)
+                                                                       .tryConsumeNextVisibleMessage(getCurrentInvisPointer(), invisibility);
 
         if (nowVisibleMessage.isPresent()) {
-
             logger.with(nowVisibleMessage.get()).info("Got newly visible message");
 
             return nowVisibleMessage;
@@ -88,7 +99,7 @@ public class ReaderImpl implements Reader {
 
         if (messageAt.getVersion() != popReceipt.getMessageVersion() ||
             !messageAt.getTag().equals(popReceipt.getMessageTag())) {
-            
+
             return false;
         }
 
@@ -147,7 +158,10 @@ public class ReaderImpl implements Reader {
 
     private void tombstone(final ReaderBucketPointer bucket) {
         if (dataContext.getMessageRepository().tombstone(bucket)) {
-            logger.with(bucket).info("Tombestoned reader");
+            logger.with(bucket).info("Tombstoned reader");
+        }
+        else {
+            logger.with(bucket).info("Reader bucket was already tombstoned");
         }
     }
 
