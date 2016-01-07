@@ -4,6 +4,7 @@ import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;

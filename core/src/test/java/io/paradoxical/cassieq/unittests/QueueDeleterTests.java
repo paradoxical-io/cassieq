@@ -1,20 +1,111 @@
 package io.paradoxical.cassieq.unittests;
 
+import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
+import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.dataAccess.DeletionJob;
+import io.paradoxical.cassieq.dataAccess.MessageDeletorJobProcessorImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
+import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
 
+import java.util.Optional;
+import java.util.concurrent.Semaphore;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class QueueDeleterTests extends TestBase {
+    @Test
+    public void can_create_queue_while_job_is_deleting() throws QueueAlreadyDeletingException, InterruptedException {
+
+        final MessageDeleterJobProcessorFactory jobSpy = spy(MessageDeleterJobProcessorFactory.class);
+
+        final Injector defaultInjector = getDefaultInjector(new MessageDeletorJobModule(jobSpy));
+
+        final Semaphore start = new Semaphore(1);
+
+        final Thread[] deletion = new Thread[1];
+
+        // delay the actual queue deletion as if it was an async job
+        when(jobSpy.createDeletionProcessor(any())).thenAnswer(answer -> {
+            deletion[0] = new Thread(() -> {
+                try {
+                    start.acquire();
+
+                    final MessageDeletorJobProcessorImpl realDeletor = defaultInjector.createChildInjector(new AbstractModule() {
+                        @Override
+                        protected void configure() {
+                            bind(DeletionJob.class)
+                                    .annotatedWith(Assisted.class)
+                                    .toInstance(((DeletionJob) answer.getArguments()[0]));
+                        }
+                    }).getInstance(MessageDeletorJobProcessorImpl.class);
+
+                    // the job starts, and after completion tries to mark the queue as inactive
+                    // but we have already created a new active queue so this should NOT occur
+                    realDeletor.start();
+                }
+                catch (Exception e) {
+                    System.out.println(e);
+                }
+            });
+
+            deletion[0].start();
+
+            return mock(MessageDeleterJobProcessor.class);
+        });
+
+
+        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
+
+        final QueueRepository instance = defaultInjector.getInstance(QueueRepository.class);
+
+        final QueueName name = QueueName.valueOf("can_create_queue_while_job_is_deleting");
+
+        final QueueDefinition build = QueueDefinition.builder().queueName(name).build();
+
+        final Optional<QueueDefinition> initialQueue = instance.createQueue(build);
+
+        // make sure we got a v0 queue
+        assertThat(initialQueue.get().getVersion()).isEqualTo(0);
+
+        // delete v0
+        queueDeleter.delete(name);
+
+        // should be able to make new queue
+        final Optional<QueueDefinition> queue = instance.createQueue(build);
+
+        // make sure its a v1
+        assertThat(queue).isPresent();
+        assertThat(queue.get().getVersion()).isEqualTo(1);
+
+        // let the deletor process v0
+        start.release();
+
+        // wiat for deletor to finish
+        deletion[0].join();
+
+        final QueueDefinition activeQueue = instance.getActiveQueue(queue.get().getQueueName()).get();
+
+        // make sure the deletor when it completed didn't just kill this active queue (v1)
+        assertThat(activeQueue.getVersion()).isEqualTo(queue.get().getVersion());
+    }
+
     @Test
     public void test_deleter_cleans_up_pointers() throws QueueAlreadyDeletingException {
         final QueueDeleter deleter = getDefaultInjector().getInstance(QueueDeleter.class);

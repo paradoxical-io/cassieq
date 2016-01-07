@@ -11,7 +11,6 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.NonNull;
@@ -31,7 +30,8 @@ public class ReaderTester extends TestBase {
         this.defaultInjector = getDefaultInjector();
     }
 
-    @Value class ReaderQueueContext {
+    @Value
+    class ReaderQueueContext {
 
         @NonNull
         QueueName queueName;
