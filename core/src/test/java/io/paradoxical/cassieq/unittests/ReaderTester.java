@@ -5,13 +5,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.model.BucketSize;
-import io.paradoxical.cassieq.model.Message;
-import io.paradoxical.cassieq.model.MessageUpdateRequest;
-import io.paradoxical.cassieq.model.MonotonicIndex;
-import io.paradoxical.cassieq.model.PopReceipt;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.Data;
@@ -69,6 +63,10 @@ public class ReaderTester extends TestBase {
             putMessage(0, blob);
         }
 
+        public MonotonicIndex ghostMessage() {
+            return context.getMonotonicRepository().nextMonotonic();
+        }
+
         private void putMessage(int seconds, String blob) throws Exception {
 
             final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
@@ -89,10 +87,114 @@ public class ReaderTester extends TestBase {
 
             return reader.ackMessage(popReceipt);
         }
+
+        private boolean readAndAckMessage(String blob) {
+            return readAndAckMessage(blob, 10L);
+        }
+
+        private void tombstone(int bucket){
+            context.getMessageRepository().tombstone(ReaderBucketPointer.valueOf(bucket));
+        }
+
+        private void finalize(int bucket){
+            context.getMessageRepository().finalize(RepairBucketPointer.valueOf(bucket));
+        }
     }
 
     @Before
     public void setup() {
+    }
+
+    @Test
+    public void invis_stops_non_finalized_bucket() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("invis_stops_non_finalized_bucket", 3);
+
+        testContext.putMessage(0, "1");
+        testContext.putMessage(3, "2");
+
+        testContext.ghostMessage();
+
+        testContext.putMessage(0, "4 (new bucket)");
+        testContext.putMessage(30, "5");
+        testContext.putMessage(20, "6");
+
+        testContext.readAndAckMessage("1");
+
+        // 2 is invis, 3 is a ghost
+        testContext.readAndAckMessage("4 (new bucket)");
+
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        getTestClock().tickSeconds(10L);
+
+        // 2 is alive now
+        final Message messageTwo = testContext.readNextMessage(1).get();
+
+        // 2 is now invis, 5 and 6 are still blocked
+        assertThat(testContext.readNextMessage(0)).isEmpty();
+
+        // 2 is expired, should come back from invis
+        getTestClock().tickSeconds(2L);
+
+        testContext.readAndAckMessage("2");
+
+        final InvisibilityMessagePointer currentInvisPointer = testContext.getContext().getPointerRepository().getCurrentInvisPointer();
+
+        // it should point to message 2
+        assertThat(currentInvisPointer.get()).isEqualTo(1);
+
+        // repair worker processed and closed bucket 0 off
+        testContext.finalize(0);
+
+        // invis can now move on since all messages are ack'd in bucket 0
+        // and there will be no more publishes (its been finalized)
+
+        // however, message 5 is still invis
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        // but validate that the invis points to 5
+
+        final InvisibilityMessagePointer nextInvisPointer = testContext.getContext().getPointerRepository().getCurrentInvisPointer();
+
+        // it should point to message 5
+        final Message messageFive = testContext.getContext().getMessageRepository().getMessage(nextInvisPointer);
+
+        assertThat(messageFive.getBlob()).isEqualTo("5");
+    }
+
+    @Test
+    public void initial_inivis_picked_up() throws Exception {
+        final ReaderQueueContext testContext = setupTestContext("initial_inivis_picked_up", 3);
+
+        testContext.putMessage(10, "1");
+        testContext.putMessage(5, "2");
+        testContext.putMessage(12, "3");
+        testContext.putMessage(0, "4 (new bucket)");
+        testContext.putMessage(0, "5");
+        testContext.putMessage(1, "6");
+
+        // reader skipped all the invis and tombstoned the
+        // buckets
+        testContext.readAndAckMessage("4 (new bucket");
+        testContext.readAndAckMessage("5");
+
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        getTestClock().tickSeconds(10L);
+
+        // 1 is alive now
+        testContext.readAndAckMessage("1");
+
+        // 2 should also be alive since it was blocked by 1
+        testContext.readAndAckMessage("2");
+
+        // 3 is bocked
+        assertThat(testContext.readNextMessage(10)).isEmpty();
+
+        getTestClock().tickSeconds(5L);
+
+        testContext.readAndAckMessage("3");
+        testContext.readAndAckMessage("6");
     }
 
     @Test

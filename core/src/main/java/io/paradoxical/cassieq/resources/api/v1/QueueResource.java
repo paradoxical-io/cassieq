@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.resources.api.v1;
 
+import com.codahale.metrics.annotation.Timed;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
@@ -13,6 +14,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
+import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
@@ -58,6 +60,7 @@ public class QueueResource extends BaseQueueResource {
 
     @POST
     @Path("/")
+    @Timed
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -102,6 +105,7 @@ public class QueueResource extends BaseQueueResource {
 
     @DELETE
     @Path("/")
+    @Timed
     @ApiOperation(value = "Purge inactive queues")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
@@ -120,6 +124,8 @@ public class QueueResource extends BaseQueueResource {
 
     @DELETE
     @Path("/{queueName}")
+    @Timed
+    @QueueTimer(actionName = "delete")
     @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
@@ -141,6 +147,8 @@ public class QueueResource extends BaseQueueResource {
 
     @GET
     @Path("/{queueName}/messages/next")
+    @Timed
+    @QueueTimer(actionName = "read")
     @ApiOperation(value = "Get Message")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
@@ -194,6 +202,8 @@ public class QueueResource extends BaseQueueResource {
 
     @PUT
     @Path("/{queueName}/messages")
+    @Timed
+    @QueueTimer(actionName = "update-message")
     @ApiOperation(value = "Update Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK", response = UpdateMessageResponse.class),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -226,6 +236,8 @@ public class QueueResource extends BaseQueueResource {
 
     @POST
     @Path("/{queueName}/messages")
+    @Timed
+    @QueueTimer(actionName = "publish")
     @ApiOperation(value = "Put Message")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Message Added"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -270,6 +282,8 @@ public class QueueResource extends BaseQueueResource {
 
     @DELETE
     @Path("/{queueName}/messages")
+    @Timed
+    @QueueTimer(actionName = "ack")
     @ApiOperation(value = "Ack Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),

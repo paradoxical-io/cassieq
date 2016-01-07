@@ -48,7 +48,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
 
     @Override
     public synchronized void start() {
-        if(running){
+        if (running) {
             return;
         }
 
@@ -91,7 +91,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     @Override
     public synchronized void notifyChanges() {
         try {
-            if(!running){
+            if (!running) {
                 return;
             }
 
@@ -100,6 +100,10 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
             final ImmutableSet<RepairWorkerKey> newWorkers = Sets.difference(expectedWorkers, currentRepairWorkers).immutableCopy();
 
             final ImmutableSet<RepairWorkerKey> itemsToStop = Sets.difference(currentRepairWorkers, expectedWorkers).immutableCopy();
+
+            if (newWorkers.size() == 0 && itemsToStop.size() == 0) {
+                return;
+            }
 
             logger.with("count", itemsToStop.size()).info("Removing workers");
             logger.with("count", newWorkers.size()).info("Workers to add");

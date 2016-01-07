@@ -75,6 +75,8 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
         }
 
         // someone else moved it, get that value
+        moveLogger.info("Other process moved invis pointer, retrieving");
+
         return getCurrentInvisPointer();
     }
 
