@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.resources.api.v1;
 
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
@@ -277,7 +278,6 @@ public class QueueResource extends BaseQueueResource {
         }
 
         return Response.status(Response.Status.CREATED).build();
-
     }
 
     @DELETE
@@ -316,6 +316,34 @@ public class QueueResource extends BaseQueueResource {
         }
 
         return buildConflictResponse("The message is already being reprocessed");
+    }
+
+    @GET
+    @Path("/{queueName}")
+    @Timed
+    @ApiOperation(value = "Get queue information")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueSize(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
+
+        Object returnEntity = new Object(){
+            @JsonProperty("queueSize")
+            public long size = queueSize.orElse(0L);
+        };
+
+        return Response.ok().entity(returnEntity).build();
     }
 
     private boolean active(final Optional<QueueDefinition> queueDefinition) {

@@ -10,6 +10,7 @@ import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
 
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +33,37 @@ public class QueueRepositoryTester extends TestBase {
         assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
         assertThat(repo.getQueueNames()).contains(queueName);
+    }
+
+    @Test
+    public void queue_size_grows_and_shrinks() throws Exception {
+        final TestQueueContext testContext = new TestQueueContext(QueueName.valueOf("queue_size_grows_and_shrinks"), getDefaultInjector());
+
+        int numMessages = 1000;
+
+        for (int i = 0; i < numMessages; i++) {
+            testContext.putMessage(Integer.valueOf(i).toString());
+        }
+
+        Optional<Long> queueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+
+        assertThat(queueSize.get()).isEqualTo(numMessages);
+
+        int ackCount = 0;
+        for (int i = numMessages - 1; i >= 0; i--) {
+            ackCount++;
+
+            testContext.readAndAckMessage(Integer.valueOf(i).toString());
+
+            final Optional<Long> newQueueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+
+            assertThat(newQueueSize.get()).isEqualTo(numMessages - ackCount);
+
+        }
+
+        queueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+
+        assertThat(queueSize.get()).isEqualTo(0);
     }
 
     @Test

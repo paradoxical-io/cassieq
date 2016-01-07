@@ -9,6 +9,11 @@ CREATE TABLE queue (
   version int
 );
 
+CREATE TABLE queue_size (
+    queueid text PRIMARY KEY,
+    size counter
+);
+
 CREATE TABLE pointer (
   queueid text,
   pointer_type text,

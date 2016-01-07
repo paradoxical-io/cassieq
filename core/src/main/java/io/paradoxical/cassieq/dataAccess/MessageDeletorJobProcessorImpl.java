@@ -16,6 +16,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.PointerRepoFactory;
 import io.paradoxical.cassieq.model.BucketSize;
+import io.paradoxical.cassieq.model.GenericMessagePointer;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.MessagePointer;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -78,6 +79,8 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
             pointerRepository.deleteAll();
 
+            queueRepository.deleteQueueStats(QueueId.valueOf(job.getQueueName(), job.getVersion()));
+
             complete();
         }
     }
@@ -94,13 +97,8 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
         final InvisibilityMessagePointer currentInvisPointer = pointerRepository.getCurrentInvisPointer();
 
-        if (repairPointer.get() < currentInvisPointer.get()) {
-            return repairPointer;
-        }
-
-        return currentInvisPointer;
+        return GenericMessagePointer.valueOf(Math.min(repairPointer.get(), currentInvisPointer.get()));
     }
-
 
     private void delete(MessagePointer from, MessagePointer to) {
 

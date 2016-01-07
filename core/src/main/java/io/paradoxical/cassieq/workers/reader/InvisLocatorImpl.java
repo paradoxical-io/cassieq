@@ -27,70 +27,6 @@ import java.util.function.Supplier;
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
-/**
- * Invis pointer algo:
- *
- * if a message is available for consumption (never consumed)
- *
- * Story time!
- *
- * Imagine this scenario:
- *
- * ~   = out for consumption
- * INV = message is invisible
- * = location of inivs pointer
- * T   = tombstoned
- * +   = at least once delivered
- * A   = acked
- * --  = bucket line
- *
- * Message Id | Status
- *
- * 0 A *
- * 1
- * 2
- * --
- * 3
- *
- * Zero is acked. 1, 2 and 3. Two reads come in at the same time.  Both try and claim 1,
- * but only 1 of the consumers gets in, so the failed consumer (due to version changes)
- * retries and gets message 2.  Invis pointer is still on zero, since it can't move past
- * never delivered messages and is only moved on read begin.
- *
- * 0 A *
- * 1 ~ INV - DEAD
- * 2 ~ INV
- * --
- * 3
- *
- * Lets say now that message 2 is acked
- *
- * 0 A *
- * 1 ~ INV - DEAD
- * 2 A
- * --
- * 3
- *
- * Now two more reads come in and message 1 is ready for redelivery since its alive again
- *
- * At this point, the invis pointer finds message 1 and sits on it. It gets returned as the message to consume
- * since its alive again, its visiblity gets updated to next, and the invis pointer parks.
- *
- * 0 A
- * 1 + *
- * 2 A
- * --
- * 3
- *
- * Now message 1 is acked, invis pointer stays put. The next read comes in, invis pointer moves to 3
- * and parks since its not allowed to advance past never delivered messages
- *
- * 0 A
- * 1 A
- * 2 A
- * --
- * 3 *
- */
 
 @Data
 class InvisBucketProcessResult {
@@ -133,11 +69,11 @@ enum BucketScanResultAction {
 }
 
 public class InvisLocatorImpl implements InvisLocator {
-    private final QueueRepository queueRepository;
+    private Logger logger = getLogger(InvisLocatorImpl.class);
+
     private final Clock clock;
     private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
-    private Logger logger = getLogger(InvisLocatorImpl.class);
     private final DataContext dataContext;
     private final ReaderBucketPointer currentReaderBucket;
 
@@ -145,11 +81,9 @@ public class InvisLocatorImpl implements InvisLocator {
     @Inject
     public InvisLocatorImpl(
             DataContextFactory dataContextFactory,
-            QueueRepository queueRepository,
             Clock clock,
             MetricRegistry metricRegistry,
             @Assisted QueueDefinition queueDefinition) {
-        this.queueRepository = queueRepository;
         this.clock = clock;
         this.metricRegistry = metricRegistry;
         this.queueDefinition = queueDefinition;
@@ -283,7 +217,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
         // if the reader has moved past the current invis bucket, check
         // if there are messages that are alive and were skipped
-        if (invisBucketPointer.get() < currentReaderBucketPointer.get()) {
+        if (currentReaderBucketPointer.get() > invisBucketPointer.get()) {
             // in the bucket, see if there is a revived message
             final Optional<Message> newlyAliveMessage = consumeRevivedMessageInBucket(messagesInBucket, invisiblity, activePointer);
 

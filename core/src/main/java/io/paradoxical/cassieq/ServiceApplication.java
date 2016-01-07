@@ -22,6 +22,7 @@ import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
+import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
@@ -127,6 +128,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     }
 
     private void configureLogging(final ServiceConfiguration serviceConfiguration, final Environment environment) {
+        LogMapping.register();
     }
 
     private void configureDiscoverableApiHelp(

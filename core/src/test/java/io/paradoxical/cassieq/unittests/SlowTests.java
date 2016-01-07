@@ -6,6 +6,7 @@ import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
@@ -82,11 +83,15 @@ public class SlowTests extends TestBase {
         client.createQueue(queueCreateOptions)
               .execute();
 
-        IntStream.range(0, numMessages)
-                 .parallel()
-                 .forEach(Unchecked.intConsumer(i -> {
-                     client.addMessage(queueName, i).execute();
-                 }));
+        final Thread thread = new Thread(() -> {
+            IntStream.range(0, numMessages)
+                     .parallel()
+                     .forEach(Unchecked.intConsumer(i -> {
+                         client.addMessage(queueName, i).execute();
+                     }));
+        });
+
+        thread.start();
 
         final ExecutorService executorService = Executors.newFixedThreadPool(40);
 
@@ -105,6 +110,8 @@ public class SlowTests extends TestBase {
         while (counter.stream().distinct().count() != numMessages) {
             Thread.sleep(50);
         }
+
+        thread.join();
 
         workers.forEach(Worker::stop);
 
@@ -140,6 +147,10 @@ public class SlowTests extends TestBase {
         }
 
         assertThat(messagesFound).isEqualTo(numMessages);
+
+        final Long queueSize = injector.getInstance(QueueRepository.class).getQueueSize(definition.get()).get();
+
+        assertThat(queueSize).isEqualTo(0);
     }
 
     class BadWorkerException extends RuntimeException {}

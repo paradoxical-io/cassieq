@@ -27,6 +27,12 @@ public final class Tables {
         public static final String DELETE_BUCKETS_AFTER_FINALIZATION = "delete_buckets_after_finalization";
     }
 
+    public static class QueueSize {
+        public static final String TABLE_NAME = "queue_size";
+        public static final String QUEUE_ID = "queueid";
+        public static final String SIZE = "size";
+    }
+
     public static class Message {
         public static final String TABLE_NAME = "message";
         public static final String QUEUE_ID = "queueid";

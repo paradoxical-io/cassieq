@@ -2,15 +2,14 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.model.*;
+import io.paradoxical.cassieq.model.BucketSize;
+import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
+import io.paradoxical.cassieq.model.Message;
+import io.paradoxical.cassieq.model.MessageUpdateRequest;
+import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.time.TestClock;
-import io.paradoxical.cassieq.workers.reader.Reader;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NonNull;
 import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,88 +25,13 @@ public class ReaderTester extends TestBase {
         this.defaultInjector = getDefaultInjector();
     }
 
-    @Data
-    class ReaderQueueContext {
-
-        @NonNull
-        private final QueueName queueName;
-
-        @NonNull
-        private final QueueDefinition queueDefinition;
-
-        @NonNull
-        private final Reader reader;
-
-        @Getter
-        private DataContext context;
-
-        public ReaderQueueContext(QueueDefinition queueDefinition, Reader reader) {
-            this.reader = reader;
-            this.queueDefinition = queueDefinition;
-            this.queueName = queueDefinition.getQueueName();
-
-            final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
-
-            context = factory.forQueue(queueDefinition);
-        }
-
-        public Optional<Message> readNextMessage(Duration invisiblity) {
-            return reader.nextMessage(invisiblity);
-        }
-
-        public Optional<Message> readNextMessage(int invisiblitySeconds) {
-            return reader.nextMessage(Duration.standardSeconds(invisiblitySeconds));
-        }
-
-        private void putMessage(String blob) throws Exception {
-            putMessage(0, blob);
-        }
-
-        public MonotonicIndex ghostMessage() {
-            return context.getMonotonicRepository().nextMonotonic();
-        }
-
-        private void putMessage(int seconds, String blob) throws Exception {
-
-            final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
-
-            context.getMessageRepository().putMessage(
-                    Message.builder()
-                           .blob(blob)
-                           .index(monoton)
-                           .build(), Duration.standardSeconds(seconds));
-        }
-
-        private boolean readAndAckMessage(String blob, Long invisDuration) {
-            Optional<Message> message = getReader().nextMessage(Duration.standardSeconds(invisDuration));
-
-            assertThat(message.get().getBlob().equals(blob));
-
-            final PopReceipt popReceipt = PopReceipt.from(message.get());
-
-            return reader.ackMessage(popReceipt);
-        }
-
-        private boolean readAndAckMessage(String blob) {
-            return readAndAckMessage(blob, 10L);
-        }
-
-        private void tombstone(int bucket){
-            context.getMessageRepository().tombstone(ReaderBucketPointer.valueOf(bucket));
-        }
-
-        private void finalize(int bucket){
-            context.getMessageRepository().finalize(RepairBucketPointer.valueOf(bucket));
-        }
-    }
-
     @Before
     public void setup() {
     }
 
     @Test
     public void invis_stops_non_finalized_bucket() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("invis_stops_non_finalized_bucket", 3);
+        final TestQueueContext testContext = setupTestContext("invis_stops_non_finalized_bucket", 3);
 
         testContext.putMessage(0, "1");
         testContext.putMessage(3, "2");
@@ -164,7 +88,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void initial_inivis_picked_up() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("initial_inivis_picked_up", 3);
+        final TestQueueContext testContext = setupTestContext("initial_inivis_picked_up", 3);
 
         testContext.putMessage(10, "1");
         testContext.putMessage(5, "2");
@@ -199,7 +123,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void delivery_count_increases_after_message_expires_and_is_redelivered() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("delivery_count_increases_after_message_expires_and_is_redelivered");
+        final TestQueueContext testContext = setupTestContext("delivery_count_increases_after_message_expires_and_is_redelivered");
 
         testContext.putMessage(0, "hi");
 
@@ -222,13 +146,13 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void reader_stops_on_deleted_queue() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("reader_stops_on_deleted_queue");
+        final TestQueueContext testContext = setupTestContext("reader_stops_on_deleted_queue");
 
         testContext.putMessage(0, "hi");
 
         getTestClock().tick();
 
-        getQueueRepository().tryMarkForDeletion(testContext.queueDefinition);
+        getQueueRepository().tryMarkForDeletion(testContext.getQueueDefinition());
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 
@@ -237,7 +161,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void test_ack_next_message() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("test_ack_next_message");
+        final TestQueueContext testContext = setupTestContext("test_ack_next_message");
 
         testContext.putMessage(0, "hi");
 
@@ -252,7 +176,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void test_acked_message_should_never_be_visible() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("test_ack_next_message_should_never_be_visible");
+        final TestQueueContext testContext = setupTestContext("test_ack_next_message_should_never_be_visible");
 
         testContext.putMessage(0, "ghost");
 
@@ -275,7 +199,7 @@ public class ReaderTester extends TestBase {
     @Test
     public void invis_pointer_scan_finds_newly_alive_messages() throws Exception {
         // make the queue bucket size smaller so that the reader moves past it
-        final ReaderQueueContext testContext = setupTestContext("invis_pointer_scan_finds_newly_alive_messages", 3);
+        final TestQueueContext testContext = setupTestContext("invis_pointer_scan_finds_newly_alive_messages", 3);
 
         testContext.putMessage(0, "ok");
         testContext.putMessage(0, "invis blocker");
@@ -313,7 +237,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void update_message_should_extend_invisiblity_time_and_be_ackable() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisiblity_time_and_be_ackable", 3);
+        final TestQueueContext testContext = setupTestContext("update_message_should_extend_invisiblity_time_and_be_ackable", 3);
 
         testContext.putMessage("init");
 
@@ -350,7 +274,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void update_message_should_extend_invisibility_time_and_still_expire() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("update_message_should_extend_invisibility_time_and_still_expire", 3);
+        final TestQueueContext testContext = setupTestContext("update_message_should_extend_invisibility_time_and_still_expire", 3);
 
         testContext.putMessage("init");
 
@@ -391,7 +315,7 @@ public class ReaderTester extends TestBase {
 
     @Test
     public void test_nack_via_update() throws Exception {
-        final ReaderQueueContext testContext = setupTestContext("test_nack_via_update", 3);
+        final TestQueueContext testContext = setupTestContext("test_nack_via_update", 3);
 
         testContext.putMessage("init");
 
@@ -425,7 +349,7 @@ public class ReaderTester extends TestBase {
     @Test
     public void test_monoton_skipped() throws Exception {
         final int bucketSize = 5;
-        final ReaderQueueContext testContext = setupTestContext("test_monoton_skipped", bucketSize);
+        final TestQueueContext testContext = setupTestContext("test_monoton_skipped", bucketSize);
         final TestClock testClock = getTestClock();
 
         for (int i = 0; i < bucketSize - 1; i++) {
@@ -450,11 +374,11 @@ public class ReaderTester extends TestBase {
         assertThat(testContext.readAndAckMessage("bar", 100L)).isTrue();
     }
 
-    private ReaderQueueContext setupTestContext(String queueName) {
+    private TestQueueContext setupTestContext(String queueName) {
         return setupTestContext(queueName, 20);
     }
 
-    private ReaderQueueContext setupTestContext(String queueName, int bucketSize) {
+    private TestQueueContext setupTestContext(String queueName, int bucketSize) {
         final QueueName queue = QueueName.valueOf(queueName);
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queue)
@@ -462,11 +386,7 @@ public class ReaderTester extends TestBase {
                                                                .build();
         createQueue(queueDefinition);
 
-        final ReaderFactory readerFactory = defaultInjector.getInstance(ReaderFactory.class);
-
-        final Reader reader = readerFactory.forQueue(queueDefinition);
-
-        return new ReaderQueueContext(queueDefinition, reader);
+        return new TestQueueContext(queueDefinition, getDefaultInjector());
     }
 
     private QueueRepository getQueueRepository() {

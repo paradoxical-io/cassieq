@@ -18,12 +18,10 @@ import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.lte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toList;
@@ -65,6 +63,15 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<Long> getQueueSize(final QueueDefinition definition){
+        final Statement where = QueryBuilder.select(Tables.QueueSize.SIZE)
+                                               .from(Tables.QueueSize.TABLE_NAME)
+                                               .where(eq(Tables.QueueSize.QUEUE_ID, definition.getId().get()));
+
+        return Optional.ofNullable(getOne(session.execute(where), r -> r.getLong(Tables.QueueSize.SIZE)));
     }
 
     private Optional<DeletionJob> insertDeletionJobIfNotExists(final QueueDefinition definition) {
@@ -125,7 +132,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
             return false;
         };
 
-        if(applier.apply(andIsPrevious)){
+        if (applier.apply(andIsPrevious)) {
             return true;
         }
 
@@ -314,5 +321,15 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                   .with("version", job.getVersion())
                   .info("Deleted queue definition since it was inactive");
         }
+    }
+
+
+    @Override
+    public void deleteQueueStats(final QueueId id) {
+        final Statement delete = QueryBuilder.delete()
+                                             .from(Tables.QueueSize.TABLE_NAME)
+                                             .where(eq(Tables.QueueSize.QUEUE_ID, id.get()));
+
+        session.execute(delete);
     }
 }
