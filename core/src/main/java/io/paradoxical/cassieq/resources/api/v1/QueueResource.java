@@ -20,7 +20,6 @@ import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
-import retrofit.http.Body;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -91,6 +90,7 @@ public class QueueResource extends BaseQueueResource {
             repairWorkerManager.notifyChanges();
 
             if (wasInserted) {
+                addToQueueCache(queueName, newQueueDefinition);
                 return Response.status(Response.Status.CREATED).build();
             }
             else {
@@ -137,6 +137,7 @@ public class QueueResource extends BaseQueueResource {
     public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
         try {
             queueDeleter.delete(queueName);
+            invalidateQueueDefinitionCache(queueName);
         }
         catch (QueueAlreadyDeletingException e) {
             logger.error(e, "Error");

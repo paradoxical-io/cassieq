@@ -9,6 +9,6 @@ public class CqlDb {
     }
 
     public static Session createFresh() throws Exception {
-        return CqlUnitDb.unCached("../db/scripts");
+        return CqlUnitDb.create("../db/scripts");
     }
 }
