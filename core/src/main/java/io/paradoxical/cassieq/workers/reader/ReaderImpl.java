@@ -141,19 +141,29 @@ public class ReaderImpl implements Reader {
                 return Optional.empty();
             }
 
-            final Message visibleMessage = foundMessage.get();
+            Optional<Message> consumedMessage = tryConsume(foundMessage, invisiblity);
 
-            final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
-
-            if (!consumedMessage.isPresent()) {
-                // someone else did it, fuck it, try again for the next visibleMessage
-                logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
-
-                continue;
+            if(consumedMessage.isPresent()) {
+                return consumedMessage;
             }
 
-            return consumedMessage;
+            // loop again
         }
+    }
+
+    private Optional<Message> tryConsume(final Optional<Message> foundMessage, Duration invisiblity) {
+        final Message visibleMessage = foundMessage.get();
+
+        final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
+
+        if (!consumedMessage.isPresent()) {
+            // someone else did it, fuck it, try again for the next visibleMessage
+            logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
+
+            return Optional.empty();
+        }
+
+        return consumedMessage;
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {

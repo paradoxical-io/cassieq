@@ -8,7 +8,6 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
-import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
@@ -46,6 +45,23 @@ public class MessageRepositoryTester extends TestBase {
         final List<Message> messages = context.getMessageRepository().getMessages(() -> 0L);
 
         assertThat(messages.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void dead_letter_messages_should_not_reappear() throws Exception {
+        final QueueName queueName = QueueName.valueOf("dead_letter_messages_should_not_reappear");
+
+        final TestQueueContext context = setupTestContext(QueueDefinition.builder().maxDeliveryCount(3).queueName(queueName).build());
+
+        context.putMessage("1");
+
+        for (int i = 0; i < context.getQueueDefinition().getMaxDeliveryCount(); i++) {
+            assertThat(context.readNextMessage(1).isPresent()).isTrue();
+
+            getTestClock().tickSeconds(2L);
+        }
+
+        assertThat(context.readNextMessage(1).isPresent()).isFalse();
     }
 
     @Test

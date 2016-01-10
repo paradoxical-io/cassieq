@@ -79,6 +79,29 @@ public class TestBase {
 
     }
 
+    protected TestQueueContext setupTestContext(QueueDefinition queueDefinition) {
+        createQueue(queueDefinition);
+
+        return new TestQueueContext(queueDefinition, getDefaultInjector());
+    }
+
+    protected TestQueueContext setupTestContext(String queueName) {
+        return setupTestContext(queueName, 20);
+    }
+
+    protected TestQueueContext setupTestContext(String queueName, int bucketSize) {
+        final QueueName queue = QueueName.valueOf(queueName);
+        final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                               .queueName(queue)
+                                                               .bucketSize(BucketSize.valueOf(bucketSize))
+                                                               .build();
+        return setupTestContext(queueDefinition);
+    }
+
+    protected QueueRepository getQueueRepository() {
+        return getDefaultInjector().getInstance(QueueRepository.class);
+    }
+
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
         return getDefaultInjector(configuration, session);
     }

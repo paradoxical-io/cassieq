@@ -373,23 +373,4 @@ public class ReaderTester extends TestBase {
 
         assertThat(testContext.readAndAckMessage("bar", 100L)).isTrue();
     }
-
-    private TestQueueContext setupTestContext(String queueName) {
-        return setupTestContext(queueName, 20);
-    }
-
-    private TestQueueContext setupTestContext(String queueName, int bucketSize) {
-        final QueueName queue = QueueName.valueOf(queueName);
-        final QueueDefinition queueDefinition = QueueDefinition.builder()
-                                                               .queueName(queue)
-                                                               .bucketSize(BucketSize.valueOf(bucketSize))
-                                                               .build();
-        createQueue(queueDefinition);
-
-        return new TestQueueContext(queueDefinition, getDefaultInjector());
-    }
-
-    private QueueRepository getQueueRepository() {
-        return getDefaultInjector().getInstance(QueueRepository.class);
-    }
 }

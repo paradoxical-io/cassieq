@@ -86,6 +86,10 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     public Optional<Message> consumeMessage(final Message message, final Duration duration) {
 
+        if(!messageConsumable(message)){
+            return Optional.empty();
+        }
+
         final Long bucketPointer = message.getIndex().toBucketPointer(queueDefinition.getBucketSize()).get();
 
         /*
@@ -260,5 +264,27 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                            .with(incr(Tables.QueueSize.SIZE, amount));
 
         session.execute(with);
+    }
+
+    /**
+     * Determines if the message is allowed to be consumed
+     * @param message
+     * @return
+     */
+    private boolean messageConsumable(final Message message) {
+        if(message.getDeliveryCount() >= queueDefinition.getMaxDeliveryCount()){
+            logger.with("tag", message.getTag())
+                  .with("already-delivered-count", message.getDeliveryCount())
+                  .with("max-delivery-count", queueDefinition.getMaxDeliveryCount())
+                  .warn("Message exceeded delivery count, acking and moving on");
+
+            if(ackMessage(message)){
+                logger.with("tag", message.getTag()).success("Acked dead message");
+            }
+
+            return false;
+        }
+
+        return true;
     }
 }
