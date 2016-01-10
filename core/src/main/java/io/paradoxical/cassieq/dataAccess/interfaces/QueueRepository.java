@@ -5,7 +5,6 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
-import lombok.NonNull;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,8 +30,6 @@ public interface QueueRepository {
     Optional<QueueDefinition> createQueue(QueueDefinition definition);
 
     boolean tryAdvanceQueueStatus(QueueName queueName, QueueStatus status);
-
-    boolean deleteIfInActive(QueueName queueName);
 
     Optional<QueueDefinition> getQueueUnsafe(QueueName queueId);
 
