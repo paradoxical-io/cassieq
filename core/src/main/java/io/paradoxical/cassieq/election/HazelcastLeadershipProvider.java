@@ -6,6 +6,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.Member;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
+import io.paradoxical.cassieq.model.ClusterMember;
 import io.paradoxical.cassieq.model.LeadershipRole;
 
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
     @Override
     public boolean tryAcquireLeader(final LeadershipRole key) {
         return tryAquireLock(key, keySetter -> {
-            final String currentOwner = keySetter.value();
+            final ClusterMember currentOwner = keySetter.value();
 
             // its already us
             if (currentOwner != null && currentOwner.equals(keySetter.localId())) {
@@ -65,11 +66,12 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         });
     }
 
-    private boolean notInCluster(final String clusterId) {
+    private boolean notInCluster(final ClusterMember clusterId) {
         return !hazelcastInstance.getCluster()
                                  .getMembers()
                                  .stream()
                                  .map(Member::getUuid)
+                                 .map(ClusterMember::valueOf)
                                  .collect(toSet())
                                  .contains(clusterId);
     }
@@ -99,20 +101,26 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
             this.key = key;
         }
 
-        private String localId() {
-            return hazelcastInstance.getCluster().getLocalMember().getUuid();
+        private ClusterMember localId() {
+            return ClusterMember.valueOf(hazelcastInstance.getCluster().getLocalMember().getUuid());
         }
 
         public boolean amLeader() {
             return value().equals(localId());
         }
 
-        public String value() {
-            return backingMap.get(key);
+        public ClusterMember value() {
+            final String currentValue = backingMap.get(key);
+
+            if (currentValue == null) {
+                return null;
+            }
+
+            return ClusterMember.valueOf(currentValue);
         }
 
         public void claim() {
-            backingMap.put(key, localId());
+            backingMap.put(key, localId().get());
         }
 
         public boolean tryLock() {
