@@ -43,7 +43,7 @@ public class RepairTests extends TestBase {
                                                                .repairWorkerPollFrequencySeconds(1)
                                                                .repairWorkerTombstonedBucketTimeoutSeconds(3)
                                                                // dont delete since we need to query after
-                                                               .deleteBucketsAfterFinaliziation(false)
+                                                               .deleteBucketsAfterFinalization(false)
                                                                .build();
 
         createQueue(queueDefinition);

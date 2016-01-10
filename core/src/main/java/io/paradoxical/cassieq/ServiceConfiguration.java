@@ -5,6 +5,7 @@ import io.dropwizard.Configuration;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.configurations.LogConfig;
 import io.paradoxical.cassieq.configurations.RepairConfig;
+import io.paradoxical.cassieq.configurations.cassandra.CassandraConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import org.stuartgunter.dropwizard.cassandra.CassandraFactory;
@@ -18,7 +19,7 @@ public class ServiceConfiguration extends Configuration {
     @JsonProperty("cassandra")
     @Getter
     @Setter
-    private CassandraFactory cassandra = new CassandraFactory();
+    private CassandraConfiguration cassandra = new CassandraConfiguration();
 
     @Valid
     @NotNull

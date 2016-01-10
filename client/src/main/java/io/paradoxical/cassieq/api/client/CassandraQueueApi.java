@@ -67,8 +67,4 @@ public interface CassandraQueueApi {
 
     @DELETE("/api/v1/queues/{queueName}")
     Call<ResponseBody> deleteQueue(@Path("queueName") QueueName queueName);
-
-    @DELETE("/api/v1/queues")
-    Call<ResponseBody> purgeInactiveQueues();
-
 }
