@@ -4,6 +4,8 @@ import lombok.Data;
 
 @Data
 public class ClusteringConfig {
+    private int lockWaitSeconds = 5;
+
     private String clusterPassword = "cassieq";
 
     private String clusterName = "cassieq";
