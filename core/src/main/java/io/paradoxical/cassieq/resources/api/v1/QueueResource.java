@@ -77,7 +77,7 @@ public class QueueResource extends BaseQueueResource {
                                    .maxDeliveryCount(createOptions.getMaxDeliveryCount())
                                    .repairWorkerPollFrequencySeconds(createOptions.getRepairWorkerPollSeconds())
                                    .repairWorkerTombstonedBucketTimeoutSeconds(createOptions.getRepairWorkerBucketFinalizeTimeSeconds())
-                                   .deleteBucketsAfterFinaliziation(createOptions.getDeleteBucketsAfterFinalize())
+                                   .deleteBucketsAfterFinalization(createOptions.getDeleteBucketsAfterFinalize())
                                    .queueName(createOptions.getQueueName())
                                    .build();
 
@@ -102,25 +102,6 @@ public class QueueResource extends BaseQueueResource {
             return buildErrorResponse("CreateQueue", queueName, e);
         }
 
-    }
-
-    @DELETE
-    @Path("/")
-    @Timed
-    @ApiOperation(value = "Purge inactive queues")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 204, message = "No message"),
-            @ApiResponse(code = 404, message = "Queue doesn't exist"),
-            @ApiResponse(code = 500, message = "Server Error")
-    })
-    public Response purgeInactive() {
-        getQueueRepository().getQueues(QueueStatus.Inactive)
-                            .stream()
-                            .map(QueueDefinition::getQueueName)
-                            .forEach(getQueueRepository()::deleteIfInActive);
-
-        return Response.ok().build();
     }
 
     @DELETE

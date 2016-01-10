@@ -136,8 +136,6 @@ public class ApiTester extends TestBase {
 
         assertThat(client.deleteQueue(delete_queue).execute().isSuccess()).isTrue();
 
-        assertThat(client.purgeInactiveQueues().execute().isSuccess()).isTrue();
-
         assertThat(client.getMessage(delete_queue).execute().isSuccess()).isFalse();
     }
 

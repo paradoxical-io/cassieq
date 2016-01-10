@@ -163,8 +163,8 @@ public class QueueRepositoryTester extends TestBase {
                 .withFailMessage("Deleted queue still shows up as active");
 
         assertThat(repo.getQueueUnsafe(queueName).isPresent())
-                .isEqualTo(false)
-                .withFailMessage("Raw queue definition still exists even though deleter should have removed it");
+                .isEqualTo(true)
+                .withFailMessage("Raw queue definition does not exists. Queue definitions should never be removed");
 
         assertThat(repo.getQueueNames()).doesNotContain(queueName);
     }

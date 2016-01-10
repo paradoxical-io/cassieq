@@ -39,7 +39,7 @@ public class Message {
 
     public boolean isTombstone() { return getIndex().equals(SpecialIndex.Tombstone.getIndex()); }
 
-    public boolean isFinalized() { return getIndex().equals(SpecialIndex.Finalizer.getIndex()); }
+    public boolean isFinalizer() { return getIndex().equals(SpecialIndex.Finalizer.getIndex()); }
 
     @JsonIgnore
     public boolean isNotAcked() {
@@ -57,7 +57,7 @@ public class Message {
     }
 
     @JsonIgnore
-    public boolean isNotSpecial() { return !isTombstone() && !isFinalized(); }
+    public boolean isNotSpecial() { return !isTombstone() && !isFinalizer(); }
 
     public PopReceipt getPopReceipt() {
         return PopReceipt.from(this);

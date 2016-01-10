@@ -23,7 +23,9 @@ import org.joda.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -31,6 +33,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public class ReaderImpl implements Reader {
     private Logger logger = getLogger(ReaderImpl.class);
 
+    private static final Random random = new Random();
     private final DataContext dataContext;
     private final QueueRepository queueRepository;
     private final Clock clock;
@@ -135,7 +138,7 @@ public class ReaderImpl implements Reader {
                 }
             }
 
-            final Optional<Message> foundMessage = allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).findFirst();
+            final Optional<Message> foundMessage = findRandom(allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).collect(Collectors.toList()));
 
             if (!foundMessage.isPresent()) {
                 return Optional.empty();
@@ -154,6 +157,18 @@ public class ReaderImpl implements Reader {
 
             return consumedMessage;
         }
+    }
+
+    private Optional<Message> findRandom(final List<Message> availableMessages) {
+        final int size = availableMessages.size();
+
+        if (size == 0) {
+            return Optional.empty();
+        }
+
+        final int i = random.nextInt(size);
+
+        return Optional.of(availableMessages.get(i));
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {
