@@ -34,16 +34,18 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         return tryAquireLock(key, keySetter -> {
             final String currentOwner = keySetter.value();
 
-            // already leader
-            if (currentOwner.equals(keySetter.localId())) {
+            // its already us
+            if (currentOwner != null && currentOwner.equals(keySetter.localId())) {
                 return true;
             }
 
-            if (!notInCluster(currentOwner)) {
+            // stale or unclaimed
+            if (currentOwner == null || !notInCluster(currentOwner)) {
                 keySetter.claim();
 
                 return true;
             }
+
 
             // its someone else
             return false;
@@ -53,7 +55,7 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
     @Override
     public boolean tryRelinquishLeadership(final LeadershipRole key) {
         return tryAquireLock(key, keySetter -> {
-            if(keySetter.amLeader()) {
+            if (keySetter.amLeader()) {
                 keySetter.release();
 
                 return true;
@@ -76,11 +78,12 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         final KeySetter keySetter = new KeySetter(key);
 
         if (keySetter.tryLock()) {
-            final Boolean result = action.apply(keySetter);
-
-            keySetter.unlock();
-
-            return result;
+            try {
+                return action.apply(keySetter);
+            }
+            finally {
+                keySetter.unlock();
+            }
         }
 
         return false;
