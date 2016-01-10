@@ -35,7 +35,7 @@ public class TestQueueContext {
 
     @NonNull
     private final Reader reader;
-    private static final AccountName testAccountName = AccountName.valueOf("test");
+    private final AccountName testAccountName = AccountName.valueOf("test");
 
     @Getter
     private QueueDataContext context;

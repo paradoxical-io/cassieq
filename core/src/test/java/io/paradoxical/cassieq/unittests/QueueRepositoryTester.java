@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.QueueRepositoryImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
@@ -9,12 +10,14 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(BuildVerification.class)
 public class QueueRepositoryTester extends TestBase {
     @Test
     public void queue_operations() throws Exception {

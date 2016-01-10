@@ -20,7 +20,7 @@ public class QueueDefinition {
     private final Boolean deleteBucketsAfterFinaliziation;
 
     public QueueId getId() {
-        return QueueId.valueOf(queueName, version);
+        return QueueId.valueOf(accountName, queueName, version);
     }
 
     public QueueDefinition(

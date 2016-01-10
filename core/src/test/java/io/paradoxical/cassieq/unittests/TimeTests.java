@@ -1,8 +1,10 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.unittests.time.TestExecutorService;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -17,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @RunWith(Parameterized.class)
+@Category(BuildVerification.class)
 public class TimeTests {
     @Parameterized.Parameters
     public static List<Object[]> data() {

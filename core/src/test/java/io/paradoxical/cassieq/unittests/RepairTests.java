@@ -5,7 +5,6 @@ import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
@@ -17,6 +16,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
+import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
@@ -167,13 +167,13 @@ public class RepairTests extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        final DataContextFactory dataContextFactory = defaultInjector.getInstance(DataContextFactory.class);
 
         manager.notifyChanges();
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryMarkForDeletion(queueDefinition);
+        dataContextFactory.forAccount(testAccountName).tryMarkForDeletion(queueDefinition);
 
         manager.notifyChanges();
 
@@ -192,7 +192,7 @@ public class RepairTests extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        final DataContextFactory contextFactory = defaultInjector.getInstance(DataContextFactory.class);
 
         // refreshing twice should not add or remove anyone since no queues were added/deleted
         manager.notifyChanges();
@@ -200,7 +200,7 @@ public class RepairTests extends TestBase {
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryMarkForDeletion(queueDefinition);
+        contextFactory.forAccount(testAccountName).tryMarkForDeletion(queueDefinition);
 
         manager.notifyChanges();
         manager.notifyChanges();

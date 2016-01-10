@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.dataAccess;
 
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.AllArgsConstructor;
@@ -16,6 +17,10 @@ public class DeletionJob {
     private final int version;
 
     private final BucketSize bucketSize;
+
+    public QueueId getQueueIdentifier() {
+        return QueueId.valueOf(accountName, queueName, version);
+    }
 
     public DeletionJob(QueueDefinition definition){
         this.queueName = definition.getQueueName();

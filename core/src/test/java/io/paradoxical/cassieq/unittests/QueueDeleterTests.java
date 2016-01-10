@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.godaddy.logging.Logger;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
@@ -24,6 +25,7 @@ import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+@Category(BuildVerification.class)
 public class QueueDeleterTests extends TestBase {
     private static final Logger logger = getLogger(QueueDeleterTests.class);
 
@@ -86,8 +89,9 @@ public class QueueDeleterTests extends TestBase {
             return mock(MessageDeleterJobProcessor.class);
         });
 
+        final QueueDeleter.Factory deleterFactory = getDefaultInjector().getInstance(QueueDeleter.Factory.class);
 
-        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
+        final QueueDeleter queueDeleter = deleterFactory.create(testAccountName);
 
         final QueueRepository instance = defaultInjector.getInstance(QueueRepository.class);
 
@@ -124,17 +128,18 @@ public class QueueDeleterTests extends TestBase {
 
     @Test
     public void test_deleter_cleans_up_pointers() throws QueueAlreadyDeletingException, ExistingMonotonFoundException {
-        final QueueDeleter deleter = getDefaultInjector().getInstance(QueueDeleter.class);
+        final QueueDeleter.Factory deleterFactory = getDefaultInjector().getInstance(QueueDeleter.Factory.class);
 
-        final QueueRepository queueRepository = getDefaultInjector().getInstance(QueueRepository.class);
+        final QueueDeleter deleter = deleterFactory.create(testAccountName);
+
+        final DataContextFactory contextFactory = getDefaultInjector().getInstance(DataContextFactory.class);
 
         final QueueName name = QueueName.valueOf("test_deleter_cleans_up_pointers");
 
         final QueueDefinition definition = QueueDefinition.builder().queueName(name).build();
 
+        final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
         queueRepository.createQueue(definition);
-
-        final DataContextFactory contextFactory = getDefaultInjector().getInstance(DataContextFactory.class);
 
         final QueueDataContext dataContext = contextFactory.forQueue(definition);
 

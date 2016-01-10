@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
@@ -17,12 +18,14 @@ import io.paradoxical.cassieq.model.RepairBucketPointer;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(BuildVerification.class)
 public class MessageRepositoryTester extends TestBase {
     @Test
     public void put_message_should_succeed() throws Exception {

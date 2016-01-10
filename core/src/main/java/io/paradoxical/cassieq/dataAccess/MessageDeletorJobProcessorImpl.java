@@ -55,7 +55,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
         this.metricRegistry = metricRegistry;
         this.job = job;
 
-        QueueId queueId = QueueId.valueOf(job.getQueueName(), job.getVersion());
+        QueueId queueId = job.getQueueIdentifier();
 
         queueRepository = dataContextFactory.forAccount(job.getAccountName());
         pointerRepository = dataContextFactory.getPointerRepository(queueId);
@@ -78,7 +78,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
             pointerRepository.deleteAll();
 
-            queueRepository.deleteQueueStats(QueueId.valueOf(job.getQueueName(), job.getVersion()));
+            queueRepository.deleteQueueStats(job.getQueueIdentifier());
 
             complete();
         }
@@ -133,7 +133,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
         final Statement delete = QueryBuilder.delete()
                                              .all()
                                              .from(Tables.Message.TABLE_NAME)
-                                             .where(eq(Tables.Message.QUEUE_ID, QueueId.valueOf(job.getQueueName(), job.getVersion()).get()))
+                                             .where(eq(Tables.Message.QUEUE_ID, job.getQueueIdentifier().get()))
                                              .and(in(Tables.Message.BUCKET_NUM, deletableBuckets));
 
         session.execute(delete);

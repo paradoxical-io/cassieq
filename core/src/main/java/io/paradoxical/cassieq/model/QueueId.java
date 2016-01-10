@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.common.valuetypes.StringValue;
 import io.paradoxical.common.valuetypes.adapters.xml.JaxbStringValueAdapter;
 import jdk.nashorn.internal.ir.annotations.Immutable;
@@ -30,8 +31,8 @@ public final class QueueId extends StringValue {
         return new QueueId(StringUtils.trimToEmpty(value));
     }
 
-    public static QueueId valueOf(QueueName name, int version){
-        return QueueId.valueOf(name + "_v" + version);
+    public static QueueId valueOf(AccountName accountName, QueueName name, int version){
+        return QueueId.valueOf(accountName + ":" + name + "_v" + version);
     }
 
     public static QueueId valueOf(StringValue value) {

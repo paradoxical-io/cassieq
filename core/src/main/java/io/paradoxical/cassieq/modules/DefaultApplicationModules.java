@@ -9,6 +9,7 @@ public class DefaultApplicationModules {
     public static List<Module> getModules() {
         return Arrays.asList(
                 new MessageDeletionModule(),
+                new QueueDeletionModule(),
                 new JsonMapperModule(),
                 new DataAccessModule(),
                 new SessionProviderModule(),

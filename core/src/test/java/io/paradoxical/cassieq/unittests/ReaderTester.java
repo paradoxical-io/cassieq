@@ -21,7 +21,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-
 public class ReaderTester extends TestBase {
     private final Injector defaultInjector;
 
@@ -156,7 +155,7 @@ public class ReaderTester extends TestBase {
 
         getTestClock().tick();
 
-        getQueueRepository().tryMarkForDeletion(testContext.getQueueDefinition());
+        testContext.getQueueRepository().tryMarkForDeletion(testContext.getQueueDefinition());
 
         Optional<Message> message = testContext.getReader().nextMessage(Duration.standardSeconds(10));
 
@@ -391,9 +390,5 @@ public class ReaderTester extends TestBase {
         createQueue(queueDefinition);
 
         return new TestQueueContext(queueDefinition, getDefaultInjector());
-    }
-
-    private QueueRepository getQueueRepository() {
-        return getDefaultInjector().getInstance(QueueRepository.class);
     }
 }

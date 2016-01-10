@@ -5,6 +5,7 @@ import com.google.inject.assistedinject.FactoryModuleBuilder;
 import io.paradoxical.cassieq.dataAccess.MessageDeletorJobProcessorImpl;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
+import io.paradoxical.cassieq.workers.QueueDeleter;
 
 public class MessageDeletionModule extends AbstractModule {
 
@@ -16,3 +17,4 @@ public class MessageDeletionModule extends AbstractModule {
 
     }
 }
+
