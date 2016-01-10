@@ -25,10 +25,6 @@ public class CassandraConfiguration extends CassandraFactory {
 
     @Valid
     @JsonProperty
-    private LoadBalancingPolicy loadBalancingPolicy;
-
-    @Valid
-    @JsonProperty
     private Ssl ssl;
 
     /**
@@ -99,8 +95,8 @@ public class CassandraConfiguration extends CassandraFactory {
             }
         }
 
-        if(loadBalancingPolicy != null) {
-            builder.withLoadBalancingPolicy(loadBalancingPolicy.build());
+        if(getLoadBalancingPolicy() != null) {
+            builder.withLoadBalancingPolicy(getLoadBalancingPolicy().build());
         }
 
         Cluster cluster = builder.build();
