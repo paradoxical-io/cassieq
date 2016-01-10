@@ -55,10 +55,18 @@ public class MessageRepositoryTester extends TestBase {
 
         context.putMessage("1");
 
-        for (int i = 0; i < context.getQueueDefinition().getMaxDeliveryCount(); i++) {
-            assertThat(context.readNextMessage(1).isPresent()).isTrue();
+        long workerProcessTime = 1L;
 
-            getTestClock().tickSeconds(2L);
+        for (int i = 0; i < context.getQueueDefinition().getMaxDeliveryCount(); i++) {
+            final Optional<Message> poisonMessage = context.readNextMessage((int) workerProcessTime);
+
+            assertThat(poisonMessage.isPresent()).isTrue();
+
+            assertThat(poisonMessage.get().getBlob()).isEqualTo("1");
+
+            // pretend the worker is taking too long, so this message is somehow poisonous
+            // it should come back `max delivery count` number of times
+            getTestClock().tickSeconds(2 * workerProcessTime);
         }
 
         assertThat(context.readNextMessage(1).isPresent()).isFalse();
