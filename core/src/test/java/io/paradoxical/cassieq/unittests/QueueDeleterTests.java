@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -135,7 +136,7 @@ public class QueueDeleterTests extends TestBase {
 
         final DataContextFactory contextFactory = getDefaultInjector().getInstance(DataContextFactory.class);
 
-        final DataContext dataContext = contextFactory.forQueue(definition);
+        final QueueDataContext dataContext = contextFactory.forQueue(definition);
 
         // move monton up
         dataContext.getMessageRepository()

@@ -15,12 +15,23 @@ public final class Tables {
         public static final String VALUE = "value";
     }
 
+    public static class Account {
+        public static final String TABLE_NAME = "account";
+
+        public static final String ACCOUNT_NAME = "account_name";
+
+        public static final String KEYS = "keys";
+    }
+
     public static class Queue {
         public static final String TABLE_NAME = "queue";
+
+        public static final String QUEUE_NAME = "queuename";
+        public static final String ACCOUNT_NAME = "account_name";
+
         public static final String MAX_DELIVERY_COUNT = "max_delivery_count";
         public static final String BUCKET_SIZE = "bucket_size";
         public static final String STATUS = "status";
-        public static final String QUEUE_NAME = "queuename";
         public static final String VERSION = "version";
         public static final String REPAIR_WORKER_POLL_FREQ_SECONDS = "repair_worker_poll_freq_seconds";
         public static final String REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS = "repair_worker_tombstone_bucket_timeout_seconds";
@@ -51,6 +62,7 @@ public final class Tables {
     public static class DeletionJob {
         public static final String TABLE_NAME = "deletion_job";
         public static final String QUEUE_NAME = "queuename";
+        public static final String ACCOUNT_NAME = "account_name";
         public static final String VERSION = "version";
         public static final String BUCKET_SIZE = "bucket_size";
     }

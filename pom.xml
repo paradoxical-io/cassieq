@@ -56,9 +56,6 @@
     <properties>
         <!-- Project Settings -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <guice.version>4.0</guice.version>
-
-        <apache.collections4.version>4.0</apache.collections4.version>
         <dockerRepo>paradoxical</dockerRepo>
         <jenkinsBuildNumber>dev</jenkinsBuildNumber>
         <!-- build.git_sha is created below -->
@@ -70,6 +67,7 @@
         <docker.skipTag>false</docker.skipTag>
         <docker.pullOnBuild>false</docker.pullOnBuild>
 
+        <java.version>1.8</java.version>
 
         <!-- Library Versions -->
         <io.paradoxical.common.test>1.0-SNAPSHOT</io.paradoxical.common.test>
@@ -77,9 +75,9 @@
         <io.paradoxical.common.web>1.0-SNAPSHOT</io.paradoxical.common.web>
         <io.paradoxical.cassandra.leadership>1.0-SNAPSHOT</io.paradoxical.cassandra.leadership>
         <io.paradoxical.cassandra-loader>1.0-SNAPSHOT</io.paradoxical.cassandra-loader>
-
+        <guice.version>4.0</guice.version>
+        <apache.collections4.version>4.0</apache.collections4.version>
         <godaddy.logging.version>1.0</godaddy.logging.version>
-
         <javax.validation.version>1.1.0.Final</javax.validation.version>
         <dropwizard.version>0.9.1</dropwizard.version>
         <dropwizard.template.config.version>1.1.0</dropwizard.template.config.version>
@@ -87,10 +85,17 @@
         <junit.version>4.12</junit.version>
         <dropwizard.metrics.version>0.9.1</dropwizard.metrics.version>
         <dropwizard.guice.version>0.8.4.0</dropwizard.guice.version>
-        <java.version>1.8</java.version>
+        <dropwizard.auth.version>0.9.1</dropwizard.auth.version>
+        <java.jwt.version>2.1.0</java.jwt.version>
         <retrofit.version>2.0.0-beta2</retrofit.version>
         <retrofit.converter.jackson.version>2.0.0-beta2</retrofit.converter.jackson.version>
         <apache.commons.version>3.3.2</apache.commons.version>
+        <jooq-jool.version>0.9.7</jooq-jool.version>
+        <javaslang.version>2.0.0-RC2</javaslang.version>
+        <hibernate.validator.version>5.2.2.Final</hibernate.validator.version>
+        <assertj.version>3.2.0</assertj.version>
+        <lombok.version>1.16.2</lombok.version>
+        <swagger.version>1.3.12</swagger.version>
 
         <!-- Maven Plugin versions -->
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
@@ -143,7 +148,7 @@
             <dependency>
                 <groupId>org.jooq</groupId>
                 <artifactId>jool</artifactId>
-                <version>0.9.7</version>
+                <version>${jooq-jool.version}</version>
             </dependency>
 
             <dependency>
@@ -155,7 +160,7 @@
             <dependency>
                 <groupId>com.javaslang</groupId>
                 <artifactId>javaslang</artifactId>
-                <version>2.0.0-RC2</version>
+                <version>${javaslang.version}</version>
             </dependency>
 
             <dependency>
@@ -186,6 +191,12 @@
                         <artifactId>metrics-core</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>io.dropwizard</groupId>
+                <artifactId>dropwizard-auth</artifactId>
+                <version>${dropwizard.auth.version}</version>
             </dependency>
 
             <dependency>
@@ -236,23 +247,28 @@
             </dependency>
 
             <dependency>
+                <groupId>com.auth0</groupId>
+                <artifactId>java-jwt</artifactId>
+                <version>${java.jwt.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>javax.validation</groupId>
                 <artifactId>validation-api</artifactId>
                 <version>${javax.validation.version}</version>
             </dependency>
 
-
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.2.0</version>
+                <version>${assertj.version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-validator</artifactId>
-                <version>5.2.2.Final</version>
+                <version>${hibernate.validator.version}</version>
             </dependency>
 
             <dependency>
@@ -354,14 +370,14 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.16.2</version>
+                <version>${lombok.version}</version>
                 <scope>provided</scope>
             </dependency>
 
             <dependency>
                 <groupId>com.wordnik</groupId>
                 <artifactId>swagger-jersey2-jaxrs_2.10</artifactId>
-                <version>1.3.12</version>
+                <version>${swagger.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.glassfish.jersey.core</groupId>

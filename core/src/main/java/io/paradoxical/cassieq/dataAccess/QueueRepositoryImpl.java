@@ -8,12 +8,14 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.NonNull;
 
 import java.util.List;
@@ -31,10 +33,15 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     private static final Logger logger = getLogger(QueueRepositoryImpl.class);
 
     private final Session session;
+    private final AccountName accountName;
 
     @Inject
-    public QueueRepositoryImpl(@NonNull final Session session) {
+    public QueueRepositoryImpl(
+            @NonNull final Session session,
+            @NonNull
+            @Assisted AccountName accountName) {
         this.session = session;
+        this.accountName = accountName;
     }
 
 

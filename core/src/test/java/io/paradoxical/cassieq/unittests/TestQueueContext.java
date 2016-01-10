@@ -2,8 +2,8 @@ package io.paradoxical.cassieq.unittests;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -12,6 +12,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.Data;
 import lombok.Getter;
@@ -21,7 +22,6 @@ import org.joda.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.in;
 
 @Data
 public class TestQueueContext {
@@ -35,9 +35,10 @@ public class TestQueueContext {
 
     @NonNull
     private final Reader reader;
+    private static final AccountName testAccountName = AccountName.valueOf("test");
 
     @Getter
-    private DataContext context;
+    private QueueDataContext context;
 
     @Getter
     private QueueRepository queueRepository;
@@ -49,17 +50,20 @@ public class TestQueueContext {
     }
 
     public TestQueueContext(QueueDefinition queueDefinition, Injector injector) {
-        this.reader = injector.getInstance(ReaderFactory.class).forQueue(queueDefinition);
+        this.reader = injector.getInstance(ReaderFactory.class).forQueue(testAccountName, queueDefinition);
 
         this.queueDefinition = queueDefinition;
 
         this.queueName = queueDefinition.getQueueName();
 
-        this.queueRepository = injector.getInstance(QueueRepository.class);
-
-        queueRepository.createQueue(queueDefinition);
-
         final DataContextFactory factory = injector.getInstance(DataContextFactory.class);
+
+        factory.getAccountRepository().createAccount(testAccountName);
+
+        queueRepository = factory.forAccount(testAccountName);
+
+        this.queueRepository.createQueue(queueDefinition);
+
 
         context = factory.forQueue(queueDefinition);
     }

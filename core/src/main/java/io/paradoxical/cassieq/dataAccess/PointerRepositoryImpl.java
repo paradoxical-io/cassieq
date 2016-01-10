@@ -49,7 +49,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
             return next;
         }
 
-        // someone else moved it, get that value
+        // someone else moved it, getAccountRepository that value
         return getReaderCurrentBucket();
     }
 
@@ -74,7 +74,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
             return destination;
         }
 
-        // someone else moved it, get that value
+        // someone else moved it, getAccountRepository that value
         moveLogger.info("Other process moved invis pointer, retrieving");
 
         return getCurrentInvisPointer();
@@ -86,7 +86,7 @@ public class PointerRepositoryImpl extends RepositoryBase implements PointerRepo
             return next;
         }
 
-        // someone else moved it, get that value
+        // someone else moved it, getAccountRepository that value
         return getRepairCurrentBucketPointer();
     }
 

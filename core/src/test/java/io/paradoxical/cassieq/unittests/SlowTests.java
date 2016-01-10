@@ -6,15 +6,19 @@ import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
@@ -127,10 +131,17 @@ public class SlowTests extends TestBase {
         final Injector injector = server.getService().getGuiceBundleProvider().getBundle().getInjector();
 
         final DataContextFactory instance = injector.getInstance(DataContextFactory.class);
+        final QueueRepositoryFactory queueRepositoryFactory = injector.getInstance(QueueRepositoryFactory.class);
+        final AccountRepository accountRepository = injector.getInstance(AccountRepository.class);
 
-        final Optional<QueueDefinition> definition = instance.getDefinition(queueCreateOptions.getQueueName());
+        final AccountName test = AccountName.valueOf("test");
+        accountRepository.createAccount(test);
 
-        final DataContext dataContext = instance.forQueue(definition.get());
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(test);
+
+        final Optional<QueueDefinition> definition = queueRepository.getActiveQueue(queueCreateOptions.getQueueName());
+
+        final QueueDataContext dataContext = instance.forQueue(definition.get());
 
         int messagesFound = 0;
 

@@ -1,11 +1,13 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
@@ -20,11 +22,13 @@ import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
 import lombok.Cleanup;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(BuildVerification.class)
 public class RepairTests extends TestBase {
     @Test
     public void repairer_republishes_newly_visible_in_tombstoned_bucket() throws InterruptedException, ExistingMonotonFoundException, ExecutionException {
@@ -52,7 +56,7 @@ public class RepairTests extends TestBase {
 
         final DataContextFactory contextFactory = defaultInjector.getInstance(DataContextFactory.class);
 
-        final DataContext dataContext = contextFactory.forQueue(queueDefinition);
+        final QueueDataContext dataContext = contextFactory.forQueue(queueDefinition);
         final Message message = Message.builder()
                                        .blob("BOO!")
                                        .index(dataContext.getMonotonicRepository().nextMonotonic())
@@ -101,7 +105,7 @@ public class RepairTests extends TestBase {
 
         final DataContextFactory contextFactory = defaultInjector.getInstance(DataContextFactory.class);
 
-        final DataContext dataContext = contextFactory.forQueue(queueDefinition);
+        final QueueDataContext dataContext = contextFactory.forQueue(queueDefinition);
 
         MonotonicIndex index = dataContext.getMonotonicRepository().nextMonotonic();
 

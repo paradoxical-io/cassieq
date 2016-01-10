@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.PointerRepoFactory;
 import io.paradoxical.cassieq.model.BucketSize;
@@ -36,31 +37,29 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcessor {
     private final Session session;
-    private final QueueRepository queueRepository;
     private final MetricRegistry metricRegistry;
     private final DeletionJob job;
     private final PointerRepository pointerRepository;
     private final MonotonicRepository monotonicRepository;
 
     private static final Logger logger = getLogger(MessageDeletorJobProcessorImpl.class);
+    private final QueueRepository queueRepository;
 
     @Inject
     public MessageDeletorJobProcessorImpl(
             Session session,
-            PointerRepoFactory pointerRepoFactory,
-            MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository,
+            DataContextFactory dataContextFactory,
             MetricRegistry metricRegistry,
             @Assisted DeletionJob job) {
         this.session = session;
-        this.queueRepository = queueRepository;
         this.metricRegistry = metricRegistry;
         this.job = job;
 
         QueueId queueId = QueueId.valueOf(job.getQueueName(), job.getVersion());
 
-        pointerRepository = pointerRepoFactory.forQueue(queueId);
-        monotonicRepository = monotonicRepoFactory.forQueue(queueId);
+        queueRepository = dataContextFactory.forAccount(job.getAccountName());
+        pointerRepository = dataContextFactory.getPointerRepository(queueId);
+        monotonicRepository = dataContextFactory.getMonotonicRepository(queueId);
     }
 
     /**

@@ -12,11 +12,13 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
@@ -37,26 +39,31 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Optional;
 
-@Path("/api/v1/queues")
-@Api(value = "/api/v1/queues", description = "Queue api")
+@Path("/api/v1/accounts/{accountName}/queues")
+@Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
     private final RepairWorkerManager repairWorkerManager;
     private final QueueDeleter queueDeleter;
+    private final AccountName accountName;
+    private final DataContextFactory dataContextFactory;
 
     @Inject
     public QueueResource(
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository,
+            DataContextFactory dataContextFactory,
             RepairWorkerManager repairWorkerManager,
-            QueueDeleter queueDeleter) {
-        super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository);
+            QueueDeleter queueDeleter,
+            @PathParam("accountName") AccountName accountName) {
+        super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName));
+        this.dataContextFactory = dataContextFactory;
         this.repairWorkerManager = repairWorkerManager;
         this.queueDeleter = queueDeleter;
+        this.accountName = accountName;
     }
 
     @POST
@@ -170,7 +177,7 @@ public class QueueResource extends BaseQueueResource {
         final Optional<Message> messageOptional;
 
         try {
-            messageOptional = getReaderFactory().forQueue(queueDefinition.get())
+            messageOptional = getReaderFactory().forQueue(accountName, queueDefinition.get())
                                                 .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
@@ -303,7 +310,7 @@ public class QueueResource extends BaseQueueResource {
         boolean messageAcked;
 
         try {
-            messageAcked = getReaderFactory().forQueue(queueDefinition.get())
+            messageAcked = getReaderFactory().forQueue(accountName, queueDefinition.get())
                                              .ackMessage(popReceipt);
         }
         catch (Exception e) {
@@ -338,7 +345,7 @@ public class QueueResource extends BaseQueueResource {
 
         final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
 
-        Object returnEntity = new Object(){
+        Object returnEntity = new Object() {
             @JsonProperty("queueSize")
             public long size = queueSize.orElse(0L);
         };

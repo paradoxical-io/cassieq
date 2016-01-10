@@ -8,6 +8,7 @@ import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
@@ -74,7 +75,7 @@ public class InvisLocatorImpl implements InvisLocator {
     private final Clock clock;
     private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
-    private final DataContext dataContext;
+    private final QueueDataContext dataContext;
     private final ReaderBucketPointer currentReaderBucket;
 
 
@@ -335,7 +336,7 @@ public class InvisLocatorImpl implements InvisLocator {
                                                                     .consumeMessage(revivedMessage.get(), invisiblity);
 
             // if we were able to consume the message, try and move the invis pointer to this since its going to now be invis.
-            // if someone else finds an earlier invis, it'll get moved to that
+            // if someone else finds an earlier invis, it'll getAccountRepository moved to that
             // we can do this only because we don't already have an invis pointer
             if (tryConsumedMessage.isPresent()) {
                 trySetNewInvisPointer(currentPointer, revivedMessage.get().getIndex());

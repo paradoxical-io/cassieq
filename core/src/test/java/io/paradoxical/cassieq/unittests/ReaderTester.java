@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -13,10 +14,13 @@ import io.paradoxical.cassieq.unittests.time.TestClock;
 import org.joda.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+@Category(BuildVerification.class)
 
 public class ReaderTester extends TestBase {
     private final Injector defaultInjector;
@@ -221,7 +225,7 @@ public class ReaderTester extends TestBase {
         // the reader bucket is advanced here to bucket 1
         testContext.readAndAckMessage("ok2", 10L);
 
-        // inivs shorter is alive now but we can't get to it since
+        // inivs shorter is alive now but we can't getAccountRepository to it since
         // its held up by invis blocker
         testClock.tickSeconds(2L);
 

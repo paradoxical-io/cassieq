@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
@@ -120,7 +121,7 @@ public class QueueDebugResource extends BaseQueueResource {
             return buildQueueNotFoundResponse(queueName);
         }
 
-        final DataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
+        final QueueDataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
 
         List<Message> messages =
                 getMessageRepoFactory()
@@ -162,7 +163,7 @@ public class QueueDebugResource extends BaseQueueResource {
 
     @GET
     @Path("/{queueName}/messages/{messagePointer}")
-    @ApiOperation(value = "Raw get message")
+    @ApiOperation(value = "Raw getAccountRepository message")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -228,7 +229,7 @@ public class QueueDebugResource extends BaseQueueResource {
             return buildQueueNotFoundResponse(queueName);
         }
 
-        final DataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
+        final QueueDataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
 
         final PointerRepository pointerRepository = dataContext.getPointerRepository();
 

@@ -116,7 +116,14 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureLogging);
 
+        run.add(this::configureAuth);
+
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
+    }
+
+    private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
+
+        environment.jersey();
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {

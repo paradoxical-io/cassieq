@@ -2,12 +2,14 @@ package io.paradoxical.cassieq.model;
 
 import com.datastax.driver.core.Row;
 import io.paradoxical.cassieq.dataAccess.Tables;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
 public class QueueDefinition {
+    private AccountName accountName;
     private QueueName queueName;
     private final BucketSize bucketSize;
     private final Integer maxDeliveryCount;
@@ -22,6 +24,7 @@ public class QueueDefinition {
     }
 
     public QueueDefinition(
+            final AccountName accountName,
             final QueueName queueName,
             final BucketSize bucketSize,
             final Integer maxDeliveryCount,
@@ -30,6 +33,7 @@ public class QueueDefinition {
             final Integer repairWorkerPollFrequencySeconds,
             final Integer repairWorkerTombstonedBucketTimeoutSeconds,
             final Boolean deleteBucketsAfterFinaliziation) {
+        this.accountName = accountName;
         this.queueName = queueName;
         this.deleteBucketsAfterFinaliziation = deleteBucketsAfterFinaliziation == null ? true : deleteBucketsAfterFinaliziation;
         this.version = version == null ? 0 : version;

@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.NonNull;
 
 import java.util.List;
@@ -34,7 +35,7 @@ public interface QueueRepository {
 
     boolean deleteIfInActive(QueueName queueName);
 
-    Optional<QueueDefinition> getQueueUnsafe(QueueName queueId);
+    Optional<QueueDefinition> getQueueUnsafe(QueueName queueName);
 
     default List<QueueDefinition> getActiveQueues() {
         return getQueues(QueueStatus.Active);
@@ -50,5 +51,6 @@ public interface QueueRepository {
 
     void deleteCompletionJob(DeletionJob queue);
 
-    void deleteQueueStats(QueueId id);
+    void deleteQueueStats(QueueId queueId);
 }
+

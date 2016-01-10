@@ -6,6 +6,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessageUpdateRequest;
@@ -33,7 +34,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -56,7 +57,7 @@ public class MessageRepositoryTester extends TestBase {
         final QueueName queueName = QueueName.valueOf("ack_message_should_succeed");
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -89,7 +90,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -126,7 +127,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -147,7 +148,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -181,7 +182,7 @@ public class MessageRepositoryTester extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
 
-        final DataContext context = factory.forQueue(queueDefinition);
+        final QueueDataContext context = factory.forQueue(queueDefinition);
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
