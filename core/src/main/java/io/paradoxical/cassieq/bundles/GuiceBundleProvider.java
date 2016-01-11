@@ -1,13 +1,11 @@
 package io.paradoxical.cassieq.bundles;
 
-import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.hubspot.dropwizard.guice.GuiceBundle;
 import com.netflix.governator.Governator;
 import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
-import lombok.Getter;
 
 import java.util.List;
 

@@ -41,12 +41,11 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
             }
 
             // stale or unclaimed
-            if (currentOwner == null || !notInCluster(currentOwner)) {
+            if (currentOwner == null || !inCluster(currentOwner)) {
                 keySetter.claim();
 
                 return true;
             }
-
 
             // its someone else
             return false;
@@ -66,14 +65,14 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         });
     }
 
-    private boolean notInCluster(final ClusterMember clusterId) {
-        return !hazelcastInstance.getCluster()
-                                 .getMembers()
-                                 .stream()
-                                 .map(Member::getUuid)
-                                 .map(ClusterMember::valueOf)
-                                 .collect(toSet())
-                                 .contains(clusterId);
+    private boolean inCluster(final ClusterMember clusterId) {
+        return hazelcastInstance.getCluster()
+                                .getMembers()
+                                .stream()
+                                .map(Member::getUuid)
+                                .map(ClusterMember::valueOf)
+                                .collect(toSet())
+                                .contains(clusterId);
     }
 
     private boolean tryAquireLock(final LeadershipRole key, final Function<KeySetter, Boolean> action) {

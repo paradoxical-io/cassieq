@@ -25,6 +25,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>uk.co.jemos.podam</groupId>
+            <artifactId>podam</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.stuartgunter</groupId>
             <artifactId>dropwizard-cassandra</artifactId>
         </dependency>

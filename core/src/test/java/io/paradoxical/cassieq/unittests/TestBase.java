@@ -25,6 +25,8 @@ import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
 import org.junit.After;
 import org.slf4j.LoggerFactory;
+import uk.co.jemos.podam.api.PodamFactory;
+import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +40,8 @@ public class TestBase {
     public static Session session;
 
     private static final Object lock = new Object();
+
+    protected static final PodamFactory fixture = new PodamFactoryImpl();
 
     static {
         final String environmentLogLevel = System.getenv("LOG_LEVEL");

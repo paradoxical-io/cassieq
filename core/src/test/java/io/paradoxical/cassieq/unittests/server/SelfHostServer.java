@@ -78,7 +78,7 @@ public class SelfHostServer implements AutoCloseable {
         return random.nextInt(35000) + 15000;
     }
 
-    public CassandraQueueApi getClient(String path) {
+    public CassandraQueueApi getClient() {
         return CassandraQueueApi.createClient(getBaseUri().toString());
     }
 

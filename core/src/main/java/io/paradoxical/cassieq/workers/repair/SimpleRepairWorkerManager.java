@@ -148,7 +148,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
         }
         else {
             logger.with("queue-id", queueId)
-                  .debug("Did not acquire leader status");
+                  .info("Did not acquire leader status");
         }
 
         return leadershipAquired;
