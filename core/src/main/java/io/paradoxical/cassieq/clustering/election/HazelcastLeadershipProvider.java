@@ -119,7 +119,9 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         }
 
         public boolean amLeader() {
-            return value().equals(thisClusterMember());
+            final ClusterMember value = value();
+            
+            return value != null && value.equals(thisClusterMember());
         }
 
         public ClusterMember value() {
