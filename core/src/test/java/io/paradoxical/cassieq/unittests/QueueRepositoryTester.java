@@ -39,7 +39,7 @@ public class QueueRepositoryTester extends TestBase {
     public void queue_size_grows_and_shrinks() throws Exception {
         final TestQueueContext testContext = new TestQueueContext(QueueName.valueOf("queue_size_grows_and_shrinks"), getDefaultInjector());
 
-        int numMessages = 1000;
+        int numMessages = 10;
 
         for (int i = 0; i < numMessages; i++) {
             testContext.putMessage(Integer.valueOf(i).toString());

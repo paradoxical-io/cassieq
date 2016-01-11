@@ -37,8 +37,8 @@ public class RepairTests extends TestBase {
     public void repair_manager_claims_workers() throws Exception {
         Session session = CqlDb.createFresh();
 
-        SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
-        SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
+        @Cleanup SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
+        @Cleanup SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
 
         server1.start();
 
@@ -201,7 +201,7 @@ public class RepairTests extends TestBase {
 
     @Test
     public void repair_manager_adds_new_workers() throws Exception {
-        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration());
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -209,24 +209,26 @@ public class RepairTests extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("repair_manager_adds_new_workers");
 
+        final QueueRepository queueRepository = defaultInjector.getInstance(QueueRepository.class);
+
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        manager.notifyChanges();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
-
-        contextFactory.tryMarkForDeletion(queueDefinition);
-
-        manager.notifyChanges();
-
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 
     @Test
     public void repair_manager_properly_keeps_track_of_existing_workers() throws Exception {
-        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration());
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -234,22 +236,24 @@ public class RepairTests extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
 
-        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
+        final QueueRepository queueRepository = defaultInjector.getInstance(QueueRepository.class);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
         // refreshing twice should not add or remove anyone since no queues were added/deleted
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
 
-        contextFactory.tryMarkForDeletion(queueDefinition);
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 
     @Test
@@ -258,7 +262,7 @@ public class RepairTests extends TestBase {
 
         configuration.getRepairConf().setManagerRefreshRateSeconds(1);
 
-        final Injector defaultInjector = getDefaultInjector(configuration, CqlDb.createFresh());
+        final Injector defaultInjector = getDefaultInjector(configuration);
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -266,18 +270,20 @@ public class RepairTests extends TestBase {
 
         manager.start();
 
+        final QueueRepository queueRepository = defaultInjector.getInstance(QueueRepository.class);
+
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        Thread.sleep(2000);
+
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         Thread.sleep(2000);
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
-
-        contextFactory.tryMarkForDeletion(queueDefinition);
-
-        Thread.sleep(2000);
-
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 }
