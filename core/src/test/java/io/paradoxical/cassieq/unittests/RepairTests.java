@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundExceptio
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
@@ -224,13 +225,14 @@ public class RepairTests extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final QueueRepository contextFactory = defaultInjector.getInstance(QueueRepository.class);
+        final QueueRepositoryFactory queueRepositoryFactory = defaultInjector.getInstance(QueueRepositoryFactory.class);
 
         Thread.sleep(2000);
 
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
 
-        contextFactory.tryMarkForDeletion(queueDefinition);
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         Thread.sleep(2000);
 

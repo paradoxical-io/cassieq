@@ -188,6 +188,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     private boolean upsertQueueDefinition(@NonNull final QueueDefinition queueDefinition) {
         final Logger upsertLogger = logger.with("queue-name", queueDefinition.getQueueName());
 
+        queueDefinition.setAccountName(accountName);
+
         if (insertQueueIfNotExist(queueDefinition)) {
             upsertLogger.success("Created new queue");
 
@@ -325,6 +327,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Statement delete = QueryBuilder.delete()
                                              .from(Tables.DeletionJob.TABLE_NAME)
                                              .where(eq(Tables.DeletionJob.QUEUE_NAME, job.getQueueName().get()))
+                                             .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
                                              .and(eq(Tables.DeletionJob.VERSION, job.getVersion()));
 
         session.execute(delete);

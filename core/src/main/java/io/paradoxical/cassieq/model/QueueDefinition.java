@@ -50,6 +50,7 @@ public class QueueDefinition {
                               .maxDeliveryCount(row.getInt(Tables.Queue.MAX_DELIVERY_COUNT))
                               .status(QueueStatus.values()[row.getInt(Tables.Queue.STATUS)])
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUE_NAME)))
+                              .accountName(AccountName.valueOf(row.getString(Tables.Queue.ACCOUNT_NAME)))
                               .version(row.getInt(Tables.Queue.VERSION))
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))

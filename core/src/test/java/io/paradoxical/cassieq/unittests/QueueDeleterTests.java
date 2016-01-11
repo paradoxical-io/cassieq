@@ -15,6 +15,7 @@ import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -93,13 +94,15 @@ public class QueueDeleterTests extends TestBase {
 
         final QueueDeleter queueDeleter = deleterFactory.create(testAccountName);
 
-        final QueueRepository instance = defaultInjector.getInstance(QueueRepository.class);
+        final QueueRepositoryFactory queueRepositoryFactory = defaultInjector.getInstance(QueueRepositoryFactory.class);
+
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
 
         final QueueName name = QueueName.valueOf("can_create_queue_while_job_is_deleting");
 
         final QueueDefinition build = QueueDefinition.builder().queueName(name).build();
 
-        final Optional<QueueDefinition> initialQueue = instance.createQueue(build);
+        final Optional<QueueDefinition> initialQueue = queueRepository.createQueue(build);
 
         // make sure we got a v0 queue
         assertThat(initialQueue.get().getVersion()).isEqualTo(0);
@@ -108,7 +111,7 @@ public class QueueDeleterTests extends TestBase {
         queueDeleter.delete(name);
 
         // should be able to make new queue
-        final Optional<QueueDefinition> queue = instance.createQueue(build);
+        final Optional<QueueDefinition> queue = queueRepository.createQueue(build);
 
         // make sure its a v1
         assertThat(queue).isPresent();
@@ -120,7 +123,7 @@ public class QueueDeleterTests extends TestBase {
         // wait for deleter to finish
         deletion[0].join();
 
-        final QueueDefinition activeQueue = instance.getActiveQueue(queue.get().getQueueName()).get();
+        final QueueDefinition activeQueue = queueRepository.getActiveQueue(queue.get().getQueueName()).get();
 
         // make sure the deleter when it completed didn't just kill this active queue (v1)
         assertThat(activeQueue.getVersion()).isEqualTo(queue.get().getVersion());
