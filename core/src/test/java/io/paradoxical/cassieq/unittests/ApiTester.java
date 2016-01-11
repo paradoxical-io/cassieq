@@ -152,9 +152,12 @@ public class ApiTester extends TestBase {
 
         final GetMessageResponse body = client.getMessage(delete_queue).execute().body();
 
-        final UpdateMessageResponse updateResponse = client.updateMessage(delete_queue, body.getPopReceipt(),
-                                                                          new UpdateMessageRequest("foo2", 10L)).execute()
-                                                           .body();
+        final UpdateMessageResponse updateResponse =
+                client.updateMessage(
+                        delete_queue,
+                        body.getPopReceipt(),
+                        new UpdateMessageRequest("foo2", 10L)).execute()
+                      .body();
 
         client.ackMessage(delete_queue, updateResponse.getPopReceipt()).execute();
 

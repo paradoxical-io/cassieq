@@ -17,6 +17,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Immutable
 @XmlJavaTypeAdapter(value = QueueId.XmlAdapter.class)
@@ -39,8 +41,14 @@ public final class QueueId extends StringValue {
         return QueueId.valueOf(value.get());
     }
 
-    public int getVersion(final QueueName queueName) {
-        return Integer.valueOf(get().replaceFirst("^" + queueName.get() + "_v", ""));
+    private final Pattern versionParse = Pattern.compile("_v(\\d+)$");
+
+    public int getVersion() {
+        final Matcher matcher = versionParse.matcher(get());
+
+        final String versionDigits = matcher.group(1);
+
+        return Integer.valueOf(versionDigits);
     }
 
     public static class XmlAdapter extends JaxbStringValueAdapter<QueueId> {
