@@ -37,20 +37,6 @@ public final class QueueId extends StringValue {
         return QueueId.valueOf(accountName + ":" + name + "_v" + version);
     }
 
-    public static QueueId valueOf(StringValue value) {
-        return QueueId.valueOf(value.get());
-    }
-
-    private final Pattern versionParse = Pattern.compile("_v(\\d+)$");
-
-    public int getVersion() {
-        final Matcher matcher = versionParse.matcher(get());
-
-        final String versionDigits = matcher.group(1);
-
-        return Integer.valueOf(versionDigits);
-    }
-
     public static class XmlAdapter extends JaxbStringValueAdapter<QueueId> {
         @Override
         protected QueueId createNewInstance(String value) {
