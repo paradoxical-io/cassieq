@@ -9,6 +9,7 @@ import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.model.ClusterMember;
 import io.paradoxical.cassieq.model.LeadershipRole;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -32,11 +33,11 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
 
     @Override
     public boolean tryAcquireLeader(final LeadershipRole key) {
-        return tryAquireLock(key, keySetter -> {
+        Optional<Boolean> wasExecuted = clusterSyncedExecute(key, keySetter -> {
             final ClusterMember currentOwner = keySetter.value();
 
             // its already us
-            if (currentOwner != null && currentOwner.equals(keySetter.localId())) {
+            if (currentOwner != null && currentOwner.equals(thisClusterMember())) {
                 return true;
             }
 
@@ -50,11 +51,17 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
             // its someone else
             return false;
         });
+
+        if (wasExecuted.isPresent()) {
+            return wasExecuted.get();
+        }
+
+        return false;
     }
 
     @Override
     public boolean tryRelinquishLeadership(final LeadershipRole key) {
-        return tryAquireLock(key, keySetter -> {
+        Optional<Boolean> wasExecuted = clusterSyncedExecute(key, keySetter -> {
             if (keySetter.amLeader()) {
                 keySetter.release();
 
@@ -63,6 +70,12 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
 
             return false;
         });
+
+        if (wasExecuted.isPresent()) {
+            return wasExecuted.get();
+        }
+
+        return false;
     }
 
     private boolean inCluster(final ClusterMember clusterId) {
@@ -75,19 +88,24 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
                                 .contains(clusterId);
     }
 
-    private boolean tryAquireLock(final LeadershipRole key, final Function<KeySetter, Boolean> action) {
+    private <T> Optional<T> clusterSyncedExecute(final LeadershipRole key, final Function<KeySetter, T> action) {
         final KeySetter keySetter = new KeySetter(key);
 
         if (keySetter.tryLock()) {
             try {
-                return action.apply(keySetter);
+                return Optional.of(action.apply(keySetter));
             }
             finally {
                 keySetter.unlock();
             }
         }
 
-        return false;
+        return Optional.empty();
+    }
+
+
+    private ClusterMember thisClusterMember() {
+        return ClusterMember.valueOf(hazelcastInstance.getCluster().getLocalMember().getUuid());
     }
 
     class KeySetter {
@@ -100,12 +118,8 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
             this.key = key;
         }
 
-        private ClusterMember localId() {
-            return ClusterMember.valueOf(hazelcastInstance.getCluster().getLocalMember().getUuid());
-        }
-
         public boolean amLeader() {
-            return value().equals(localId());
+            return value().equals(thisClusterMember());
         }
 
         public ClusterMember value() {
@@ -119,7 +133,7 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         }
 
         public void claim() {
-            backingMap.put(key, localId().get());
+            backingMap.put(key, thisClusterMember().get());
         }
 
         public boolean tryLock() {
