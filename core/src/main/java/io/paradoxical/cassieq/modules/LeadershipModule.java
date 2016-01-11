@@ -4,8 +4,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.Provides;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
-import io.paradoxical.cassieq.election.HazelcastLeadershipProvider;
-import io.paradoxical.cassieq.election.LeadershipProvider;
+import io.paradoxical.cassieq.clustering.election.HazelcastLeadershipProvider;
+import io.paradoxical.cassieq.clustering.election.LeadershipProvider;
 import io.paradoxical.cassieq.model.LeadershipRole;
 
 public class LeadershipModule extends AbstractModule {

@@ -1,7 +1,7 @@
 package io.paradoxical.cassieq.unittests.modules;
 
 import com.google.inject.Module;
-import io.paradoxical.cassieq.election.LeadershipProvider;
+import io.paradoxical.cassieq.clustering.election.LeadershipProvider;
 import io.paradoxical.cassieq.model.LeadershipRole;
 import io.paradoxical.cassieq.modules.LeadershipModule;
 import io.paradoxical.common.test.guice.OverridableModule;

@@ -7,7 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import io.paradoxical.cassieq.configurations.RepairConfig;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.election.LeadershipProvider;
+import io.paradoxical.cassieq.clustering.election.LeadershipProvider;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.LeadershipRole;
 import io.paradoxical.cassieq.model.QueueId;

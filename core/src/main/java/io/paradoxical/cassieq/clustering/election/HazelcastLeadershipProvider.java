@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.election;
+package io.paradoxical.cassieq.clustering.election;
 
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
