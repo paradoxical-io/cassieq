@@ -109,6 +109,7 @@ public class MessageRepositoryTester extends TestBase {
         final Injector defaultInjector = getDefaultInjector();
 
         final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
+
         final QueueName queueName = QueueName.valueOf("ack_message_after_version_changed_should_fail");
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
@@ -127,7 +128,7 @@ public class MessageRepositoryTester extends TestBase {
 
         assertThat(message.isAcked()).isFalse();
 
-        final Optional<Message> consumedMessage = context.getMessageRepository().consumeMessage(message, Duration.standardDays(30));
+        final Optional<Message> consumedMessage = context.getMessageRepository().rawConsumeMessage(message, Duration.standardDays(30));
 
         assertThat(consumedMessage.isPresent()).isTrue();
         assertThat(message.getVersion()).isNotEqualTo(consumedMessage.get().getVersion());

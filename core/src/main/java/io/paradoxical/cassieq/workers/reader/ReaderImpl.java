@@ -17,6 +17,7 @@ import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import org.joda.time.Duration;
 
@@ -37,6 +38,7 @@ public class ReaderImpl implements Reader {
     private final MetricRegistry metricRegistry;
     private final InvisLocaterFactory invisLocaterFactory;
     private final QueueDefinition queueDefinition;
+    private final MessageConsumer messageConsumer;
     private final Supplier<Timer.Context> timerSupplier;
 
     @Inject
@@ -45,12 +47,14 @@ public class ReaderImpl implements Reader {
             QueueRepository queueRepository,
             Clock clock,
             MetricRegistry metricRegistry,
+            MessageConsumer.Factory messageConsumerFactory,
             InvisLocaterFactory invisLocaterFactory,
             @Assisted QueueDefinition queueDefinition) {
         this.queueRepository = queueRepository;
         this.clock = clock;
         this.metricRegistry = metricRegistry;
         this.invisLocaterFactory = invisLocaterFactory;
+        messageConsumer = messageConsumerFactory.forQueue(queueDefinition);
         this.queueDefinition = queueDefinition;
 
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -154,7 +158,7 @@ public class ReaderImpl implements Reader {
     private Optional<Message> tryConsume(final Optional<Message> foundMessage, Duration invisiblity) {
         final Message visibleMessage = foundMessage.get();
 
-        final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
+        final Optional<Message> consumedMessage = messageConsumer.tryConsume(visibleMessage, invisiblity);
 
         if (!consumedMessage.isPresent()) {
             // someone else did it, fuck it, try again for the next visibleMessage
