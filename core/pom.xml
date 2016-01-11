@@ -25,6 +25,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>uk.co.jemos.podam</groupId>
+            <artifactId>podam</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.stuartgunter</groupId>
             <artifactId>dropwizard-cassandra</artifactId>
         </dependency>
@@ -39,6 +45,10 @@
             <artifactId>common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.netflix.governator</groupId>
             <artifactId>governator-core</artifactId>
@@ -59,6 +69,10 @@
             <artifactId>commons-collections4</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>de.thomaskrille</groupId>

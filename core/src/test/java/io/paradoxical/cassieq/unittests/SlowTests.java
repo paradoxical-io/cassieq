@@ -15,6 +15,7 @@ import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
@@ -62,6 +63,7 @@ public class SlowTests extends TestBase {
 
         @Cleanup("stop") SelfHostServer server = new SelfHostServer(
                 new InMemorySessionProvider(session),
+                new HazelcastTestModule(),
                 new TestClockModule(testClock));
 
         server.start();

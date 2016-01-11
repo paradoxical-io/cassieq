@@ -13,18 +13,22 @@ import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
+import io.paradoxical.cassieq.unittests.modules.MockLeadershipProviderModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
-import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.common.test.guice.ModuleUtils;
 import io.paradoxical.common.test.guice.OverridableModule;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
 import org.junit.After;
+import org.junit.Before;
 import org.slf4j.LoggerFactory;
+import uk.co.jemos.podam.api.PodamFactory;
+import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +42,10 @@ public class TestBase {
     public static Session session;
 
     private static final Object lock = new Object();
+
+    protected static final PodamFactory fixture = new PodamFactoryImpl();
+
+    private HazelcastTestModule hazelCastModule;
 
     static {
         final String environmentLogLevel = System.getenv("LOG_LEVEL");
@@ -77,6 +85,16 @@ public class TestBase {
 
     public TestBase() {
 
+    }
+
+    @Before
+    public void beforeTest(){
+        hazelCastModule = new HazelcastTestModule();
+    }
+
+    @After
+    public void afterTest() {
+        hazelCastModule.close();
     }
 
     protected TestQueueContext setupTestContext(QueueDefinition queueDefinition) {
@@ -121,8 +139,10 @@ public class TestBase {
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
         return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
                                                      Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
+                                                                   new MockLeadershipProviderModule(),
                                                                    new TestClockModule(testClock))));
     }
+
 
     private Injector getDefaultInjectorRaw(final List<OverridableModule> overridableModules) {
         return Governator.createInjector(

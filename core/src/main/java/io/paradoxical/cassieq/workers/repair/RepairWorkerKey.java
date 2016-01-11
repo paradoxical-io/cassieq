@@ -9,7 +9,7 @@ import lombok.Data;
  * but is hashable and identified by the definition
  */
 class RepairWorkerKey {
-    private QueueDefinition getQueueDefinition() {
+    public QueueDefinition getQueueDefinition() {
         return repairWorker.forDefinition();
     }
 
