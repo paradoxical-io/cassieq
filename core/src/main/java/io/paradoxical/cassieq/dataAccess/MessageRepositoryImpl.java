@@ -84,7 +84,8 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         updateQueueSize(1);
     }
 
-    public Optional<Message> consumeMessage(final Message message, final Duration duration) {
+
+    public Optional<Message> rawConsumeMessage(final Message message, final Duration duration) {
 
         final Long bucketPointer = message.getIndex().toBucketPointer(queueDefinition.getBucketSize()).get();
 

@@ -22,7 +22,13 @@ public interface MessageRepository {
         putMessage(message, Duration.ZERO);
     }
 
-    Optional<Message> consumeMessage(final Message message, final Duration duration);
+    /**
+     * Strictly consumes, applies no business logic
+     * @param message
+     * @param duration
+     * @return
+     */
+    Optional<Message> rawConsumeMessage(final Message message, final Duration duration);
 
     boolean ackMessage(final Message message);
 
