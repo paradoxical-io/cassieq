@@ -33,8 +33,6 @@ public interface QueueRepository {
 
     boolean tryAdvanceQueueStatus(QueueName queueName, QueueStatus status);
 
-    boolean deleteIfInActive(QueueName queueName);
-
     Optional<QueueDefinition> getQueueUnsafe(QueueName queueName);
 
     default List<QueueDefinition> getActiveQueues() {

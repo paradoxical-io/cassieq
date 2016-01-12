@@ -8,6 +8,8 @@ import java.util.List;
 public class DefaultApplicationModules {
     public static List<Module> getModules() {
         return Arrays.asList(
+                new LeadershipModule(),
+                new ClusteringModule(),
                 new MessageDeletionModule(),
                 new QueueDeletionModule(),
                 new JsonMapperModule(),

@@ -19,13 +19,16 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import org.joda.time.Duration;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -36,10 +39,12 @@ public class ReaderImpl implements Reader {
 
     private final QueueDataContext dataContext;
     private final DataContextFactory dataContextFactory;
+    private static final Random random = new Random();
     private final Clock clock;
     private final MetricRegistry metricRegistry;
     private final InvisLocaterFactory invisLocaterFactory;
     private final QueueDefinition queueDefinition;
+    private final MessageConsumer messageConsumer;
     private final Supplier<Timer.Context> timerSupplier;
 
     @Inject
@@ -47,6 +52,7 @@ public class ReaderImpl implements Reader {
             DataContextFactory dataContextFactory,
             Clock clock,
             MetricRegistry metricRegistry,
+            MessageConsumer.Factory messageConsumerFactory,
             InvisLocaterFactory invisLocaterFactory,
             @Assisted AccountName accountName,
             @Assisted QueueDefinition queueDefinition) {
@@ -54,6 +60,7 @@ public class ReaderImpl implements Reader {
         this.clock = clock;
         this.metricRegistry = metricRegistry;
         this.invisLocaterFactory = invisLocaterFactory;
+        messageConsumer = messageConsumerFactory.forQueue(queueDefinition);
         this.queueDefinition = queueDefinition;
 
         dataContext = dataContextFactory.forQueue(queueDefinition);
@@ -139,25 +146,47 @@ public class ReaderImpl implements Reader {
                 }
             }
 
-            final Optional<Message> foundMessage = allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).findFirst();
+            final Optional<Message> foundMessage = findRandom(allMessages.stream().filter(m -> m.isNotAcked() && m.isVisible(clock)).collect(Collectors.toList()));
 
             if (!foundMessage.isPresent()) {
                 return Optional.empty();
             }
 
-            final Message visibleMessage = foundMessage.get();
+            Optional<Message> consumedMessage = tryConsume(foundMessage, invisiblity);
 
-            final Optional<Message> consumedMessage = dataContext.getMessageRepository().consumeMessage(visibleMessage, invisiblity);
-
-            if (!consumedMessage.isPresent()) {
-                // someone else did it, fuck it, try again for the next visibleMessage
-                logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
-
-                continue;
+            if(consumedMessage.isPresent()) {
+                return consumedMessage;
             }
 
-            return consumedMessage;
+            // loop again
         }
+    }
+
+    private Optional<Message> tryConsume(final Optional<Message> foundMessage, Duration invisiblity) {
+        final Message visibleMessage = foundMessage.get();
+
+        final Optional<Message> consumedMessage = messageConsumer.tryConsume(visibleMessage, invisiblity);
+
+        if (!consumedMessage.isPresent()) {
+            // someone else did it, fuck it, try again for the next visibleMessage
+            logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
+
+            return Optional.empty();
+        }
+
+        return consumedMessage;
+    }
+
+    private Optional<Message> findRandom(final List<Message> availableMessages) {
+        final int size = availableMessages.size();
+
+        if (size == 0) {
+            return Optional.empty();
+        }
+
+        final int i = random.nextInt(size);
+
+        return Optional.of(availableMessages.get(i));
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {

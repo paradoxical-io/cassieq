@@ -229,7 +229,7 @@ public class RepairWorkerImpl implements RepairWorker {
     }
 
     private void deleteMessagesInBucket(final RepairBucketPointer currentBucket) {
-        if (queueDefinition.getDeleteBucketsAfterFinaliziation()) {
+        if (queueDefinition.getDeleteBucketsAfterFinalization()) {
             dataContext.getMessageRepository().deleteAllMessages(currentBucket);
 
             deletingFinalizedCounter.run();

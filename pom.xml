@@ -56,8 +56,10 @@
     <properties>
         <!-- Project Settings -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <dockerRepo>paradoxical</dockerRepo>
         <jenkinsBuildNumber>dev</jenkinsBuildNumber>
+
         <!-- build.git_sha is created below -->
         <git_sha>${build.git_sha}</git_sha>
         <buildNumber>${git_sha}_${jenkinsBuildNumber}</buildNumber>
@@ -78,6 +80,7 @@
         <guice.version>4.0</guice.version>
         <apache.collections4.version>4.0</apache.collections4.version>
         <godaddy.logging.version>1.0</godaddy.logging.version>
+        <podam.version>5.4.0.RELEASE</podam.version>
         <javax.validation.version>1.1.0.Final</javax.validation.version>
         <dropwizard.version>0.9.1</dropwizard.version>
         <dropwizard.template.config.version>1.1.0</dropwizard.template.config.version>
@@ -96,6 +99,9 @@
         <assertj.version>3.2.0</assertj.version>
         <lombok.version>1.16.2</lombok.version>
         <swagger.version>1.5.6</swagger.version>
+        <apache.commons.io.version>2.4</apache.commons.io.version>
+        <hazelcast.version>3.5.4</hazelcast.version>
+        <apache.collections4.version>4.0</apache.collections4.version>
 
         <!-- Maven Plugin versions -->
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
@@ -121,6 +127,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>uk.co.jemos.podam</groupId>
+                <artifactId>podam</artifactId>
+                <version>${podam.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.netflix.governator</groupId>
                 <artifactId>governator-core</artifactId>
@@ -173,6 +185,12 @@
                 <groupId>com.google.inject.extensions</groupId>
                 <artifactId>guice-assistedinject</artifactId>
                 <version>${guice.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.hazelcast</groupId>
+                <artifactId>hazelcast</artifactId>
+                <version>${hazelcast.version}</version>
             </dependency>
 
             <dependency>
@@ -364,6 +382,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${apache.commons.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${apache.commons.io.version}</version>
             </dependency>
 
 

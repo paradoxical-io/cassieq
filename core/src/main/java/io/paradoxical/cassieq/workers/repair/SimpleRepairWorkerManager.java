@@ -4,9 +4,12 @@ import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.clustering.election.LeadershipProvider;
 import io.paradoxical.cassieq.configurations.RepairConfig;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
+import io.paradoxical.cassieq.model.LeadershipRole;
+import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.modules.annotations.GenericScheduler;
 import lombok.Getter;
@@ -26,6 +29,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private static final Logger logger = getLogger(SimpleRepairWorkerManager.class);
 
     private final RepairWorkerFactory repairWorkerFactory;
+    private final LeadershipProvider leadershipProvider;
     private final RepairConfig config;
     private final ScheduledExecutorService scheduler;
     private final DataContextFactory dataContextFactory;
@@ -39,10 +43,12 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     public SimpleRepairWorkerManager(
             DataContextFactory dataContextFactory,
             RepairWorkerFactory repairWorkerFactory,
+            LeadershipProvider leadershipProvider,
             RepairConfig config,
             @GenericScheduler ScheduledExecutorService scheduler) {
         this.dataContextFactory = dataContextFactory;
         this.repairWorkerFactory = repairWorkerFactory;
+        this.leadershipProvider = leadershipProvider;
         this.config = config;
         this.scheduler = scheduler;
     }
@@ -132,7 +138,25 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
                                                                       .stream()
                                                                       .map(repairWorkerFactory::forQueue)
                                                                       .map(RepairWorkerKey::new))
+                          .filter(this::canManageRepairWorker)
                           .collect(toSet());
+    }
+
+    private boolean canManageRepairWorker(final RepairWorkerKey repairWorkerKey) {
+        QueueId queueId = repairWorkerKey.getQueueDefinition().getId();
+
+        final boolean leadershipAquired = leadershipProvider.tryAcquireLeader(LeadershipRole.valueOf(queueId.get()));
+
+        if (leadershipAquired) {
+            logger.with("queue-id", queueId)
+                  .success("Acquired leadership!");
+        }
+        else {
+            logger.with("queue-id", queueId)
+                  .info("Did not acquire leader status");
+        }
+
+        return leadershipAquired;
     }
 
     private void startRepairWorker(final RepairWorkerKey repairWorkerKey) {

@@ -21,6 +21,7 @@ cassandra:
     password: ${env.PASSWORD!'test'}
   queryOptions:
     consistencyLevel: ${env.CONSISTENCY_LEVEL!"LOCAL_QUORUM"}
+    serialConsistencyLevel: LOCAL_SERIAL
   reconnectionPolicy:
     type: exponential
     baseDelay: 1 second

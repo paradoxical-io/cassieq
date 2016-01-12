@@ -18,7 +18,6 @@ import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
-import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jersey.listing.ApiListingResourceJSON;
 import lombok.Getter;
 import org.joda.time.DateTimeZone;

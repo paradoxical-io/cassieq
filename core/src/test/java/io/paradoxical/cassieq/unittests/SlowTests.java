@@ -9,7 +9,6 @@ import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
@@ -20,6 +19,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
@@ -67,6 +67,7 @@ public class SlowTests extends TestBase {
 
         @Cleanup("stop") SelfHostServer server = new SelfHostServer(
                 new InMemorySessionProvider(session),
+                new HazelcastTestModule(),
                 new TestClockModule(testClock));
 
         server.start();

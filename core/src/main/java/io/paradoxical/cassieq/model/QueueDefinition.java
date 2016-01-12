@@ -18,7 +18,7 @@ public class QueueDefinition {
     private final int version;
     private final Integer repairWorkerPollFrequencySeconds;
     private final Integer repairWorkerTombstonedBucketTimeoutSeconds;
-    private final Boolean deleteBucketsAfterFinaliziation;
+    private final Boolean deleteBucketsAfterFinalization;
 
     public QueueId getId() {
         return QueueId.valueOf(accountName, queueName, version);
@@ -36,7 +36,7 @@ public class QueueDefinition {
             final Boolean deleteBucketsAfterFinaliziation) {
         this.accountName = accountName;
         this.queueName = queueName;
-        this.deleteBucketsAfterFinaliziation = deleteBucketsAfterFinaliziation == null ? true : deleteBucketsAfterFinaliziation;
+        this.deleteBucketsAfterFinalization = deleteBucketsAfterFinaliziation == null ? true : deleteBucketsAfterFinaliziation;
         this.version = version == null ? 0 : version;
         this.bucketSize = bucketSize == null ? BucketSize.valueOf(20) : bucketSize;
         this.maxDeliveryCount = maxDeliveryCount == null ? 5 : maxDeliveryCount;
@@ -55,7 +55,7 @@ public class QueueDefinition {
                               .version(row.getInt(Tables.Queue.VERSION))
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
-                              .deleteBucketsAfterFinaliziation(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
+                              .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
                               .build();
     }
 }

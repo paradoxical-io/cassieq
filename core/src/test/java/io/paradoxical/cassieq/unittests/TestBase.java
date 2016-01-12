@@ -16,8 +16,10 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
 import io.paradoxical.cassieq.unittests.data.CqlDb;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
+import io.paradoxical.cassieq.unittests.modules.MockLeadershipProviderModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.ModuleUtils;
@@ -25,7 +27,11 @@ import io.paradoxical.common.test.guice.OverridableModule;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.slf4j.LoggerFactory;
+import uk.co.jemos.podam.api.PodamFactory;
+import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,6 +47,10 @@ public class TestBase {
     private static final Object lock = new Object();
 
     public static final AccountName testAccountName = AccountName.valueOf("test");
+
+    protected static final PodamFactory fixture = new PodamFactoryImpl();
+
+    private HazelcastTestModule hazelCastModule;
 
     static {
         final String environmentLogLevel = System.getenv("LOG_LEVEL");
@@ -88,6 +98,36 @@ public class TestBase {
         return testQueueContext;
     }
 
+    @Before
+    public void beforeTest() {
+        hazelCastModule = new HazelcastTestModule();
+    }
+
+    @After
+    public void afterTest() {
+        hazelCastModule.close();
+    }
+
+    protected TestQueueContext setupTestContext(QueueDefinition queueDefinition) {
+        createQueue(queueDefinition);
+
+        return new TestQueueContext(queueDefinition, getDefaultInjector());
+    }
+
+    protected TestQueueContext setupTestContext(String queueName) {
+        return setupTestContext(queueName, 20);
+    }
+
+    protected TestQueueContext setupTestContext(String queueName, int bucketSize) {
+        final QueueName queue = QueueName.valueOf(queueName);
+        final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                               .accountName(testAccountName)
+                                                               .queueName(queue)
+                                                               .bucketSize(BucketSize.valueOf(bucketSize))
+                                                               .build();
+        return setupTestContext(queueDefinition);
+    }
+
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
         return getDefaultInjector(configuration, session);
     }
@@ -107,8 +147,10 @@ public class TestBase {
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
         return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
                                                      Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
+                                                                   new MockLeadershipProviderModule(),
                                                                    new TestClockModule(testClock))));
     }
+
 
     private Injector getDefaultInjectorRaw(final List<OverridableModule> overridableModules) {
         return Governator.createInjector(

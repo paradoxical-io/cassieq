@@ -10,7 +10,6 @@ import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
-import io.paradoxical.cassieq.model.MessageUpdateRequest;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
@@ -53,6 +52,31 @@ public class MessageRepositoryTester extends TestBase {
     }
 
     @Test
+    public void dead_letter_messages_should_not_reappear() throws Exception {
+        final QueueName queueName = QueueName.valueOf("dead_letter_messages_should_not_reappear");
+
+        final TestQueueContext context = setupTestContext(QueueDefinition.builder().accountName(testAccountName).maxDeliveryCount(3).queueName(queueName).build());
+
+        context.putMessage("1");
+
+        long workerProcessTime = 1L;
+
+        for (int i = 0; i < context.getQueueDefinition().getMaxDeliveryCount(); i++) {
+            final Optional<Message> poisonMessage = context.readNextMessage((int) workerProcessTime);
+
+            assertThat(poisonMessage.isPresent()).isTrue();
+
+            assertThat(poisonMessage.get().getBlob()).isEqualTo("1");
+
+            // pretend the worker is taking too long, so this message is somehow poisonous
+            // it should come back `max delivery count` number of times
+            getTestClock().tickSeconds(2 * workerProcessTime);
+        }
+
+        assertThat(context.readNextMessage(1).isPresent()).isFalse();
+    }
+
+    @Test
     public void ack_message_should_succeed() throws Exception {
         final Injector defaultInjector = getDefaultInjector();
 
@@ -89,6 +113,7 @@ public class MessageRepositoryTester extends TestBase {
         final Injector defaultInjector = getDefaultInjector();
 
         final DataContextFactory factory = defaultInjector.getInstance(DataContextFactory.class);
+
         final QueueName queueName = QueueName.valueOf("ack_message_after_version_changed_should_fail");
 
         final QueueDefinition queueDefinition = setupQueue(queueName);
@@ -107,7 +132,7 @@ public class MessageRepositoryTester extends TestBase {
 
         assertThat(message.isAcked()).isFalse();
 
-        final Optional<Message> consumedMessage = context.getMessageRepository().consumeMessage(message, Duration.standardDays(30));
+        final Optional<Message> consumedMessage = context.getMessageRepository().rawConsumeMessage(message, Duration.standardDays(30));
 
         assertThat(consumedMessage.isPresent()).isTrue();
         assertThat(message.getVersion()).isNotEqualTo(consumedMessage.get().getVersion());

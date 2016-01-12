@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -35,6 +36,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Optional;
 
 @Path("/api/v1/accounts/{accountName}/queues")
@@ -60,6 +62,71 @@ public class QueueResource extends BaseQueueResource {
         this.queueDeleter = queueDeleterFactory.create(accountName);
     }
 
+    @GET
+    @Timed
+    @ApiOperation(value = "Get all account queue definitions")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueInfo() {
+
+        final List<QueueDefinition> activeQueues = getQueueRepository().getActiveQueues();
+
+        return Response.ok().entity(activeQueues).build();
+    }
+
+    @GET
+    @Path("/{queueName}")
+    @Timed
+    @ApiOperation(value = "Get a queue definition")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueInfo(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        return Response.ok().entity(definition).build();
+    }
+
+    @GET
+    @Path("/{queueName}/statistics")
+    @Timed
+    @ApiOperation(value = "Get queue statistics")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueStatistics(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
+
+        Object returnEntity = new Object() {
+            @JsonProperty("size")
+            public long size = queueSize.orElse(0L);
+        };
+
+        return Response.ok().entity(returnEntity).build();
+    }
+
+    private boolean active(final Optional<QueueDefinition> queueDefinition) {
+        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
+    }
+
     @POST
     @Timed
     @ApiOperation(value = "Create Queue")
@@ -77,7 +144,7 @@ public class QueueResource extends BaseQueueResource {
                                    .maxDeliveryCount(createOptions.getMaxDeliveryCount())
                                    .repairWorkerPollFrequencySeconds(createOptions.getRepairWorkerPollSeconds())
                                    .repairWorkerTombstonedBucketTimeoutSeconds(createOptions.getRepairWorkerBucketFinalizeTimeSeconds())
-                                   .deleteBucketsAfterFinaliziation(createOptions.getDeleteBucketsAfterFinalize())
+                                   .deleteBucketsAfterFinalization(createOptions.getDeleteBucketsAfterFinalize())
                                    .queueName(createOptions.getQueueName())
                                    .accountName(getAccountName())
                                    .build();
@@ -103,24 +170,6 @@ public class QueueResource extends BaseQueueResource {
             return buildErrorResponse("CreateQueue", queueName, e);
         }
 
-    }
-
-    @DELETE
-    @Timed
-    @ApiOperation(value = "Purge inactive queues")
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 204, message = "No message"),
-            @ApiResponse(code = 404, message = "Queue doesn't exist"),
-            @ApiResponse(code = 500, message = "Server Error")
-    })
-    public Response purgeInactive() {
-        getQueueRepository().getQueues(QueueStatus.Inactive)
-                            .stream()
-                            .map(QueueDefinition::getQueueName)
-                            .forEach(getQueueRepository()::deleteIfInActive);
-
-        return Response.ok().build();
     }
 
     @DELETE
@@ -318,56 +367,5 @@ public class QueueResource extends BaseQueueResource {
         return buildConflictResponse("The message is already being reprocessed");
     }
 
-    @GET
-    @Path("/{queueName}")
-    @Timed
-    @ApiOperation(value = "Get a queue definition")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
-                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
-                            @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueInfo(
-            @NotNull @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
-        final QueueDefinition definition = queueDefinition.get();
-
-        return Response.ok().entity(definition).build();
-    }
-
-    @GET
-    @Path("/{queueName}/statistics")
-    @Timed
-    @ApiOperation(value = "Get queue statistics")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
-                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
-                            @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueStatistics(
-            @NotNull @PathParam("queueName") QueueName queueName) {
-
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
-        final QueueDefinition definition = queueDefinition.get();
-
-        final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
-
-        Object returnEntity = new Object() {
-            @JsonProperty("size")
-            public long size = queueSize.orElse(0L);
-        };
-
-        return Response.ok().entity(returnEntity).build();
-    }
-
-    private boolean active(final Optional<QueueDefinition> queueDefinition) {
-        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
-    }
 }

@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.unittests;
 
 import categories.BuildVerification;
+import com.datastax.driver.core.Session;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
@@ -14,12 +15,16 @@ import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessageTag;
 import io.paradoxical.cassieq.model.MonotonicIndex;
+import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.unittests.data.CqlDb;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
+import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
+import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.paradoxical.cassieq.workers.repair.SimpleRepairWorkerManager;
@@ -34,6 +39,50 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
 public class RepairTests extends TestBase {
+
+
+    @Test
+    public void repair_manager_claims_workers() throws Exception {
+        Session session = CqlDb.createFresh();
+
+        @Cleanup SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
+        @Cleanup SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
+
+        server1.start();
+
+        final QueueCreateOptions createOptions = fixture.manufacturePojo(QueueCreateOptions.class);
+
+        assertThat(server1.getClient().createQueue(testAccountName, createOptions).execute().isSuccess()).isTrue();
+
+        final Injector server1Injector = server1.getService().getGuiceBundleProvider().getBundle().getInjector();
+        ensureTestAccountCreated(server1Injector);
+
+        final SimpleRepairWorkerManager managerInstance1 = (SimpleRepairWorkerManager) server1Injector.getInstance(RepairWorkerManager.class);
+
+        managerInstance1.notifyChanges();
+
+        assertThat(managerInstance1.getCurrentRepairWorkers().size()).isEqualTo(1);
+
+        server2.start();
+
+        final Injector server2Injector = server2.getService().getGuiceBundleProvider().getBundle().getInjector();
+
+        final SimpleRepairWorkerManager managerInstance2 = (SimpleRepairWorkerManager) server2Injector.getInstance(RepairWorkerManager.class);
+
+        managerInstance2.notifyChanges();
+
+        // all repair workers should be claimed
+        assertThat(managerInstance2.getCurrentRepairWorkers().size()).isEqualTo(0);
+
+        // shut down the first server
+        server1.stop();
+
+        // make sure manager 2 picks up the ownership
+        managerInstance2.notifyChanges();
+
+        assertThat(managerInstance2.getCurrentRepairWorkers().size()).isEqualTo(1);
+    }
+
     @Test
     public void repairer_republishes_newly_visible_in_tombstoned_bucket() throws InterruptedException, ExistingMonotonFoundException, ExecutionException {
 
@@ -52,7 +101,7 @@ public class RepairTests extends TestBase {
                                                                .repairWorkerPollFrequencySeconds(1)
                                                                .repairWorkerTombstonedBucketTimeoutSeconds(3)
                                                                // dont delete since we need to query after
-                                                               .deleteBucketsAfterFinaliziation(false)
+                                                               .deleteBucketsAfterFinalization(false)
                                                                .build();
 
         createQueue(queueDefinition);
@@ -172,24 +221,22 @@ public class RepairTests extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("repair_manager_adds_new_workers");
 
+        final DataContextFactory dataContextFactory = defaultInjector.getInstance(DataContextFactory.class);
+        final QueueRepository queueRepository = dataContextFactory.forAccount(testAccountName);
+
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        final DataContextFactory dataContextFactory = defaultInjector.getInstance(DataContextFactory.class);
-
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
-
-        dataContextFactory.forAccount(testAccountName).tryMarkForDeletion(queueDefinition);
-
-        manager.notifyChanges();
-
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
     }
 
     @Test
     public void repair_manager_properly_keeps_track_of_existing_workers() throws Exception {
-        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+        final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration());
+        ensureTestAccountCreated(defaultInjector);
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -199,22 +246,26 @@ public class RepairTests extends TestBase {
 
         final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
 
-        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
-
         final DataContextFactory contextFactory = defaultInjector.getInstance(DataContextFactory.class);
+        final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
+
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
         // refreshing twice should not add or remove anyone since no queues were added/deleted
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
 
-        contextFactory.forAccount(testAccountName).tryMarkForDeletion(queueDefinition);
+        queueRepository.tryMarkForDeletion(queueDefinition);
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 
     private Optional<AccountDefinition> ensureTestAccountCreated(final Injector injector) {
@@ -233,26 +284,28 @@ public class RepairTests extends TestBase {
         final Injector defaultInjector = getDefaultInjector(configuration, CqlDb.createFresh());
         ensureTestAccountCreated(defaultInjector);
 
-
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
         final QueueName queueName = QueueName.valueOf("repair_manager_polls_queues_for_new_workers");
 
         manager.start();
 
-        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
-
         final QueueRepositoryFactory queueRepositoryFactory = defaultInjector.getInstance(QueueRepositoryFactory.class);
+
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
+
+        final int currentQueueNum = queueRepository.getQueueNames().size();
+
+        final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
         Thread.sleep(2000);
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(1);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
 
-        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
         queueRepository.tryMarkForDeletion(queueDefinition);
 
         Thread.sleep(2000);
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 }

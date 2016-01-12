@@ -148,17 +148,6 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return applier.apply(orIsEqual);
     }
 
-    @Override
-    public boolean deleteIfInActive(QueueName queueName) {
-        final Statement delete = QueryBuilder.delete()
-                                             .from(Tables.Queue.TABLE_NAME)
-                                             .onlyIf(eq(Tables.Queue.STATUS, QueueStatus.Inactive.ordinal()))
-                                             .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
-                                             .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()));
-
-        return session.execute(delete).wasApplied();
-    }
-
     private boolean insertQueueIfNotExist(final QueueDefinition queueDefinition) {
 
         final Insert insertQueue =
@@ -168,7 +157,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
                             .value(Tables.Queue.VERSION, 0)
                             .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                            .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, queueDefinition.getDeleteBucketsAfterFinaliziation())
+                            .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, queueDefinition.getDeleteBucketsAfterFinalization())
                             .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, queueDefinition.getRepairWorkerPollFrequencySeconds())
                             .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, queueDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
                             .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
@@ -330,12 +319,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                              .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
                                              .and(eq(Tables.DeletionJob.VERSION, job.getVersion()));
 
-        session.execute(delete);
-
-        if (deleteIfInActive(job.getQueueName())) {
-            logger.with("queue-name", job.getQueueName())
-                  .with("version", job.getVersion())
-                  .info("Deleted queue definition since it was inactive");
+        if (session.execute(delete).wasApplied()) {
+            logger.with(job).success("Removed deletion job");
         }
     }
 
@@ -346,6 +331,9 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                              .from(Tables.QueueSize.TABLE_NAME)
                                              .where(eq(Tables.QueueSize.QUEUE_ID, id.get()));
 
-        session.execute(delete);
+        if (session.execute(delete).wasApplied()) {
+            logger.with("queue-id", id)
+                  .success("Deleted queue stats");
+        }
     }
 }

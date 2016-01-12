@@ -17,6 +17,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import lombok.Data;
 import org.joda.time.Duration;
@@ -74,6 +75,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
     private final Clock clock;
     private final MetricRegistry metricRegistry;
+    private final MessageConsumer messageConsumer;
     private final QueueDefinition queueDefinition;
     private final QueueDataContext dataContext;
     private final ReaderBucketPointer currentReaderBucket;
@@ -84,9 +86,11 @@ public class InvisLocatorImpl implements InvisLocator {
             DataContextFactory dataContextFactory,
             Clock clock,
             MetricRegistry metricRegistry,
+            MessageConsumer.Factory messageConsumer,
             @Assisted QueueDefinition queueDefinition) {
         this.clock = clock;
         this.metricRegistry = metricRegistry;
+        this.messageConsumer = messageConsumer.forQueue(queueDefinition);
         this.queueDefinition = queueDefinition;
         this.dataContext = dataContextFactory.forQueue(queueDefinition);
 
@@ -175,7 +179,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
         if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
             // the message we are pointing at has come back alive
-            final Optional<Message> message = dataContext.getMessageRepository().consumeMessage(messageAt, invisibility);
+            final Optional<Message> message = messageConsumer.tryConsume(messageAt, invisibility);
 
             // were able to consume
             if (message.isPresent()) {
@@ -332,8 +336,7 @@ public class InvisLocatorImpl implements InvisLocator {
             // stop here since we're scanning and we can't have anyone else behind us
             // since they are either invis, OR they are acked
             // attempt to consume the message
-            final Optional<Message> tryConsumedMessage = dataContext.getMessageRepository()
-                                                                    .consumeMessage(revivedMessage.get(), invisiblity);
+            final Optional<Message> tryConsumedMessage = messageConsumer.tryConsume(revivedMessage.get(), invisiblity);
 
             // if we were able to consume the message, try and move the invis pointer to this since its going to now be invis.
             // if someone else finds an earlier invis, it'll getAccountRepository moved to that

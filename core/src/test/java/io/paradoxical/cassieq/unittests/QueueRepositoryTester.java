@@ -33,7 +33,7 @@ public class QueueRepositoryTester extends TestBase {
         final QueueName queueName = QueueName.valueOf("queue_size_grows_and_shrinks");
         final TestQueueContext testContext = createTestQueueContext(queueName);
 
-        int numMessages = 100;
+        int numMessages = 10;
 
         for (int i = 0; i < numMessages; i++) {
             testContext.putMessage(Integer.valueOf(i).toString());
@@ -156,8 +156,8 @@ public class QueueRepositoryTester extends TestBase {
                 .withFailMessage("Deleted queue still shows up as active");
 
         assertThat(queueRepository.getQueueUnsafe(queueName).isPresent())
-                .isEqualTo(false)
-                .withFailMessage("Raw queue definition still exists even though deleter should have removed it");
+                .isEqualTo(true)
+                .withFailMessage("Raw queue definition does not exists. Queue definitions should never be removed");
 
         assertThat(queueRepository.getQueueNames()).doesNotContain(queueName);
     }
