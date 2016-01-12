@@ -4,23 +4,25 @@ import com.godaddy.logging.Logger;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.MemberAttributeEvent;
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
-import com.hazelcast.map.listener.EntryAddedListener;
-import com.hazelcast.map.listener.EntryRemovedListener;
 import io.paradoxical.cassieq.clustering.HazelcastBase;
 import io.paradoxical.cassieq.clustering.eventing.EventBus;
 import io.paradoxical.cassieq.clustering.eventing.EventListener;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.model.ClusterMember;
 import io.paradoxical.cassieq.model.events.QueueAddedEvent;
+import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -32,10 +34,20 @@ import static java.util.stream.Collectors.toSet;
 
 public class HazelcastResourceAllocater extends HazelcastBase implements ResourceAllocator {
     private final HazelcastInstance hazelcastInstance;
+
+    private final EventBus eventBus;
+
     private final ClusteringConfig clusteringConfig;
+
     private final ResourceConfig config;
+
     private final Supplier<Set<ResourceIdentity>> inputSupplier;
+
     private final Consumer<Set<ResourceIdentity>> allocationEvent;
+
+    private final String hazelcastMembershipListenerId;
+
+    private final Set<String> eventBusListenerIds = new HashSet<>();
 
     private static final Logger logger = getLogger(HazelcastResourceAllocater.class);
 
@@ -49,19 +61,34 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
             @Assisted Consumer<Set<ResourceIdentity>> onDistributed) {
         super(hazelcastInstance);
         this.hazelcastInstance = hazelcastInstance;
+        this.eventBus = eventBus;
         this.clusteringConfig = clusteringConfig;
         this.config = config;
         this.inputSupplier = inputSupplier;
         this.allocationEvent = onDistributed;
 
-        hazelcastInstance.getCluster().addMembershipListener(getMembershipListener());
+        hazelcastMembershipListenerId = hazelcastInstance.getCluster().addMembershipListener(getMembershipListener());
 
-        eventBus.register(QueueAddedEvent.class, new EventListener<QueueAddedEvent>() {
+        eventBusListenerIds.add(eventBus.register(QueueAddedEvent.class, new EventListener<QueueAddedEvent>() {
             @Override
             public void onMessage(final QueueAddedEvent item) {
                 claim();
             }
-        });
+        }));
+
+        eventBusListenerIds.add(eventBus.register(QueueDeletingEvent.class, new EventListener<QueueDeletingEvent>() {
+            @Override
+            public void onMessage(final QueueDeletingEvent item) {
+                claim();
+            }
+        }));
+    }
+
+    @Override
+    public void close() throws Exception {
+        hazelcastInstance.getCluster().removeMembershipListener(hazelcastMembershipListenerId);
+
+        eventBusListenerIds.forEach(eventBus::unregister);
     }
 
     private MembershipListener getMembershipListener() {
@@ -86,14 +113,21 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
     }
 
     private void removeClaimedResources(final ClusterMember clusterMember) {
-        final IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap = getMap();
+        final IMap<ResourceGroup, Map<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap = getMap();
 
         try {
             if (lockOnMap(groupAllocationMap)) {
                 try {
-                    final HashMap<ClusterMember, Set<ResourceIdentity>> allocatedResources = groupAllocationMap.get(config.getGroup());
+                    final Map<ClusterMember, Set<ResourceIdentity>> allocatedResources = groupAllocationMap.get(config.getGroup());
+
+                    if (!allocatedResources.containsKey(clusterMember)) {
+                        return;
+                    }
 
                     allocatedResources.remove(clusterMember);
+
+                    logger.with("member-id", clusterMember)
+                          .info("Removing claimed resources since they have left");
 
                     // persist back to shared state
                     groupAllocationMap.put(config.getGroup(), allocatedResources);
@@ -111,30 +145,53 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
     @Override
     public void claim() {
 
+        Set<ResourceIdentity> claimed = Sets.newHashSet();
+
         // because we need to go through everyone in the cluster
         // put the ownership on one node for this group
         // otherwise calling the entry set across a large clutster would be huge
         // we may in the future want to change this depending on the experimeintal cluster size
-        final IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap = getMap();
+        final IMap<ResourceGroup, Map<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap = getMap();
 
         try {
+            final Logger groupLogger = logger.with("group", config.getGroup());
+
+            groupLogger.info("Trying to acquire lock");
+
             if (lockOnMap(groupAllocationMap)) {
                 try {
+                    groupLogger.success("Acquired lock");
+
                     final Set<ResourceIdentity> total = inputSupplier.get();
 
-                    final HashMap<ClusterMember, Set<ResourceIdentity>> allocated = groupAllocationMap.get(config.getGroup());
+                    Map<ClusterMember, Set<ResourceIdentity>> allocated = groupAllocationMap.get(config.getGroup());
 
-                    final Set<ResourceIdentity> claimed = claimResources(total, allocated);
+                    if (allocated == null) {
+                        allocated = new HashMap<>();
+                    }
+
+                    logger.info("Allocated existing = " + allocated);
+
+                    claimed = claimResources(total, allocated);
 
                     allocated.put(thisClusterMember(), claimed);
 
                     groupAllocationMap.set(config.getGroup(), allocated);
 
-                    allocationEvent.accept(claimed);
+                    logger.with("member-id", thisClusterMember())
+                          .with("num-allocated", claimed.size())
+                          .success("Claimed");
                 }
                 finally {
                     groupAllocationMap.unlock(config.getGroup());
+
+                    groupLogger.success("Released lock");
+
+                    allocationEvent.accept(claimed);
                 }
+            }
+            else {
+                groupLogger.warn("Unable to claim group lock!");
             }
         }
         catch (InterruptedException e) {
@@ -142,74 +199,80 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
         }
     }
 
-    private boolean lockOnMap(final IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap) throws InterruptedException {
+    private boolean lockOnMap(final IMap<ResourceGroup, Map<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap) throws InterruptedException {
         return groupAllocationMap.tryLock(config.getGroup(), clusteringConfig.getLockWaitSeconds(), TimeUnit.SECONDS);
     }
 
-    private IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> getMap() {
+    private IMap<ResourceGroup, Map<ClusterMember, Set<ResourceIdentity>>> getMap() {
         return hazelcastInstance.getMap(config.getGroup().get());
     }
 
-    private Set<ResourceIdentity> claimResources(final Set<ResourceIdentity> total, final HashMap<ClusterMember, Set<ResourceIdentity>> allocated) {
+    private Set<ResourceIdentity> claimResources(final Set<ResourceIdentity> total, final Map<ClusterMember, Set<ResourceIdentity>> allocated) {
         final Set<ResourceIdentity> availablePool = totalAvailableForClaiming(allocated, total);
 
         final int clusterSize = hazelcastInstance.getCluster().getMembers().size();
 
-        final int perClusterMemberMax = Double.valueOf(Math.ceil(availablePool.size() / (double) clusterSize)).intValue();
+        final int perClusterClaimMax = Double.valueOf(Math.ceil(total.size() / (double) clusterSize)).intValue();
 
-        final Set<ResourceIdentity> currentlyAllocatedToMe = allocated.get(thisClusterMember());
+        final Set<ResourceIdentity> currentlyAllocatedToMe = getCurrentAllocations(allocated, thisClusterMember());
+
+        final Set<ResourceIdentity> resourcesNoLongerActiveButClaimedByMe = Sets.difference(currentlyAllocatedToMe, total).immutableCopy();
+
+        if (resourcesNoLongerActiveButClaimedByMe.size() > 0) {
+            logger.with("member-id", thisClusterMember())
+                  .with("inactive-claim-number", resourcesNoLongerActiveButClaimedByMe.size())
+                  .warn("Has claimed resources that are no longer active. Relinquishing");
+
+            currentlyAllocatedToMe.removeAll(resourcesNoLongerActiveButClaimedByMe);
+        }
+
+        Logger resourceLogger = logger.with("member-max-claim-num", perClusterClaimMax)
+                                      .with("cluster-size", clusterSize)
+                                      .with("current-allocations-to-this", currentlyAllocatedToMe.size());
 
         // gotta fill resources
-        if (currentlyAllocatedToMe.size() <= perClusterMemberMax) {
+        if (currentlyAllocatedToMe.size() <= perClusterClaimMax) {
             final Set<ResourceIdentity> differenceToFill = availablePool.stream()
-                                                                        .limit(perClusterMemberMax - currentlyAllocatedToMe.size())
+                                                                        .limit(perClusterClaimMax - currentlyAllocatedToMe.size())
                                                                         .collect(toSet());
 
-            return Sets.union(currentlyAllocatedToMe, differenceToFill);
+            resourceLogger.with("claiming-count", differenceToFill.size()).info("Claiming");
+
+            return Sets.union(currentlyAllocatedToMe, differenceToFill).immutableCopy();
         }
         // gotta give up resources
         else {
-            final int amountToGiveUp = currentlyAllocatedToMe.size() - perClusterMemberMax;
+            final int amountToGiveUp = currentlyAllocatedToMe.size() - perClusterClaimMax;
+
+            resourceLogger.with("releasing-resource-count", amountToGiveUp).info("Releasing");
 
             return currentlyAllocatedToMe.stream().skip(amountToGiveUp).collect(Collectors.toSet());
         }
     }
 
-    private Set<ResourceIdentity> totalAvailableForClaiming(final HashMap<ClusterMember, Set<ResourceIdentity>> allocatedResources, final Set<ResourceIdentity> total) {
+    private Set<ResourceIdentity> getCurrentAllocations(final Map<ClusterMember, Set<ResourceIdentity>> allocated, final ClusterMember clusterMember) {
+        if (MapUtils.isEmpty(allocated)) {
+            return Sets.newHashSet();
+        }
+
+        final Set<ResourceIdentity> resourceIdentities = allocated.get(clusterMember);
+
+        if (CollectionUtils.isEmpty(resourceIdentities)) {
+            return Sets.newHashSet();
+        }
+
+        return new HashSet<>(resourceIdentities);
+    }
+
+    private Set<ResourceIdentity> totalAvailableForClaiming(final Map<ClusterMember, Set<ResourceIdentity>> allocatedResources, final Set<ResourceIdentity> total) {
+        if (MapUtils.isEmpty(allocatedResources)) {
+            return total;
+        }
+
         final Set<ResourceIdentity> takenResources = allocatedResources.values().stream()
                                                                        .flatMap(Collection::stream)
                                                                        .collect(toSet());
 
-        return Sets.difference(takenResources, total).immutableCopy();
-    }
-
-    class EntityListener implements EntryAddedListener<ClusterMember, Set<ResourceIdentity>>, EntryRemovedListener<ClusterMember, Set<ResourceIdentity>> {
-
-        private final Consumer<Set<ResourceIdentity>> onDistributed;
-
-        public EntityListener(Consumer<Set<ResourceIdentity>> onDistributed) {
-
-            this.onDistributed = onDistributed;
-        }
-
-        /**
-         * Invoked upon addition of an entry.
-         *
-         * @param event the event invoked when an entry is added
-         */
-        @Override
-        public void entryAdded(final EntryEvent<ClusterMember, Set<ResourceIdentity>> event) {
-            onDistributed.accept(event.getValue());
-        }
-
-        /**
-         * Invoked upon removal of an entry.
-         *
-         * @param event the event invoked when an entry is removed
-         */
-        @Override
-        public void entryRemoved(final EntryEvent<ClusterMember, Set<ResourceIdentity>> event) {
-            onDistributed.accept(event.getValue());
-        }
+        return Sets.difference(total, takenResources).immutableCopy();
     }
 }

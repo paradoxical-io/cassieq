@@ -63,7 +63,7 @@ public class SlowTests extends TestBase {
 
         @Cleanup("stop") SelfHostServer server = new SelfHostServer(
                 new InMemorySessionProvider(session),
-                new HazelcastTestModule(),
+                new HazelcastTestModule("parallel_read_worker"),
                 new TestClockModule(testClock));
 
         server.start();

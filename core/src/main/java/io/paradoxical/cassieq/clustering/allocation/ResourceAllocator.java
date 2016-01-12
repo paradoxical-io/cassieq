@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public interface ResourceAllocator {
+public interface ResourceAllocator extends AutoCloseable {
     void claim();
 
     interface Factory {

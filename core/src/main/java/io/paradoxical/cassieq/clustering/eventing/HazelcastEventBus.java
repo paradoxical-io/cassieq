@@ -6,9 +6,15 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class HazelcastEventBus implements EventBus {
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
+
     private static final Logger logger = getLogger(HazelcastEventBus.class);
 
     private final HazelcastInstance hazelcastInstance;
@@ -26,25 +32,44 @@ public class HazelcastEventBus implements EventBus {
     }
 
     @Override
-    public <T extends Event> void register(Class<T> eventType, final EventListener<T> listener) {
+    public <T extends Event> String register(Class<T> eventType, final EventListener<T> listener) {
         try {
-            hazelcastInstance.getTopic(topicName).addMessageListener(new MessageListener<Object>() {
-                private final String id = eventType.newInstance().getId();
+            return hazelcastInstance.getTopic(topicName).addMessageListener(new MessageListener<Object>() {
+                private final String eventId = eventType.newInstance().getEventId();
 
                 @Override
                 public void onMessage(final Message<Object> message) {
-                    if (id == null) {
+                    if (eventId == null) {
                         logger.with(message.getMessageObject()).warn("Got message but id is null");
 
                         return;
                     }
 
-                    listener.onMessage(((T) message.getMessageObject()));
+                    if(!Objects.equals(eventId, ((Event) message.getMessageObject()).getEventId())){
+                        return;
+                    }
+
+                    executorService.submit(() -> {
+                        try {
+                            listener.onMessage(((T) message.getMessageObject()));
+                        }
+                        catch (Throwable ex) {
+                            logger.with("event-type", eventType.getName())
+                                  .error(ex, "Error handling event!");
+                        }
+                    });
                 }
             });
         }
         catch (InstantiationException | IllegalAccessException e) {
             logger.with(eventType.getName()).error(e, "Error creating event type");
         }
+
+        return null;
+    }
+
+    @Override
+    public void unregister(final String registationId) {
+        hazelcastInstance.getTopic(topicName).removeMessageListener(registationId);
     }
 }

@@ -32,6 +32,7 @@ import uk.co.jemos.podam.api.PodamFactoryImpl;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +51,7 @@ public class TestBase {
     static {
         final String environmentLogLevel = System.getenv("LOG_LEVEL");
 
-        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.ERROR);
+        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.DEBUG);
 
         LogMapping.register();
 
@@ -58,6 +59,8 @@ public class TestBase {
                                                 "com.datastax",
                                                 "org.cassandraunit",
                                                 "io.netty",
+                                                "com.netflix.governator",
+                                                "com.hazelcast.nio",
                                                 "org.glassfish",
                                                 "org.apache"
         };
@@ -88,8 +91,8 @@ public class TestBase {
     }
 
     @Before
-    public void beforeTest(){
-        hazelCastModule = new HazelcastTestModule();
+    public void beforeTest() {
+        hazelCastModule = new HazelcastTestModule("test_" + UUID.randomUUID());
     }
 
     @After
@@ -139,7 +142,7 @@ public class TestBase {
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
         return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
                                                      Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
-                                                                   new MockLeadershipProviderModule(),
+                                                                   hazelCastModule,
                                                                    new TestClockModule(testClock))));
     }
 
