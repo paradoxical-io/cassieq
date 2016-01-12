@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.clustering.allocation;
 
 import com.godaddy.logging.Logger;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
@@ -14,8 +13,11 @@ import com.hazelcast.core.MembershipListener;
 import com.hazelcast.map.listener.EntryAddedListener;
 import com.hazelcast.map.listener.EntryRemovedListener;
 import io.paradoxical.cassieq.clustering.HazelcastBase;
+import io.paradoxical.cassieq.clustering.eventing.EventBus;
+import io.paradoxical.cassieq.clustering.eventing.EventListener;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.model.ClusterMember;
+import io.paradoxical.cassieq.model.events.QueueAddedEvent;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,18 +30,19 @@ import java.util.stream.Collectors;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static java.util.stream.Collectors.toSet;
 
-public class HazelcastResourceDistributor extends HazelcastBase implements ResourceAllocator {
+public class HazelcastResourceAllocater extends HazelcastBase implements ResourceAllocator {
     private final HazelcastInstance hazelcastInstance;
     private final ClusteringConfig clusteringConfig;
     private final ResourceConfig config;
     private final Supplier<Set<ResourceIdentity>> inputSupplier;
     private final Consumer<Set<ResourceIdentity>> allocationEvent;
 
-    private static final Logger logger = getLogger(HazelcastResourceDistributor.class);
+    private static final Logger logger = getLogger(HazelcastResourceAllocater.class);
 
     @Inject
-    public HazelcastResourceDistributor(
+    public HazelcastResourceAllocater(
             HazelcastInstance hazelcastInstance,
+            EventBus eventBus,
             ClusteringConfig clusteringConfig,
             @Assisted ResourceConfig config,
             @Assisted Supplier<Set<ResourceIdentity>> inputSupplier,
@@ -52,6 +55,13 @@ public class HazelcastResourceDistributor extends HazelcastBase implements Resou
         this.allocationEvent = onDistributed;
 
         hazelcastInstance.getCluster().addMembershipListener(getMembershipListener());
+
+        eventBus.register(QueueAddedEvent.class, new EventListener<QueueAddedEvent>() {
+            @Override
+            public void onMessage(final QueueAddedEvent item) {
+                claim();
+            }
+        });
     }
 
     private MembershipListener getMembershipListener() {
@@ -101,6 +111,10 @@ public class HazelcastResourceDistributor extends HazelcastBase implements Resou
     @Override
     public void claim() {
 
+        // because we need to go through everyone in the cluster
+        // put the ownership on one node for this group
+        // otherwise calling the entry set across a large clutster would be huge
+        // we may in the future want to change this depending on the experimeintal cluster size
         final IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> groupAllocationMap = getMap();
 
         try {
@@ -133,7 +147,7 @@ public class HazelcastResourceDistributor extends HazelcastBase implements Resou
     }
 
     private IMap<ResourceGroup, HashMap<ClusterMember, Set<ResourceIdentity>>> getMap() {
-        return  hazelcastInstance.getMap(config.getGroup().get());
+        return hazelcastInstance.getMap(config.getGroup().get());
     }
 
     private Set<ResourceIdentity> claimResources(final Set<ResourceIdentity> total, final HashMap<ClusterMember, Set<ResourceIdentity>> allocated) {
@@ -146,7 +160,7 @@ public class HazelcastResourceDistributor extends HazelcastBase implements Resou
         final Set<ResourceIdentity> currentlyAllocatedToMe = allocated.get(thisClusterMember());
 
         // gotta fill resources
-        if(currentlyAllocatedToMe.size() <= perClusterMemberMax){
+        if (currentlyAllocatedToMe.size() <= perClusterMemberMax) {
             final Set<ResourceIdentity> differenceToFill = availablePool.stream()
                                                                         .limit(perClusterMemberMax - currentlyAllocatedToMe.size())
                                                                         .collect(toSet());
