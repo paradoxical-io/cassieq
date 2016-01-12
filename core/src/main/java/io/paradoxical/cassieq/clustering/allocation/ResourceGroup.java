@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.model;
+package io.paradoxical.cassieq.clustering.allocation;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -16,45 +16,44 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
-import java.io.Serializable;
 
 @Immutable
-@XmlJavaTypeAdapter(value = ClusterMember.XmlAdapter.class)
-@JsonSerialize(using = ClusterMember.JsonSerializeAdapter.class)
-@JsonDeserialize(using = ClusterMember.JsonDeserializeAdapater.class)
-public final class ClusterMember extends StringValue implements Serializable {
-    protected ClusterMember(final String value) {
+@XmlJavaTypeAdapter(value = ResourceGroup.XmlAdapter.class)
+@JsonSerialize(using = ResourceGroup.JsonSerializeAdapter.class)
+@JsonDeserialize(using = ResourceGroup.JsonDeserializeAdapater.class)
+public final class ResourceGroup extends StringValue {
+    protected ResourceGroup(final String value) {
         super(value);
     }
 
-    public static ClusterMember valueOf(String value) {
-        return new ClusterMember(StringUtils.trimToEmpty(value));
+    public static ResourceGroup valueOf(String value) {
+        return new ResourceGroup(StringUtils.trimToEmpty(value));
     }
 
-    public static ClusterMember valueOf(StringValue value) {
-        return ClusterMember.valueOf(value.get());
+    public static ResourceGroup valueOf(StringValue value) {
+        return ResourceGroup.valueOf(value.get());
     }
 
-    public static class XmlAdapter extends JaxbStringValueAdapter<ClusterMember> {
+    public static class XmlAdapter extends JaxbStringValueAdapter<ResourceGroup> {
         @Override
-        protected ClusterMember createNewInstance(String value) {
-            return ClusterMember.valueOf(value);
+        protected ResourceGroup createNewInstance(String value) {
+            return ResourceGroup.valueOf(value);
         }
     }
 
-    public static class JsonDeserializeAdapater extends JsonDeserializer<ClusterMember> {
+    public static class JsonDeserializeAdapater extends JsonDeserializer<ResourceGroup> {
 
         @Override
-        public ClusterMember deserialize(
+        public ResourceGroup deserialize(
                 final JsonParser jp, final DeserializationContext ctxt) throws IOException, JsonProcessingException {
-            return ClusterMember.valueOf(jp.getValueAsString());
+            return ResourceGroup.valueOf(jp.getValueAsString());
         }
     }
 
-    public static class JsonSerializeAdapter extends JsonSerializer<ClusterMember> {
+    public static class JsonSerializeAdapter extends JsonSerializer<ResourceGroup> {
         @Override
         public void serialize(
-                final ClusterMember value, final JsonGenerator jgen, final SerializerProvider provider) throws
+                final ResourceGroup value, final JsonGenerator jgen, final SerializerProvider provider) throws
                                                                                                         IOException,
                                                                                                         JsonProcessingException {
             jgen.writeString(value.get());
