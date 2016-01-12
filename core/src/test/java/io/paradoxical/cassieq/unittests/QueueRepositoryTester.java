@@ -1,8 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
 import categories.BuildVerification;
-import com.google.inject.Injector;
-import io.paradoxical.cassieq.dataAccess.QueueRepositoryImpl;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -21,34 +19,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class QueueRepositoryTester extends TestBase {
     @Test
     public void queue_operations() throws Exception {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
-
         final QueueName queueName = QueueName.valueOf("queue_operations");
+        final TestQueueContext testContext = createTestQueueContext(queueName);
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
+        assertThat(testContext.getQueueRepository().getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        assertThat(testContext.getQueueRepository().getActiveQueue(queueName).isPresent()).isEqualTo(true);
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
-
-        repo.createQueue(queueDefinition);
-
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
-
-        assertThat(repo.getQueueNames()).contains(queueName);
+        assertThat(testContext.getQueueRepository().getQueueNames()).contains(queueName);
     }
 
     @Test
     public void queue_size_grows_and_shrinks() throws Exception {
-        final TestQueueContext testContext = new TestQueueContext(QueueName.valueOf("queue_size_grows_and_shrinks"), getDefaultInjector());
+        final QueueName queueName = QueueName.valueOf("queue_size_grows_and_shrinks");
+        final TestQueueContext testContext = createTestQueueContext(queueName);
 
-        int numMessages = 1000;
+        int numMessages = 100;
 
         for (int i = 0; i < numMessages; i++) {
             testContext.putMessage(Integer.valueOf(i).toString());
         }
 
-        Optional<Long> queueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+        final QueueRepository queueRepository = testContext.getQueueRepository();
+
+        Optional<Long> queueSize = queueRepository.getQueueSize(testContext.getQueueDefinition());
 
         assertThat(queueSize.get()).isEqualTo(numMessages);
 
@@ -58,136 +51,133 @@ public class QueueRepositoryTester extends TestBase {
 
             testContext.readAndAckMessage(Integer.valueOf(i).toString());
 
-            final Optional<Long> newQueueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+            final Optional<Long> newQueueSize = queueRepository.getQueueSize(testContext.getQueueDefinition());
 
             assertThat(newQueueSize.get()).isEqualTo(numMessages - ackCount);
 
         }
 
-        queueSize = testContext.getQueueRepository().getQueueSize(testContext.getQueueDefinition());
+        queueSize = queueRepository.getQueueSize(testContext.getQueueDefinition());
 
         assertThat(queueSize.get()).isEqualTo(0);
     }
 
     @Test
     public void cannot_create_same_queue_twice() throws Exception {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
-
         final QueueName queueName = QueueName.valueOf("cannot_create_same_queue_twice");
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(false);
+        final TestQueueContext testContext = createTestQueueContext(queueName);
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+        final QueueRepository queueRepository = testContext.getQueueRepository();
 
-        repo.createQueue(queueDefinition);
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        assertThat(queueRepository.getActiveQueue(queueName).isPresent()).isEqualTo(true);
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        assertThat(queueRepository.getQueueNames()).contains(queueName);
 
-        assertThat(repo.getQueueNames()).contains(queueName);
-
-        assertThat(repo.createQueue(queueDefinition)).isEmpty();
+        assertThat(queueRepository.createQueue(testContext.getQueueDefinition())).isEmpty();
     }
 
     @Test
     public void queue_definition_once_in_status_cant_move_backwards() {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepositoryImpl repo = (QueueRepositoryImpl) defaultInjector.getInstance(QueueRepository.class);
 
         final QueueName queueName = QueueName.valueOf("queue_definition_once_in_status_cant_move_backwards");
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
 
-        repo.createQueue(queueDefinition);
+        final TestQueueContext testContext = createTestQueueContext(queueName);
+        final QueueRepository queueRepository = testContext.getQueueRepository();
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
 
-        assertThat(repo.getQueueUnsafe(queueName).get().getStatus()).isEqualTo(QueueStatus.Active);
+        queueRepository.createQueue(queueDefinition);
+
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+
+        assertThat(queueRepository.getQueueUnsafe(queueName).get().getStatus()).isEqualTo(QueueStatus.Active);
 
         // no skipping a state
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isFalse();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isFalse();
 
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.PendingDelete)).isTrue();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.PendingDelete)).isTrue();
 
         // ok to move to the same again
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Deleting)).isTrue();
 
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Inactive)).isTrue();
 
         // can't go backwards
-        assertThat(repo.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
+        assertThat(queueRepository.tryAdvanceQueueStatus(queueDefinition.getQueueName(), QueueStatus.Active)).isFalse();
     }
 
     @Test
     public void can_create_new_queue_while_old_queue_is_deleting() {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
 
         final QueueName queueName = QueueName.valueOf("can_create_new_queue_while_old_queue_is_deleting");
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+        final TestQueueContext testContext = createTestQueueContext(queueName);
+        final QueueRepository queueRepository = testContext.getQueueRepository();
 
-        repo.createQueue(queueDefinition);
+        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        queueRepository.createQueue(queueDefinition);
 
-        repo.tryMarkForDeletion(queueDefinition);
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+
+        queueRepository.tryMarkForDeletion(queueDefinition);
 
         // should be able to create a new definition here
-        repo.createQueue(queueDefinition);
+        queueRepository.createQueue(queueDefinition);
     }
 
     @Test
     public void delete_queue() throws QueueAlreadyDeletingException {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
-
-        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
 
         final QueueName queueName = QueueName.valueOf("delete_queue");
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+        final TestQueueContext testContext = createTestQueueContext(queueName);
+        final QueueRepository queueRepository = testContext.getQueueRepository();
 
-        repo.createQueue(queueDefinition);
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
 
-        assertThat(repo.getQueueNames()).contains(queueName);
+        queueRepository.createQueue(queueDefinition);
+
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+
+        assertThat(queueRepository.getQueueNames()).contains(queueName);
+
+        final QueueDeleter queueDeleter = testContext.createQueueDeleter();
 
         queueDeleter.delete(queueName);
 
-        assertThat(repo.getActiveQueue(queueName).isPresent())
+        assertThat(queueRepository.getActiveQueue(queueName).isPresent())
                 .isEqualTo(false)
                 .withFailMessage("Deleted queue still shows up as active");
 
-        assertThat(repo.getQueueUnsafe(queueName).isPresent())
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent())
                 .isEqualTo(false)
                 .withFailMessage("Raw queue definition still exists even though deleter should have removed it");
 
-        assertThat(repo.getQueueNames()).doesNotContain(queueName);
+        assertThat(queueRepository.getQueueNames()).doesNotContain(queueName);
     }
 
     @Test
     public void only_one_active_ever() {
-        final Injector defaultInjector = getDefaultInjector();
-
-        final QueueRepository repo = defaultInjector.getInstance(QueueRepository.class);
-
-        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
 
         final QueueName queueName = QueueName.valueOf("only_one_active_ever");
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder().queueName(queueName).build();
+        final TestQueueContext testContext = createTestQueueContext(queueName);
+        final QueueRepository queueRepository = testContext.getQueueRepository();
+
+        final QueueDeleter queueDeleter = testContext.createQueueDeleter();
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
 
         IntStream.range(0, 1000)
                  .parallel()
                  .forEach(i -> {
-                     repo.createQueue(queueDefinition);
+                     queueRepository.createQueue(queueDefinition);
 
                      try {
                          queueDeleter.delete(queueName);
@@ -198,9 +188,9 @@ public class QueueRepositoryTester extends TestBase {
                  });
 
 
-        repo.createQueue(queueDefinition);
+        queueRepository.createQueue(queueDefinition);
 
-        final long count = repo.getActiveQueues().stream().filter(i -> i.getQueueName().equals(queueName)).count();
+        final long count = queueRepository.getActiveQueues().stream().filter(i -> i.getQueueName().equals(queueName)).count();
 
         assertThat(count).isBetween(0L, 1L).withFailMessage("Too many active queues created");
     }

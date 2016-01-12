@@ -8,6 +8,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,9 +24,11 @@ public class AccountDefinition {
     private ImmutableSet<AccountKey> keys = ImmutableSet.of();
 
     public static AccountDefinition fromRow(final Row row) {
+        final Set<String> keySet = row.getSet(Tables.Account.KEYS, String.class);
+
         return AccountDefinition.builder()
-                .accountName(AccountName.valueOf(row.getString(Tables.Account.ACCOUNT_NAME)))
-                .keys(ImmutableSet.copyOf(row.getSet(Tables.Account.KEYS, AccountKey.class)))
-                .build();
+                                .accountName(AccountName.valueOf(row.getString(Tables.Account.ACCOUNT_NAME)))
+                                .keys(ImmutableSet.copyOf(keySet.stream().map(AccountKey::valueOf).iterator()))
+                                .build();
     }
 }

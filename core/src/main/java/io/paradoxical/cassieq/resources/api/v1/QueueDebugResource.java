@@ -1,26 +1,27 @@
 package io.paradoxical.cassieq.resources.api.v1;
 
+import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
-import io.paradoxical.cassieq.model.QueueName;
-import com.google.inject.Inject;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.Getter;
 import org.joda.time.DateTime;
 
@@ -37,8 +38,8 @@ import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
-@Path("/api/v1/internal/queues")
-@Api(value = "/api/v1/internal/queues", description = "Queue diagnostic api")
+@Path("/api/v1/debug/accounts/{accountName}/queues")
+@Api(value = "/api/v1/debug/accounts/{accountName}/queues", description = "Queue diagnostic api", tags = {"cassieq", "debug"})
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueDebugResource extends BaseQueueResource {
 
@@ -49,14 +50,14 @@ public class QueueDebugResource extends BaseQueueResource {
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository,
-            DataContextFactory dataContextFactory) {
-        super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository);
+            QueueRepositoryFactory queueRepository,
+            DataContextFactory dataContextFactory,
+            @PathParam("accountName") AccountName accountName) {
+        super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository.forAccount(accountName), accountName);
         this.dataContextFactory = dataContextFactory;
     }
 
     @GET
-    @Path("/")
     @ApiOperation(value = "Get all queues")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),

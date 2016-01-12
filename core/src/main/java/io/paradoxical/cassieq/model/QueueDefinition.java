@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NonNull;
 
 @Data
 @Builder
@@ -24,8 +25,8 @@ public class QueueDefinition {
     }
 
     public QueueDefinition(
-            final AccountName accountName,
-            final QueueName queueName,
+            @NonNull final AccountName accountName,
+            @NonNull final QueueName queueName,
             final BucketSize bucketSize,
             final Integer maxDeliveryCount,
             final QueueStatus status,

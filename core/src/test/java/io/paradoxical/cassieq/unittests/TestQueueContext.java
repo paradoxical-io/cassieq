@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.reader.Reader;
 import lombok.Data;
 import lombok.Getter;
@@ -35,35 +36,43 @@ public class TestQueueContext {
 
     @NonNull
     private final Reader reader;
-    private final AccountName testAccountName = AccountName.valueOf("test");
+    private final AccountName accountName;
+    private final Injector injector;
 
     @Getter
     private QueueDataContext context;
 
     @Getter
-    private QueueRepository queueRepository;
+    private final QueueRepository queueRepository;
 
-    public TestQueueContext(QueueName name, Injector injector) {
+    public TestQueueContext(AccountName accountName, QueueName name, Injector injector) {
         this(QueueDefinition.builder()
+                            .accountName(accountName)
                             .queueName(name)
                             .build(), injector);
     }
 
     public TestQueueContext(QueueDefinition queueDefinition, Injector injector) {
-        this.reader = injector.getInstance(ReaderFactory.class).forQueue(testAccountName, queueDefinition);
 
+        if(queueDefinition.getAccountName() == null){
+            throw new IllegalArgumentException("Queue Definition should not be missing an account name");
+        }
+
+        this.accountName = queueDefinition.getAccountName();
         this.queueDefinition = queueDefinition;
+        this.injector = injector;
+
+        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, queueDefinition);
 
         this.queueName = queueDefinition.getQueueName();
 
         final DataContextFactory factory = injector.getInstance(DataContextFactory.class);
 
-        factory.getAccountRepository().createAccount(testAccountName);
+        factory.getAccountRepository().createAccount(accountName);
 
-        queueRepository = factory.forAccount(testAccountName);
+        queueRepository = factory.forAccount(accountName);
 
         this.queueRepository.createQueue(queueDefinition);
-
 
         context = factory.forQueue(queueDefinition);
     }
@@ -93,6 +102,10 @@ public class TestQueueContext {
                        .blob(blob)
                        .index(monoton)
                        .build(), Duration.standardSeconds(seconds));
+    }
+
+    public QueueDeleter createQueueDeleter(){
+        return injector.getInstance(QueueDeleter.Factory.class).create(accountName);
     }
 
     public boolean readAndAckMessage(String blob, Long invisDuration) {

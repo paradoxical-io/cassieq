@@ -5,13 +5,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -22,7 +21,6 @@ import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
-import retrofit.http.Body;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -40,15 +38,13 @@ import javax.ws.rs.core.Response;
 import java.util.Optional;
 
 @Path("/api/v1/accounts/{accountName}/queues")
-@Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api")
+@Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api", tags = "cassieq")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
     private final RepairWorkerManager repairWorkerManager;
     private final QueueDeleter queueDeleter;
-    private final AccountName accountName;
-    private final DataContextFactory dataContextFactory;
 
     @Inject
     public QueueResource(
@@ -57,17 +53,14 @@ public class QueueResource extends BaseQueueResource {
             MonotonicRepoFactory monotonicRepoFactory,
             DataContextFactory dataContextFactory,
             RepairWorkerManager repairWorkerManager,
-            QueueDeleter queueDeleter,
+            QueueDeleter.Factory queueDeleterFactory,
             @PathParam("accountName") AccountName accountName) {
-        super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName));
-        this.dataContextFactory = dataContextFactory;
+        super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
         this.repairWorkerManager = repairWorkerManager;
-        this.queueDeleter = queueDeleter;
-        this.accountName = accountName;
+        this.queueDeleter = queueDeleterFactory.create(accountName);
     }
 
     @POST
-    @Path("/")
     @Timed
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
@@ -86,6 +79,7 @@ public class QueueResource extends BaseQueueResource {
                                    .repairWorkerTombstonedBucketTimeoutSeconds(createOptions.getRepairWorkerBucketFinalizeTimeSeconds())
                                    .deleteBucketsAfterFinaliziation(createOptions.getDeleteBucketsAfterFinalize())
                                    .queueName(createOptions.getQueueName())
+                                   .accountName(getAccountName())
                                    .build();
 
             final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
@@ -112,7 +106,6 @@ public class QueueResource extends BaseQueueResource {
     }
 
     @DELETE
-    @Path("/")
     @Timed
     @ApiOperation(value = "Purge inactive queues")
     @ApiResponses(value = {
@@ -177,7 +170,7 @@ public class QueueResource extends BaseQueueResource {
         final Optional<Message> messageOptional;
 
         try {
-            messageOptional = getReaderFactory().forQueue(accountName, queueDefinition.get())
+            messageOptional = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
                                                 .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
@@ -310,7 +303,7 @@ public class QueueResource extends BaseQueueResource {
         boolean messageAcked;
 
         try {
-            messageAcked = getReaderFactory().forQueue(accountName, queueDefinition.get())
+            messageAcked = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
                                              .ackMessage(popReceipt);
         }
         catch (Exception e) {
@@ -328,11 +321,32 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}")
     @Timed
-    @ApiOperation(value = "Get queue information")
+    @ApiOperation(value = "Get a queue definition")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueSize(
+    public Response getQueueInfo(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        return Response.ok().entity(definition).build();
+    }
+
+    @GET
+    @Path("/{queueName}/statistics")
+    @Timed
+    @ApiOperation(value = "Get queue statistics")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueStatistics(
             @NotNull @PathParam("queueName") QueueName queueName) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
@@ -346,7 +360,7 @@ public class QueueResource extends BaseQueueResource {
         final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
 
         Object returnEntity = new Object() {
-            @JsonProperty("queueSize")
+            @JsonProperty("size")
             public long size = queueSize.orElse(0L);
         };
 

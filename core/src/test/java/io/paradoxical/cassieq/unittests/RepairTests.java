@@ -4,6 +4,7 @@ import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
+import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
@@ -17,6 +18,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
+import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
@@ -25,6 +27,7 @@ import lombok.Cleanup;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +46,7 @@ public class RepairTests extends TestBase {
         final QueueName queueName = QueueName.valueOf("repairer_republishes_newly_visible_in_tombstoned_bucket");
 
         final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                               .accountName(testAccountName)
                                                                .queueName(queueName)
                                                                .bucketSize(BucketSize.valueOf(1))
                                                                .repairWorkerPollFrequencySeconds(1)
@@ -95,6 +99,7 @@ public class RepairTests extends TestBase {
         final ServiceConfiguration serviceConfiguration = new ServiceConfiguration();
 
         final Injector defaultInjector = getDefaultInjector(serviceConfiguration);
+        ensureTestAccountCreated(defaultInjector);
 
         final RepairWorkerFactory repairWorkerFactory = defaultInjector.getInstance(RepairWorkerFactory.class);
 
@@ -159,6 +164,7 @@ public class RepairTests extends TestBase {
     @Test
     public void repair_manager_adds_new_workers() throws Exception {
         final Injector defaultInjector = getDefaultInjector(new ServiceConfiguration(), CqlDb.createFresh());
+        ensureTestAccountCreated(defaultInjector);
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 
@@ -189,6 +195,8 @@ public class RepairTests extends TestBase {
 
         manager.start();
 
+        ensureTestAccountCreated(defaultInjector);
+
         final QueueName queueName = QueueName.valueOf("repair_manager_properly_keeps_track_of_existing_workers");
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
@@ -209,6 +217,13 @@ public class RepairTests extends TestBase {
         assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(0);
     }
 
+    private Optional<AccountDefinition> ensureTestAccountCreated(final Injector injector) {
+        final DataContextFactory factory = injector.getInstance(DataContextFactory.class);
+        final AccountRepository accountRepository = factory.getAccountRepository();
+
+        return accountRepository.createAccount(testAccountName);
+    }
+
     @Test
     public void repair_manager_polls_queues_for_new_workers() throws Exception {
         final ServiceConfiguration configuration = new ServiceConfiguration();
@@ -216,6 +231,8 @@ public class RepairTests extends TestBase {
         configuration.getRepairConf().setManagerRefreshRateSeconds(1);
 
         final Injector defaultInjector = getDefaultInjector(configuration, CqlDb.createFresh());
+        ensureTestAccountCreated(defaultInjector);
+
 
         @Cleanup("stop") final RepairWorkerManager manager = defaultInjector.getInstance(RepairWorkerManager.class);
 

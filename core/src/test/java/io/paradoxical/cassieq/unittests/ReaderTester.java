@@ -385,6 +385,7 @@ public class ReaderTester extends TestBase {
         final QueueName queue = QueueName.valueOf(queueName);
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queue)
+                                                               .accountName(testAccountName)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
         createQueue(queueDefinition);

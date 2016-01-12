@@ -82,6 +82,12 @@ public class TestBase {
 
     }
 
+    protected TestQueueContext createTestQueueContext(QueueName queueName) {
+        final TestQueueContext testQueueContext = new TestQueueContext(testAccountName, queueName, getDefaultInjector());
+
+        return testQueueContext;
+    }
+
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
         return getDefaultInjector(configuration, session);
     }
@@ -121,6 +127,7 @@ public class TestBase {
     protected QueueDefinition setupQueue(QueueName queueName, Integer bucketSize, Injector injector) {
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queueName)
+                                                               .accountName(testAccountName)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .repairWorkerPollFrequencySeconds(1)
                                                                .repairWorkerTombstonedBucketTimeoutSeconds(3)

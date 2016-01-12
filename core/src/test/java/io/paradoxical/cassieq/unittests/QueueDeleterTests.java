@@ -52,24 +52,29 @@ public class QueueDeleterTests extends TestBase {
 
         final Semaphore start = new Semaphore(1);
 
-        final Thread[] deletion = new Thread[1];
+        final Thread[] deletionThreadBox = new Thread[1];
 
         start.acquire();
 
-        // delay the actual queue deletion as if it was an async job
+        // delay the actual queue deletionThreadBox as if it was an async job
         when(jobSpy.createDeletionProcessor(any())).thenAnswer(answer -> {
-            deletion[0] = new Thread(() -> {
+            final DeletionJob deletionJob = (DeletionJob)answer.getArguments()[0];
+
+            deletionThreadBox[0] = new Thread(() -> {
                 try {
                     start.acquire();
 
-                    final MessageDeletorJobProcessorImpl realDeletor = defaultInjector.createChildInjector(new AbstractModule() {
+                    final Injector childInjector = defaultInjector.createChildInjector(new AbstractModule() {
                         @Override
                         protected void configure() {
+
                             bind(DeletionJob.class)
                                     .annotatedWith(Assisted.class)
-                                    .toInstance(((DeletionJob) answer.getArguments()[0]));
+                                    .toInstance(deletionJob);
                         }
-                    }).getInstance(MessageDeletorJobProcessorImpl.class);
+                    });
+
+                    final MessageDeletorJobProcessorImpl realDeletor = childInjector.getInstance(MessageDeletorJobProcessorImpl.class);
 
                     // the job starts, and after completion tries to mark the queue as inactive
                     // but we have already created a new active queue so this should NOT occur
@@ -85,12 +90,12 @@ public class QueueDeleterTests extends TestBase {
                 }
             });
 
-            deletion[0].start();
+            deletionThreadBox[0].start();
 
             return mock(MessageDeleterJobProcessor.class);
         });
 
-        final QueueDeleter.Factory deleterFactory = getDefaultInjector().getInstance(QueueDeleter.Factory.class);
+        final QueueDeleter.Factory deleterFactory = defaultInjector.getInstance(QueueDeleter.Factory.class);
 
         final QueueDeleter queueDeleter = deleterFactory.create(testAccountName);
 
@@ -100,7 +105,7 @@ public class QueueDeleterTests extends TestBase {
 
         final QueueName name = QueueName.valueOf("can_create_queue_while_job_is_deleting");
 
-        final QueueDefinition build = QueueDefinition.builder().queueName(name).build();
+        final QueueDefinition build = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
 
         final Optional<QueueDefinition> initialQueue = queueRepository.createQueue(build);
 
@@ -109,6 +114,8 @@ public class QueueDeleterTests extends TestBase {
 
         // delete v0 async
         queueDeleter.delete(name);
+
+        assertThat(deletionThreadBox[0]).isNotNull();
 
         // should be able to make new queue
         final Optional<QueueDefinition> queue = queueRepository.createQueue(build);
@@ -121,7 +128,7 @@ public class QueueDeleterTests extends TestBase {
         start.release();
 
         // wait for deleter to finish
-        deletion[0].join();
+        deletionThreadBox[0].join();
 
         final QueueDefinition activeQueue = queueRepository.getActiveQueue(queue.get().getQueueName()).get();
 
@@ -139,7 +146,7 @@ public class QueueDeleterTests extends TestBase {
 
         final QueueName name = QueueName.valueOf("test_deleter_cleans_up_pointers");
 
-        final QueueDefinition definition = QueueDefinition.builder().queueName(name).build();
+        final QueueDefinition definition = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
 
         final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
         queueRepository.createQueue(definition);
