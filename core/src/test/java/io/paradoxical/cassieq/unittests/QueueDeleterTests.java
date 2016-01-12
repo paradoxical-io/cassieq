@@ -58,7 +58,7 @@ public class QueueDeleterTests extends TestBase {
 
         // delay the actual queue deletionThreadBox as if it was an async job
         when(jobSpy.createDeletionProcessor(any())).thenAnswer(answer -> {
-            final DeletionJob deletionJob = (DeletionJob)answer.getArguments()[0];
+            final DeletionJob deletionJob = (DeletionJob) answer.getArguments()[0];
 
             deletionThreadBox[0] = new Thread(() -> {
                 try {
@@ -96,11 +96,8 @@ public class QueueDeleterTests extends TestBase {
         });
 
         final QueueDeleter.Factory deleterFactory = defaultInjector.getInstance(QueueDeleter.Factory.class);
-
         final QueueDeleter queueDeleter = deleterFactory.create(testAccountName);
-
         final QueueRepositoryFactory queueRepositoryFactory = defaultInjector.getInstance(QueueRepositoryFactory.class);
-
         final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
 
         final QueueName name = QueueName.valueOf("can_create_queue_while_job_is_deleting");
@@ -110,7 +107,10 @@ public class QueueDeleterTests extends TestBase {
         final Optional<QueueDefinition> initialQueue = queueRepository.createQueue(build);
 
         // make sure we got a v0 queue
-        assertThat(initialQueue.get().getVersion()).isEqualTo(0);
+        assertThat(initialQueue
+                           .orElseThrow(() -> new RuntimeException("Couldn't create queue or it already existed.."))
+                           .getVersion()).isEqualTo(0)
+                                         .withFailMessage("Couldn't get correct queue version");
 
         // delete v0 async
         queueDeleter.delete(name);
@@ -149,7 +149,7 @@ public class QueueDeleterTests extends TestBase {
         final QueueDefinition definition = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
 
         final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
-        queueRepository.createQueue(definition);
+        final Optional<QueueDefinition> createdDef = queueRepository.createQueue(definition);
 
         final QueueDataContext dataContext = contextFactory.forQueue(definition);
 
@@ -163,7 +163,10 @@ public class QueueDeleterTests extends TestBase {
         dataContext.getPointerRepository().tryMoveInvisiblityPointerTo(InvisibilityMessagePointer.valueOf(0), InvisibilityMessagePointer.valueOf(10));
         dataContext.getPointerRepository().advanceMessageBucketPointer(ReaderBucketPointer.valueOf(0), ReaderBucketPointer.valueOf(10));
 
-        assertThat(queueRepository.getQueueSize(definition).get()).isEqualTo(1);
+        assertThat(queueRepository.getQueueSize(createdDef.orElse(definition))
+                                  .orElse(0L))
+                .isEqualTo(1)
+                .withFailMessage("Queue Size wasn't updated");
 
         deleter.delete(name);
 
