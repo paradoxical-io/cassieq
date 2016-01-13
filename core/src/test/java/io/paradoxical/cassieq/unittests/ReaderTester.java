@@ -19,14 +19,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReaderTester extends TestBase {
-    private final Injector defaultInjector;
+    private Injector defaultInjector;
 
     public ReaderTester() {
-        this.defaultInjector = getDefaultInjector();
+
     }
 
     @Before
     public void setup() {
+        super.beforeTest();
+
+        this.defaultInjector = getDefaultInjector();
     }
 
     @Test
