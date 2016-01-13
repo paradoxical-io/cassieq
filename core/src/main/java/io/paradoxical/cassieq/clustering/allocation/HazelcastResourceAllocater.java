@@ -212,7 +212,7 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
 
         final int clusterSize = hazelcastInstance.getCluster().getMembers().size();
 
-        final int perClusterClaimMax = Double.valueOf(Math.ceil(total.size() / (double) clusterSize)).intValue();
+        final int perClusterMemberClaimMax = Double.valueOf(Math.ceil(total.size() / (double) clusterSize)).intValue();
 
         final Set<ResourceIdentity> currentlyAllocatedToMe = getCurrentAllocations(allocated, thisClusterMember());
 
@@ -226,14 +226,19 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
             currentlyAllocatedToMe.removeAll(resourcesNoLongerActiveButClaimedByMe);
         }
 
-        Logger resourceLogger = logger.with("member-max-claim-num", perClusterClaimMax)
+        Logger resourceLogger = logger.with("member-max-claim-num", perClusterMemberClaimMax)
                                       .with("cluster-size", clusterSize)
                                       .with("current-allocations-to-this", currentlyAllocatedToMe.size());
 
+        // can't take any more, and we're as good as its gonna get
+        if(currentlyAllocatedToMe.size() == perClusterMemberClaimMax){
+            return currentlyAllocatedToMe;
+        }
+
         // gotta fill resources
-        if (currentlyAllocatedToMe.size() <= perClusterClaimMax) {
+        if (currentlyAllocatedToMe.size() < perClusterMemberClaimMax) {
             final Set<ResourceIdentity> differenceToFill = availablePool.stream()
-                                                                        .limit(perClusterClaimMax - currentlyAllocatedToMe.size())
+                                                                        .limit(perClusterMemberClaimMax - currentlyAllocatedToMe.size())
                                                                         .collect(toSet());
 
             resourceLogger.with("claiming-count", differenceToFill.size()).info("Claiming");
@@ -242,7 +247,7 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
         }
         // gotta give up resources
         else {
-            final int amountToGiveUp = currentlyAllocatedToMe.size() - perClusterClaimMax;
+            final int amountToGiveUp = currentlyAllocatedToMe.size() - perClusterMemberClaimMax;
 
             resourceLogger.with("releasing-resource-count", amountToGiveUp).info("Releasing");
 

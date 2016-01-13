@@ -8,7 +8,8 @@ public interface ResourceAllocator extends AutoCloseable {
     void claim();
 
     interface Factory {
-        ResourceAllocator getAllocator(ResourceConfig config, Supplier<Set<ResourceIdentity>> inputSet, final Consumer<Set<ResourceIdentity>> whenAllocated);
+        ResourceAllocator getAllocator(ResourceConfig config,
+                                       Supplier<Set<ResourceIdentity>> masterSetSupplier,
+                                       final Consumer<Set<ResourceIdentity>> claimSetConsumer);
     }
 }
-

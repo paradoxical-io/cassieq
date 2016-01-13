@@ -69,7 +69,7 @@ public class HazelcastEventBus implements EventBus {
     }
 
     @Override
-    public void unregister(final String registationId) {
-        hazelcastInstance.getTopic(topicName).removeMessageListener(registationId);
+    public void unregister(final String registrationId) {
+        hazelcastInstance.getTopic(topicName).removeMessageListener(registrationId);
     }
 }

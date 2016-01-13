@@ -7,4 +7,3 @@ public interface EventBus {
 
     void unregister(String registationId);
 }
-
