@@ -6,7 +6,7 @@ import lombok.Getter;
 
 import javax.ws.rs.PathParam;
 
-public abstract class BaseAccountResource {
+public abstract class BaseAccountResource extends BaseResource {
 
     @Getter(AccessLevel.PROTECTED)
     private final AccountName accountName;

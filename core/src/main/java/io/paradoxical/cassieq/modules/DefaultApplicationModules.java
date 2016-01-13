@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.modules;
 
 import com.google.inject.Module;
+import io.paradoxical.cassieq.modules.auth.AuthModule;
 
 import java.util.Arrays;
 import java.util.List;
@@ -18,6 +19,7 @@ public class DefaultApplicationModules {
                 new RepairWorkerModule(),
                 new ReaderModule(),
                 new ConfigProviderModule(),
-                new ClockModule());
+                new ClockModule(),
+                new AuthModule());
     }
 }

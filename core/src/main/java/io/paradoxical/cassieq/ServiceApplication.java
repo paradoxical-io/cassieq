@@ -2,15 +2,22 @@ package io.paradoxical.cassieq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
+import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
+import io.dropwizard.auth.Authenticator;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
+import io.paradoxical.cassieq.auth.AccountPrincipal;
+import io.paradoxical.cassieq.auth.AuthToken;
+import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
@@ -22,6 +29,8 @@ import io.swagger.jersey.listing.ApiListingResourceJSON;
 import lombok.Getter;
 import org.joda.time.DateTimeZone;
 
+import javax.ws.rs.core.Response;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -117,7 +126,21 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
     private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
 
-        environment.jersey();
+        final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
+
+        final Key<Authenticator<AuthToken, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthToken, AccountPrincipal>>() {});
+
+        final SignedRequestAuthFilter<AccountPrincipal> authFilter =
+                SignedRequestAuthFilter.<AccountPrincipal>builder()
+                        .accountNamePathParameter("accountName")
+                        .setAuthenticator(injector.getInstance(authenticatorKey))
+                        .setPrefix("Signed")
+                        .setAuthorizer((principal, role) -> true)
+                        .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
+                        .buildAuthFilter();
+
+
+        environment.jersey().register(authFilter);
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
@@ -136,7 +159,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
             final ServiceConfiguration config,
             final Environment environment) {
 
-
         final BeanConfig swagConfig = new BeanConfig();
         swagConfig.setScan(true);
         swagConfig.setTitle("cassieq");
@@ -150,16 +172,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
         environment.jersey().register(new ApiListingResourceJSON());
-//        environment.jersey().register(new ApiListingResource());
         environment.jersey().register(new SwaggerSerializers());
-
-//        environment.jersey().register(new ResourceListingProvider());
-//        environment.jersey().register(new ApiDeclarationProvider());
-
-//        ScannerFactory.setScanner(new DefaultJaxrsScanner());
-
-//        ClassReaders.setReader(new DefaultJaxrsApiReader());
-
 
     }
 

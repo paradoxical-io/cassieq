@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq;
+package io.paradoxical.cassieq.auth;
 
 import com.google.common.collect.ImmutableMap;
 

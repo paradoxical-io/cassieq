@@ -46,43 +46,5 @@ public abstract class BaseQueueResource extends BaseAccountResource {
         return queueRepository.getActiveQueue(queueName);
     }
 
-    protected Response buildQueueNotFoundResponse(final QueueName queue) {
-        return Response.status(Response.Status.NOT_FOUND).entity(new Object() {
-            @Getter
-            private final String result = "not-found";
 
-            @Getter
-            private final String queueName = queue.get();
-        }).build();
-    }
-
-
-    protected Response buildConflictResponse(String reason) {
-        return Response.status(Response.Status.CONFLICT)
-                       .entity(new Object() {
-                           public final String result = "conflict";
-
-                           public final String message = reason;
-                       })
-                       .build();
-    }
-
-    protected Response buildErrorResponse(final String operation, final QueueName queue, final Exception e) {
-
-        final String errorMessage = e.getMessage();
-
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(new Object() {
-            @Getter
-            private final String result = "error";
-
-            @Getter
-            private final String op = operation;
-
-            @Getter
-            private final QueueName queueName = queue;
-
-            @Getter
-            private final String message = errorMessage;
-        }).build();
-    }
 }
