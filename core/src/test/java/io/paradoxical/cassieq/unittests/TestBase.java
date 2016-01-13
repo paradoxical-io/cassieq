@@ -56,7 +56,7 @@ public class TestBase {
     static {
         final String environmentLogLevel = System.getenv("LOG_LEVEL");
 
-        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.DEBUG);
+        BootstrapLogging.bootstrap(environmentLogLevel != null ? Level.toLevel(environmentLogLevel) : Level.ERROR);
 
         LogMapping.register();
 
