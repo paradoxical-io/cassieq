@@ -9,10 +9,13 @@ import io.dropwizard.logging.BootstrapLogging;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
+import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
@@ -43,6 +46,8 @@ public class TestBase {
     public static Session session;
 
     private static final Object lock = new Object();
+
+    public static final AccountName testAccountName = AccountName.valueOf("test");
 
     protected static final PodamFactory fixture = new PodamFactoryImpl();
 
@@ -90,6 +95,12 @@ public class TestBase {
 
     }
 
+    protected TestQueueContext createTestQueueContext(QueueName queueName) {
+        final TestQueueContext testQueueContext = new TestQueueContext(testAccountName, queueName, getDefaultInjector());
+
+        return testQueueContext;
+    }
+
     @Before
     public void beforeTest() {
         hazelCastModule = new HazelcastTestModule("test_" + UUID.randomUUID());
@@ -113,14 +124,11 @@ public class TestBase {
     protected TestQueueContext setupTestContext(String queueName, int bucketSize) {
         final QueueName queue = QueueName.valueOf(queueName);
         final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                               .accountName(testAccountName)
                                                                .queueName(queue)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
         return setupTestContext(queueDefinition);
-    }
-
-    protected QueueRepository getQueueRepository() {
-        return getDefaultInjector().getInstance(QueueRepository.class);
     }
 
     protected Injector getDefaultInjector(ServiceConfiguration configuration) {
@@ -164,6 +172,7 @@ public class TestBase {
     protected QueueDefinition setupQueue(QueueName queueName, Integer bucketSize, Injector injector) {
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .queueName(queueName)
+                                                               .accountName(testAccountName)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .repairWorkerPollFrequencySeconds(1)
                                                                .repairWorkerTombstonedBucketTimeoutSeconds(3)
@@ -175,7 +184,9 @@ public class TestBase {
     }
 
     private void createQueue(final QueueDefinition queueDefinition, final Injector injector) {
-        final QueueRepository queueRepository = injector.getInstance(QueueRepository.class);
+        final DataContextFactory dataContextFactory = injector.getInstance(DataContextFactory.class);
+
+        final QueueRepository queueRepository = dataContextFactory.forAccount(testAccountName);
 
         queueRepository.createQueue(queueDefinition);
 

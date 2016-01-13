@@ -9,6 +9,7 @@ import com.datastax.driver.core.querybuilder.Select;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.clustering.eventing.EventBus;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -17,6 +18,7 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.model.events.QueueAddedEvent;
 import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.NonNull;
 
 import java.util.List;
@@ -34,13 +36,19 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     private static final Logger logger = getLogger(QueueRepositoryImpl.class);
 
     private final Session session;
+
     private final EventBus eventBus;
+
+    private final AccountName accountName;
 
     @Inject
     public QueueRepositoryImpl(
             @NonNull final Session session,
-            final EventBus eventBus) {
+            final EventBus eventBus,
+            @NonNull
+            @Assisted AccountName accountName) {
         this.session = session;
+        this.accountName = accountName;
         this.eventBus = eventBus;
     }
 
@@ -89,6 +97,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Statement insert = QueryBuilder.insertInto(Tables.DeletionJob.TABLE_NAME)
                                              .ifNotExists()
                                              .value(Tables.DeletionJob.QUEUE_NAME, deletionJob.getQueueName().get())
+                                             .value(Tables.DeletionJob.ACCOUNT_NAME, accountName.get())
                                              .value(Tables.DeletionJob.VERSION, deletionJob.getVersion())
                                              .value(Tables.DeletionJob.BUCKET_SIZE, deletionJob.getBucketSize().get());
 
@@ -129,6 +138,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         Function<Clause, Boolean> applier = clause -> {
             final Statement update = QueryBuilder.update(Tables.Queue.TABLE_NAME)
                                                  .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
+                                                 .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
                                                  .with(set(Tables.Queue.STATUS, status.ordinal()))
                                                  .onlyIf(clause);
 
@@ -155,6 +165,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Insert insertQueue =
                 QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                             .ifNotExists()
+                            .value(Tables.Queue.ACCOUNT_NAME, accountName.get())
                             .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
                             .value(Tables.Queue.VERSION, 0)
                             .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
@@ -177,6 +188,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     private boolean upsertQueueDefinition(@NonNull final QueueDefinition queueDefinition) {
         final Logger upsertLogger = logger.with("queue-name", queueDefinition.getQueueName());
+
+        queueDefinition.setAccountName(accountName);
 
         if (insertQueueIfNotExist(queueDefinition)) {
             upsertLogger.success("Created new queue");
@@ -224,6 +237,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Statement insertTrackingId =
                 QueryBuilder.update(Tables.Queue.TABLE_NAME)
                             .where(eq(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get()))
+                            .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
                             .with(set(Tables.Queue.VERSION, nextVersion))
                             .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
                             .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get()))
@@ -282,7 +296,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Select.Where queryOne =
                 QueryBuilder.select().all()
                             .from(Tables.Queue.TABLE_NAME)
-                            .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()));
+                            .where(eq(Tables.Queue.QUEUE_NAME, queueName.get()))
+                            .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()));
 
         final QueueDefinition result = getOne(session.execute(queryOne), QueueDefinition::fromRow);
 
@@ -313,6 +328,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         final Statement delete = QueryBuilder.delete()
                                              .from(Tables.DeletionJob.TABLE_NAME)
                                              .where(eq(Tables.DeletionJob.QUEUE_NAME, job.getQueueName().get()))
+                                             .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
                                              .and(eq(Tables.DeletionJob.VERSION, job.getVersion()));
 
         if (session.execute(delete).wasApplied()) {

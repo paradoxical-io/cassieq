@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.common.valuetypes.StringValue;
 import io.paradoxical.common.valuetypes.adapters.xml.JaxbStringValueAdapter;
 import jdk.nashorn.internal.ir.annotations.Immutable;
@@ -16,6 +17,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Immutable
 @XmlJavaTypeAdapter(value = QueueId.XmlAdapter.class)
@@ -30,16 +33,8 @@ public final class QueueId extends StringValue {
         return new QueueId(StringUtils.trimToEmpty(value));
     }
 
-    public static QueueId valueOf(QueueName name, int version){
-        return QueueId.valueOf(name + "_v" + version);
-    }
-
-    public static QueueId valueOf(StringValue value) {
-        return QueueId.valueOf(value.get());
-    }
-
-    public int getVersion(final QueueName queueName) {
-        return Integer.valueOf(get().replaceFirst("^" + queueName.get() + "_v", ""));
+    public static QueueId valueOf(AccountName accountName, QueueName name, int version){
+        return QueueId.valueOf(accountName + ":" + name + "_v" + version);
     }
 
     public static class XmlAdapter extends JaxbStringValueAdapter<QueueId> {

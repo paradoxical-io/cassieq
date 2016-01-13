@@ -2,12 +2,15 @@ package io.paradoxical.cassieq.model;
 
 import com.datastax.driver.core.Row;
 import io.paradoxical.cassieq.dataAccess.Tables;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NonNull;
 
 @Data
 @Builder
 public class QueueDefinition {
+    private AccountName accountName;
     private QueueName queueName;
     private final BucketSize bucketSize;
     private final Integer maxDeliveryCount;
@@ -18,11 +21,12 @@ public class QueueDefinition {
     private final Boolean deleteBucketsAfterFinalization;
 
     public QueueId getId() {
-        return QueueId.valueOf(queueName, version);
+        return QueueId.valueOf(accountName, queueName, version);
     }
 
     public QueueDefinition(
-            final QueueName queueName,
+            @NonNull final AccountName accountName,
+            @NonNull final QueueName queueName,
             final BucketSize bucketSize,
             final Integer maxDeliveryCount,
             final QueueStatus status,
@@ -30,6 +34,7 @@ public class QueueDefinition {
             final Integer repairWorkerPollFrequencySeconds,
             final Integer repairWorkerTombstonedBucketTimeoutSeconds,
             final Boolean deleteBucketsAfterFinaliziation) {
+        this.accountName = accountName;
         this.queueName = queueName;
         this.deleteBucketsAfterFinalization = deleteBucketsAfterFinaliziation == null ? true : deleteBucketsAfterFinaliziation;
         this.version = version == null ? 0 : version;
@@ -46,6 +51,7 @@ public class QueueDefinition {
                               .maxDeliveryCount(row.getInt(Tables.Queue.MAX_DELIVERY_COUNT))
                               .status(QueueStatus.values()[row.getInt(Tables.Queue.STATUS)])
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUE_NAME)))
+                              .accountName(AccountName.valueOf(row.getString(Tables.Queue.ACCOUNT_NAME)))
                               .version(row.getInt(Tables.Queue.VERSION))
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))

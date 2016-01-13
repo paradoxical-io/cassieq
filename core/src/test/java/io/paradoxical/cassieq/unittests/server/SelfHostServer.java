@@ -52,7 +52,7 @@ public class SelfHostServer implements AutoCloseable {
         serviceConfigurationTestServiceServiceTestRunner.run(serviceConfiguration, ImmutableList.copyOf(overridableModules));
     }
 
-    public TestService getService(){
+    public TestService getService() {
         return serviceConfigurationTestServiceServiceTestRunner.getApplication();
     }
 
@@ -62,7 +62,9 @@ public class SelfHostServer implements AutoCloseable {
 
     public void stop() {
         try {
-            serviceConfigurationTestServiceServiceTestRunner.close();
+            if (serviceConfigurationTestServiceServiceTestRunner != null) {
+                serviceConfigurationTestServiceServiceTestRunner.close();
+            }
         }
         catch (Exception e) {
             logger.error(e, "Error stopping");

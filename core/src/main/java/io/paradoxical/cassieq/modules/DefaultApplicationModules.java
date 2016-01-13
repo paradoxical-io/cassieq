@@ -11,6 +11,7 @@ public class DefaultApplicationModules {
                 new LeadershipModule(),
                 new ClusteringModule(),
                 new MessageDeletionModule(),
+                new QueueDeletionModule(),
                 new JsonMapperModule(),
                 new DataAccessModule(),
                 new SessionProviderModule(),

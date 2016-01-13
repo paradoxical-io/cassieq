@@ -9,6 +9,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.InvisLocaterFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
@@ -16,6 +17,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
@@ -32,11 +34,12 @@ import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class ReaderImpl implements Reader {
+    private final QueueRepository queueRepository;
     private Logger logger = getLogger(ReaderImpl.class);
 
+    private final QueueDataContext dataContext;
+    private final DataContextFactory dataContextFactory;
     private static final Random random = new Random();
-    private final DataContext dataContext;
-    private final QueueRepository queueRepository;
     private final Clock clock;
     private final MetricRegistry metricRegistry;
     private final InvisLocaterFactory invisLocaterFactory;
@@ -47,13 +50,13 @@ public class ReaderImpl implements Reader {
     @Inject
     public ReaderImpl(
             DataContextFactory dataContextFactory,
-            QueueRepository queueRepository,
             Clock clock,
             MetricRegistry metricRegistry,
             MessageConsumer.Factory messageConsumerFactory,
             InvisLocaterFactory invisLocaterFactory,
+            @Assisted AccountName accountName,
             @Assisted QueueDefinition queueDefinition) {
-        this.queueRepository = queueRepository;
+        this.dataContextFactory = dataContextFactory;
         this.clock = clock;
         this.metricRegistry = metricRegistry;
         this.invisLocaterFactory = invisLocaterFactory;
@@ -61,6 +64,7 @@ public class ReaderImpl implements Reader {
         this.queueDefinition = queueDefinition;
 
         dataContext = dataContextFactory.forQueue(queueDefinition);
+        queueRepository = dataContextFactory.forAccount(accountName);
 
         logger = logger.with("q", queueDefinition.getQueueName()).with("version", queueDefinition.getVersion());
 

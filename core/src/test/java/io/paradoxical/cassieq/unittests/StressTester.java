@@ -4,6 +4,7 @@ import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import org.junit.Ignore;
 import org.junit.Test;
 import retrofit.Response;
@@ -14,8 +15,11 @@ import java.util.Random;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
+@Ignore("Stress tests")
 public class StressTester {
     private static final Logger logger = getLogger(StressTester.class);
+
+    public static final AccountName testAccountName = AccountName.valueOf("stress-testing");
 
     @Ignore
     @Test
@@ -39,11 +43,11 @@ public class StressTester {
         new Thread(() -> {
             while (true) {
                 try {
-                    final Response<GetMessageResponse> execute = client.getMessage(perftest, 30L).execute();
+                    final Response<GetMessageResponse> execute = client.getMessage(testAccountName, perftest, 30L).execute();
 
                     final String popReceipt = execute.body().getPopReceipt();
 
-                    client.ackMessage(perftest, popReceipt).execute();
+                    client.ackMessage(testAccountName, perftest, popReceipt).execute();
                 }
                 catch (IOException e) {
                     logger.error(e, "Error");
@@ -57,7 +61,7 @@ public class StressTester {
             final Random random = new Random();
             while (true) {
                 try {
-                    client.addMessage(perftest, random.nextInt()).execute();
+                    client.addMessage(testAccountName, perftest, random.nextInt()).execute();
                 }
                 catch (IOException e) {
                     logger.error(e, "Error");

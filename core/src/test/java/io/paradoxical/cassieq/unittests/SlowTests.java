@@ -1,20 +1,24 @@
 package io.paradoxical.cassieq.unittests;
 
 import categories.StressTests;
+import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
@@ -43,7 +47,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
-@Category(StressTests.class)
+@Category({ StressTests.class, VerySlowTests.class })
 public class SlowTests extends TestBase {
     private static final Logger logger = getLogger(SlowTests.class);
 
@@ -82,14 +86,14 @@ public class SlowTests extends TestBase {
                                   .repairWorkerPollSeconds(1)
                                   .build();
 
-        client.createQueue(queueCreateOptions)
+        client.createQueue(testAccountName, queueCreateOptions)
               .execute();
 
         final Thread thread = new Thread(() -> {
             IntStream.range(0, numMessages)
                      .parallel()
                      .forEach(Unchecked.intConsumer(i -> {
-                         client.addMessage(queueName, i).execute();
+                         client.addMessage(testAccountName, queueName, i).execute();
                      }));
         });
 
@@ -129,10 +133,17 @@ public class SlowTests extends TestBase {
         final Injector injector = server.getService().getGuiceBundleProvider().getBundle().getInjector();
 
         final DataContextFactory instance = injector.getInstance(DataContextFactory.class);
+        final QueueRepositoryFactory queueRepositoryFactory = injector.getInstance(QueueRepositoryFactory.class);
+        final AccountRepository accountRepository = injector.getInstance(AccountRepository.class);
 
-        final Optional<QueueDefinition> definition = instance.getDefinition(queueCreateOptions.getQueueName());
+        final AccountName test = AccountName.valueOf("test");
+        accountRepository.createAccount(test);
 
-        final DataContext dataContext = instance.forQueue(definition.get());
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(test);
+
+        final Optional<QueueDefinition> definition = queueRepository.getActiveQueue(queueCreateOptions.getQueueName());
+
+        final QueueDataContext dataContext = instance.forQueue(definition.get());
 
         int messagesFound = 0;
 
@@ -150,7 +161,7 @@ public class SlowTests extends TestBase {
 
         assertThat(messagesFound).isEqualTo(numMessages);
 
-        final Long queueSize = injector.getInstance(QueueRepository.class).getQueueSize(definition.get()).get();
+        final Long queueSize = queueRepository.getQueueSize(definition.get()).get();
 
         assertThat(queueSize).isEqualTo(0);
     }
@@ -168,7 +179,7 @@ public class SlowTests extends TestBase {
 
         @Override
         protected Integer getMessage() throws IOException {
-            client.getMessage(queueName, 10L).execute().body();
+            client.getMessage(testAccountName, queueName, 10L).execute().body();
 
             throw new BadWorkerException();
         }
@@ -237,10 +248,10 @@ public class SlowTests extends TestBase {
         }
 
         protected Integer getMessage() throws IOException {
-            final GetMessageResponse body = client.getMessage(queueName, 10L).execute().body();
+            final GetMessageResponse body = client.getMessage(testAccountName, queueName, 10L).execute().body();
 
             if (body != null) {
-                final Response<ResponseBody> execute = client.ackMessage(queueName, body.getPopReceipt()).execute();
+                final Response<ResponseBody> execute = client.ackMessage(testAccountName, queueName, body.getPopReceipt()).execute();
                 if (execute.isSuccess()) {
                     logger.info("ACKED!");
 

@@ -1,32 +1,40 @@
 package io.paradoxical.cassieq.workers;
 
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 
 import java.util.Optional;
 
 public class QueueDeleter {
-    private final QueueRepository queueRepository;
+    private final DataContextFactory dataContextFactory;
     private final MessageDeleterJobProcessorFactory messageDeleterJobProcessorFactory;
     private final RepairWorkerManager repairWorkerManager;
+    private final AccountName accountName;
 
     @Inject
     public QueueDeleter(
-            QueueRepository queueRepository,
+            DataContextFactory dataContextFactory,
             MessageDeleterJobProcessorFactory messageDeleterJobProcessorFactory,
-            RepairWorkerManager repairWorkerManager) {
-        this.queueRepository = queueRepository;
+            RepairWorkerManager repairWorkerManager,
+            @Assisted AccountName accountName) {
+        this.dataContextFactory = dataContextFactory;
         this.messageDeleterJobProcessorFactory = messageDeleterJobProcessorFactory;
         this.repairWorkerManager = repairWorkerManager;
+        this.accountName = accountName;
     }
 
     public void delete(QueueName queueName) throws QueueAlreadyDeletingException {
+        final QueueRepository queueRepository = dataContextFactory.forAccount(accountName);
+
         final Optional<QueueDefinition> optionalDefinition = queueRepository.getActiveQueue(queueName);
 
         if (!optionalDefinition.isPresent()) {
@@ -47,5 +55,9 @@ public class QueueDeleter {
         messageDeleterJobProcessorFactory.createDeletionProcessor(deletionJob.get()).start();
 
         repairWorkerManager.notifyChanges();
+    }
+
+    public interface Factory {
+        QueueDeleter create(AccountName accountName);
     }
 }

@@ -4,19 +4,20 @@ import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
 import io.paradoxical.cassieq.clustering.allocation.ResourceAllocator;
 import io.paradoxical.cassieq.clustering.allocation.ResourceConfig;
 import io.paradoxical.cassieq.clustering.allocation.ResourceGroup;
 import io.paradoxical.cassieq.clustering.allocation.ResourceIdentity;
 import io.paradoxical.cassieq.configurations.RepairConfig;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.QueueId;
+import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.modules.annotations.GenericScheduler;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -30,10 +31,9 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private static final Logger logger = getLogger(SimpleRepairWorkerManager.class);
 
     private final RepairWorkerFactory repairWorkerFactory;
-    private final ResourceAllocator.Factory resourceFactory;
     private final RepairConfig config;
-    private final ScheduledExecutorService service;
-    private final Provider<QueueRepository> queueRepositoryProvider;
+    private final ScheduledExecutorService scheduler;
+    private final DataContextFactory dataContextFactory;
     private ScheduledFuture<?> cancellationToken;
     final ResourceAllocator allocator;
 
@@ -45,16 +45,15 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
 
     @Inject
     public SimpleRepairWorkerManager(
-            Provider<QueueRepository> queueRepositoryProvider,
+            DataContextFactory dataContextFactory,
             RepairWorkerFactory repairWorkerFactory,
             ResourceAllocator.Factory resourceFactory,
             RepairConfig config,
-            @GenericScheduler ScheduledExecutorService service) {
-        this.queueRepositoryProvider = queueRepositoryProvider;
+            @GenericScheduler ScheduledExecutorService scheduler) {
+        this.dataContextFactory = dataContextFactory;
         this.repairWorkerFactory = repairWorkerFactory;
-        this.resourceFactory = resourceFactory;
         this.config = config;
-        this.service = service;
+        this.scheduler = scheduler;
 
         this.allocator = resourceFactory.getAllocator(getResourceConfig(),
                                                       this::getAllocateableWorkers,
@@ -75,7 +74,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
 
         running = true;
 
-        cancellationToken = service.scheduleWithFixedDelay(this::claim, 0, config.getManagerRefreshRateSeconds(), TimeUnit.SECONDS);
+        cancellationToken = scheduler.scheduleWithFixedDelay(this::claim, 0, config.getManagerRefreshRateSeconds(), TimeUnit.SECONDS);
     }
 
     @Override
@@ -155,13 +154,17 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
         }
     }
 
+
     private Set<RepairWorkerKey> getAllRepairKeys() {
-        return queueRepositoryProvider.get()
-                                      .getActiveQueues()
-                                      .stream()
-                                      .map(repairWorkerFactory::forQueue)
-                                      .map(RepairWorkerKey::new)
-                                      .collect(toSet());
+        final List<AccountDefinition> allAccounts = dataContextFactory.getAccountRepository().getAllAccounts();
+
+        return allAccounts.stream().flatMap(account ->
+                                                    dataContextFactory.forAccount(account.getAccountName())
+                                                                      .getActiveQueues()
+                                                                      .stream()
+                                                                      .map(repairWorkerFactory::forQueue)
+                                                                      .map(RepairWorkerKey::new))
+                          .collect(toSet());
     }
 
     private Set<ResourceIdentity> getAllocateableWorkers() {
