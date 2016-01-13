@@ -7,6 +7,7 @@ import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -36,7 +37,7 @@ public class RepairWorkerImpl implements RepairWorker {
 
     private Logger logger = getLogger(RepairWorkerImpl.class);
 
-    private final DataContext dataContext;
+    private final QueueDataContext dataContext;
 
     private volatile boolean isStarted;
 

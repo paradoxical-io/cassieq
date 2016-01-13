@@ -1,12 +1,15 @@
 CREATE TABLE queue (
-  queuename text PRIMARY KEY,
+  account_name text,
+  queuename text,
   bucket_size int,
   max_delivery_count int,
   status int,
   repair_worker_poll_freq_seconds int,
   repair_worker_tombstone_bucket_timeout_seconds int,
   delete_buckets_after_finalization boolean,
-  version int
+  version int,
+
+  PRIMARY KEY (account_name, queuename)
 );
 
 CREATE TABLE queue_size (
@@ -28,12 +31,12 @@ CREATE TABLE monoton (
 );
 
 CREATE TABLE deletion_job (
+    account_name text,
     queuename text,
     version int,
     bucket_size int,
-    PRIMARY KEY (queuename, version)
+    PRIMARY KEY (account_name, queuename, version)
 );
-
 
 CREATE TABLE message (
   queueid text,
@@ -54,4 +57,9 @@ CREATE TABLE message (
 CREATE TABLE leadership_election (
     group text PRIMARY KEY,
     leader_id text
+);
+
+CREATE TABLE account (
+    account_name text PRIMARY KEY,
+    keys set<text>
 );

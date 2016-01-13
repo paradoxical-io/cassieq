@@ -4,18 +4,19 @@ import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
-import io.paradoxical.cassieq.configurations.RepairConfig;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.clustering.election.LeadershipProvider;
+import io.paradoxical.cassieq.configurations.RepairConfig;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.RepairWorkerFactory;
 import io.paradoxical.cassieq.model.LeadershipRole;
 import io.paradoxical.cassieq.model.QueueId;
+import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.modules.annotations.GenericScheduler;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -31,7 +32,7 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     private final LeadershipProvider leadershipProvider;
     private final RepairConfig config;
     private final ScheduledExecutorService scheduler;
-    private final Provider<QueueRepository> queueRepositoryProvider;
+    private final DataContextFactory dataContextFactory;
     private ScheduledFuture<?> cancellationToken;
     private boolean running = false;
 
@@ -40,12 +41,12 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
 
     @Inject
     public SimpleRepairWorkerManager(
-            Provider<QueueRepository> queueRepositoryProvider,
+            DataContextFactory dataContextFactory,
             RepairWorkerFactory repairWorkerFactory,
             LeadershipProvider leadershipProvider,
             RepairConfig config,
             @GenericScheduler ScheduledExecutorService scheduler) {
-        this.queueRepositoryProvider = queueRepositoryProvider;
+        this.dataContextFactory = dataContextFactory;
         this.repairWorkerFactory = repairWorkerFactory;
         this.leadershipProvider = leadershipProvider;
         this.config = config;
@@ -128,13 +129,17 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     }
 
     private Set<RepairWorkerKey> getExpectedWorkers() {
-        return queueRepositoryProvider.get()
-                                      .getActiveQueues()
-                                      .stream()
-                                      .map(repairWorkerFactory::forQueue)
-                                      .map(RepairWorkerKey::new)
-                                      .filter(this::canManageRepairWorker)
-                                      .collect(toSet());
+
+        final List<AccountDefinition> allAccounts = dataContextFactory.getAccountRepository().getAllAccounts();
+
+        return allAccounts.stream().flatMap(account ->
+                                                    dataContextFactory.forAccount(account.getAccountName())
+                                                                      .getActiveQueues()
+                                                                      .stream()
+                                                                      .map(repairWorkerFactory::forQueue)
+                                                                      .map(RepairWorkerKey::new))
+                          .filter(this::canManageRepairWorker)
+                          .collect(toSet());
     }
 
     private boolean canManageRepairWorker(final RepairWorkerKey repairWorkerKey) {

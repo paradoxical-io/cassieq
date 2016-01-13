@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import com.godaddy.logging.Logger;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
@@ -13,6 +14,8 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
+import io.paradoxical.cassieq.factories.QueueDataContext;
+import io.paradoxical.cassieq.factories.QueueRepositoryFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
@@ -23,6 +26,7 @@ import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
@@ -34,6 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+@Category(BuildVerification.class)
 public class QueueDeleterTests extends TestBase {
     private static final Logger logger = getLogger(QueueDeleterTests.class);
 
@@ -47,24 +52,29 @@ public class QueueDeleterTests extends TestBase {
 
         final Semaphore start = new Semaphore(1);
 
-        final Thread[] deletion = new Thread[1];
+        final Thread[] deletionThreadBox = new Thread[1];
 
         start.acquire();
 
-        // delay the actual queue deletion as if it was an async job
+        // delay the actual queue deletionThreadBox as if it was an async job
         when(jobSpy.createDeletionProcessor(any())).thenAnswer(answer -> {
-            deletion[0] = new Thread(() -> {
+            final DeletionJob deletionJob = (DeletionJob) answer.getArguments()[0];
+
+            deletionThreadBox[0] = new Thread(() -> {
                 try {
                     start.acquire();
 
-                    final MessageDeletorJobProcessorImpl realDeletor = defaultInjector.createChildInjector(new AbstractModule() {
+                    final Injector childInjector = defaultInjector.createChildInjector(new AbstractModule() {
                         @Override
                         protected void configure() {
+
                             bind(DeletionJob.class)
                                     .annotatedWith(Assisted.class)
-                                    .toInstance(((DeletionJob) answer.getArguments()[0]));
+                                    .toInstance(deletionJob);
                         }
-                    }).getInstance(MessageDeletorJobProcessorImpl.class);
+                    });
+
+                    final MessageDeletorJobProcessorImpl realDeletor = childInjector.getInstance(MessageDeletorJobProcessorImpl.class);
 
                     // the job starts, and after completion tries to mark the queue as inactive
                     // but we have already created a new active queue so this should NOT occur
@@ -80,30 +90,35 @@ public class QueueDeleterTests extends TestBase {
                 }
             });
 
-            deletion[0].start();
+            deletionThreadBox[0].start();
 
             return mock(MessageDeleterJobProcessor.class);
         });
 
-
-        final QueueDeleter queueDeleter = defaultInjector.getInstance(QueueDeleter.class);
-
-        final QueueRepository instance = defaultInjector.getInstance(QueueRepository.class);
+        final QueueDeleter.Factory deleterFactory = defaultInjector.getInstance(QueueDeleter.Factory.class);
+        final QueueDeleter queueDeleter = deleterFactory.create(testAccountName);
+        final QueueRepositoryFactory queueRepositoryFactory = defaultInjector.getInstance(QueueRepositoryFactory.class);
+        final QueueRepository queueRepository = queueRepositoryFactory.forAccount(testAccountName);
 
         final QueueName name = QueueName.valueOf("can_create_queue_while_job_is_deleting");
 
-        final QueueDefinition build = QueueDefinition.builder().queueName(name).build();
+        final QueueDefinition build = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
 
-        final Optional<QueueDefinition> initialQueue = instance.createQueue(build);
+        final Optional<QueueDefinition> initialQueue = queueRepository.createQueue(build);
 
         // make sure we got a v0 queue
-        assertThat(initialQueue.get().getVersion()).isEqualTo(0);
+        assertThat(initialQueue
+                           .orElseThrow(() -> new RuntimeException("Couldn't create queue or it already existed.."))
+                           .getVersion()).isEqualTo(0)
+                                         .withFailMessage("Couldn't get correct queue version");
 
         // delete v0 async
         queueDeleter.delete(name);
 
+        assertThat(deletionThreadBox[0]).isNotNull();
+
         // should be able to make new queue
-        final Optional<QueueDefinition> queue = instance.createQueue(build);
+        final Optional<QueueDefinition> queue = queueRepository.createQueue(build);
 
         // make sure its a v1
         assertThat(queue).isPresent();
@@ -113,9 +128,9 @@ public class QueueDeleterTests extends TestBase {
         start.release();
 
         // wait for deleter to finish
-        deletion[0].join();
+        deletionThreadBox[0].join();
 
-        final QueueDefinition activeQueue = instance.getActiveQueue(queue.get().getQueueName()).get();
+        final QueueDefinition activeQueue = queueRepository.getActiveQueue(queue.get().getQueueName()).get();
 
         // make sure the deleter when it completed didn't just kill this active queue (v1)
         assertThat(activeQueue.getVersion()).isEqualTo(queue.get().getVersion());
@@ -123,19 +138,20 @@ public class QueueDeleterTests extends TestBase {
 
     @Test
     public void test_deleter_cleans_up_pointers() throws QueueAlreadyDeletingException, ExistingMonotonFoundException {
-        final QueueDeleter deleter = getDefaultInjector().getInstance(QueueDeleter.class);
+        final QueueDeleter.Factory deleterFactory = getDefaultInjector().getInstance(QueueDeleter.Factory.class);
 
-        final QueueRepository queueRepository = getDefaultInjector().getInstance(QueueRepository.class);
-
-        final QueueName name = QueueName.valueOf("test_deleter_cleans_up_pointers");
-
-        final QueueDefinition definition = QueueDefinition.builder().queueName(name).build();
-
-        queueRepository.createQueue(definition);
+        final QueueDeleter deleter = deleterFactory.create(testAccountName);
 
         final DataContextFactory contextFactory = getDefaultInjector().getInstance(DataContextFactory.class);
 
-        final DataContext dataContext = contextFactory.forQueue(definition);
+        final QueueName name = QueueName.valueOf("test_deleter_cleans_up_pointers");
+
+        final QueueDefinition definition = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
+
+        final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
+        final Optional<QueueDefinition> createdDef = queueRepository.createQueue(definition);
+
+        final QueueDataContext dataContext = contextFactory.forQueue(definition);
 
         // move monton up
         dataContext.getMessageRepository()
@@ -147,7 +163,10 @@ public class QueueDeleterTests extends TestBase {
         dataContext.getPointerRepository().tryMoveInvisiblityPointerTo(InvisibilityMessagePointer.valueOf(0), InvisibilityMessagePointer.valueOf(10));
         dataContext.getPointerRepository().advanceMessageBucketPointer(ReaderBucketPointer.valueOf(0), ReaderBucketPointer.valueOf(10));
 
-        assertThat(queueRepository.getQueueSize(definition).get()).isEqualTo(1);
+        assertThat(queueRepository.getQueueSize(createdDef.orElse(definition))
+                                  .orElse(0L))
+                .isEqualTo(1)
+                .withFailMessage("Queue Size wasn't updated");
 
         deleter.delete(name);
 

@@ -6,13 +6,15 @@ import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.AccessLevel;
 import lombok.Getter;
 
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 import java.util.Optional;
 
-public abstract class BaseQueueResource {
+public abstract class BaseQueueResource extends BaseAccountResource {
 
     @Getter(AccessLevel.PROTECTED)
     private final ReaderFactory readerFactory;
@@ -30,7 +32,10 @@ public abstract class BaseQueueResource {
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository) {
+            QueueRepository queueRepository,
+            @PathParam("accountName") final AccountName accountName) {
+        super(accountName);
+
         this.readerFactory = readerFactory;
         this.messageRepoFactory = messageRepoFactory;
         this.monotonicRepoFactory = monotonicRepoFactory;

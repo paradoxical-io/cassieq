@@ -5,22 +5,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
+import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import org.joda.time.Duration;
-import retrofit.http.Body;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -35,10 +36,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Optional;
 
-@Path("/api/v1/queues")
-@Api(value = "/api/v1/queues", description = "Queue api")
+@Path("/api/v1/accounts/{accountName}/queues")
+@Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api", tags = "cassieq")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
@@ -51,16 +53,81 @@ public class QueueResource extends BaseQueueResource {
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
-            QueueRepository queueRepository,
+            DataContextFactory dataContextFactory,
             RepairWorkerManager repairWorkerManager,
-            QueueDeleter queueDeleter) {
-        super(readerFactory, messageRepoFactory, monotonicRepoFactory, queueRepository);
+            QueueDeleter.Factory queueDeleterFactory,
+            @PathParam("accountName") AccountName accountName) {
+        super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
         this.repairWorkerManager = repairWorkerManager;
-        this.queueDeleter = queueDeleter;
+        this.queueDeleter = queueDeleterFactory.create(accountName);
+    }
+
+    @GET
+    @Timed
+    @ApiOperation(value = "Get all account queue definitions")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueInfo() {
+
+        final List<QueueDefinition> activeQueues = getQueueRepository().getActiveQueues();
+
+        return Response.ok().entity(activeQueues).build();
+    }
+
+    @GET
+    @Path("/{queueName}")
+    @Timed
+    @ApiOperation(value = "Get a queue definition")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueInfo(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        return Response.ok().entity(definition).build();
+    }
+
+    @GET
+    @Path("/{queueName}/statistics")
+    @Timed
+    @ApiOperation(value = "Get queue statistics")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
+                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
+                            @ApiResponse(code = 500, message = "Server Error") })
+    public Response getQueueStatistics(
+            @NotNull @PathParam("queueName") QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+
+        if (!queueDefinition.isPresent()) {
+            return buildQueueNotFoundResponse(queueName);
+        }
+
+        final QueueDefinition definition = queueDefinition.get();
+
+        final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
+
+        Object returnEntity = new Object() {
+            @JsonProperty("size")
+            public long size = queueSize.orElse(0L);
+        };
+
+        return Response.ok().entity(returnEntity).build();
+    }
+
+    private boolean active(final Optional<QueueDefinition> queueDefinition) {
+        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
     }
 
     @POST
-    @Path("/")
     @Timed
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
@@ -79,6 +146,7 @@ public class QueueResource extends BaseQueueResource {
                                    .repairWorkerTombstonedBucketTimeoutSeconds(createOptions.getRepairWorkerBucketFinalizeTimeSeconds())
                                    .deleteBucketsAfterFinalization(createOptions.getDeleteBucketsAfterFinalize())
                                    .queueName(createOptions.getQueueName())
+                                   .accountName(getAccountName())
                                    .build();
 
             final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
@@ -151,7 +219,7 @@ public class QueueResource extends BaseQueueResource {
         final Optional<Message> messageOptional;
 
         try {
-            messageOptional = getReaderFactory().forQueue(queueDefinition.get())
+            messageOptional = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
                                                 .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
@@ -284,7 +352,7 @@ public class QueueResource extends BaseQueueResource {
         boolean messageAcked;
 
         try {
-            messageAcked = getReaderFactory().forQueue(queueDefinition.get())
+            messageAcked = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
                                              .ackMessage(popReceipt);
         }
         catch (Exception e) {
@@ -299,35 +367,5 @@ public class QueueResource extends BaseQueueResource {
         return buildConflictResponse("The message is already being reprocessed");
     }
 
-    @GET
-    @Path("/{queueName}")
-    @Timed
-    @ApiOperation(value = "Get queue information")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
-                            @ApiResponse(code = 404, message = "Queue doesn't exist"),
-                            @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueSize(
-            @NotNull @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
-        final QueueDefinition definition = queueDefinition.get();
-
-        final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
-
-        Object returnEntity = new Object(){
-            @JsonProperty("queueSize")
-            public long size = queueSize.orElse(0L);
-        };
-
-        return Response.ok().entity(returnEntity).build();
-    }
-
-    private boolean active(final Optional<QueueDefinition> queueDefinition) {
-        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
-    }
 }

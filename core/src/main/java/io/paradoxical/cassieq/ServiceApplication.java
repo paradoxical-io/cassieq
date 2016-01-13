@@ -2,16 +2,6 @@ package io.paradoxical.cassieq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
-import com.wordnik.swagger.config.ConfigFactory;
-import com.wordnik.swagger.config.ScannerFactory;
-import com.wordnik.swagger.config.SwaggerConfig;
-import com.wordnik.swagger.jaxrs.config.DefaultJaxrsScanner;
-import com.wordnik.swagger.jaxrs.listing.ApiDeclarationProvider;
-import com.wordnik.swagger.jaxrs.listing.ResourceListingProvider;
-import com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader;
-import com.wordnik.swagger.jersey.listing.ApiListingResourceJSON;
-import com.wordnik.swagger.model.ApiInfo;
-import com.wordnik.swagger.reader.ClassReaders;
 import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
@@ -26,6 +16,9 @@ import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
+import io.swagger.jaxrs.config.BeanConfig;
+import io.swagger.jaxrs.listing.SwaggerSerializers;
+import io.swagger.jersey.listing.ApiListingResourceJSON;
 import lombok.Getter;
 import org.joda.time.DateTimeZone;
 
@@ -72,6 +65,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         initializeDepedencyInjection(bootstrap);
 
+
     }
 
     public void stop() {
@@ -112,11 +106,18 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureFilters);
 
-        run.add(this::configureDiscoverableApiHelp);
+        run.add(this::configureSwaggerApi);
 
         run.add(this::configureLogging);
 
+        run.add(this::configureAuth);
+
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
+    }
+
+    private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
+
+        environment.jersey();
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
@@ -131,34 +132,35 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         LogMapping.register();
     }
 
-    private void configureDiscoverableApiHelp(
+    private void configureSwaggerApi(
             final ServiceConfiguration config,
             final Environment environment) {
 
-        environment.jersey().register(new ApiListingResourceJSON());
-        environment.jersey().register(new ResourceListingProvider());
-        environment.jersey().register(new ApiDeclarationProvider());
 
-        ScannerFactory.setScanner(new DefaultJaxrsScanner());
+        final BeanConfig swagConfig = new BeanConfig();
+        swagConfig.setScan(true);
+        swagConfig.setTitle("cassieq");
+        swagConfig.setDescription("cassieq API");
+        swagConfig.setLicense("Apache 2.0");
+        swagConfig.setResourcePackage("io.paradoxical.cassieq");
+        swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
 
-        ClassReaders.setReader(new DefaultJaxrsApiReader());
 
-        SwaggerConfig swagConfig = ConfigFactory.config();
-
-        swagConfig.setApiVersion("1.0.1");
-
+        swagConfig.setVersion("1.0.1");
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
-        ApiInfo info = new ApiInfo(
-                "cassieq API",                             /* title */
-                "cassieq API",
-                "http://",                  /* TOS URL */
-                "admin@cassieq.com",                            /* Contact */
-                "Apache 2.0",                                     /* license */
-                "http://www.apache.org/licenses/LICENSE-2.0.html" /* license URL */
-        );
+        environment.jersey().register(new ApiListingResourceJSON());
+//        environment.jersey().register(new ApiListingResource());
+        environment.jersey().register(new SwaggerSerializers());
 
-        swagConfig.setApiInfo(info);
+//        environment.jersey().register(new ResourceListingProvider());
+//        environment.jersey().register(new ApiDeclarationProvider());
+
+//        ScannerFactory.setScanner(new DefaultJaxrsScanner());
+
+//        ClassReaders.setReader(new DefaultJaxrsApiReader());
+
+
     }
 
     protected void configureJson(ServiceConfiguration config, final Environment environment) {

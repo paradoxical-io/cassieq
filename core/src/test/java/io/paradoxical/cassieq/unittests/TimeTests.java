@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @RunWith(Parameterized.class)
+
 public class TimeTests {
     @Parameterized.Parameters
     public static List<Object[]> data() {
