@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
 import ch.qos.logback.classic.Level;
-import com.datastax.driver.core.Session;
 import com.godaddy.logging.Logger;
 import com.google.inject.Injector;
 import com.netflix.governator.Governator;
@@ -15,11 +14,8 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
-import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
-import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
-import io.paradoxical.cassieq.unittests.modules.MockLeadershipProviderModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.ModuleUtils;

@@ -36,7 +36,7 @@ public class AllocationTests extends TestBase {
         this.expectedResult = expectedResult;
     }
 
-    @Parameterized.Parameters(name = "Instance {0}, ClusterSize {1}, Total {2}")
+    @Parameterized.Parameters(name = "Instance {0}, ClusterSize {1}, TotalToDistribute {2}")
     public static List<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 { 0, 3, 10, new Integer[]{ 0, 1, 2, }},
