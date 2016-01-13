@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class QueueRepositoryTester extends TestBase {
+public class QueueRepositoryTester extends DbTestBase {
     @Test
     public void queue_operations() throws Exception {
         final QueueName queueName = QueueName.valueOf("queue_operations");

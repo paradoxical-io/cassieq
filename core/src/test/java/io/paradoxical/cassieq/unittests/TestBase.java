@@ -43,9 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestBase {
     private static final Logger logger = getLogger(TestBase.class);
 
-    public static Session session;
-
-    private static final Object lock = new Object();
+    protected static final Object lock = new Object();
 
     public static final AccountName testAccountName = AccountName.valueOf("test");
 
@@ -73,19 +71,6 @@ public class TestBase {
         Arrays.stream(disableLogging).forEach(i -> {
             ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(i)).setLevel(Level.OFF);
         });
-
-        synchronized (lock) {
-            if (session == null) {
-                try {
-                    session = CqlDb.create();
-                }
-                catch (Exception e) {
-                    logger.error(e, "Error");
-
-                    throw new RuntimeException(e);
-                }
-            }
-        }
     }
 
     @Getter(AccessLevel.PROTECTED)
@@ -129,14 +114,6 @@ public class TestBase {
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
         return setupTestContext(queueDefinition);
-    }
-
-    protected Injector getDefaultInjector(ServiceConfiguration configuration) {
-        return getDefaultInjector(configuration, session);
-    }
-
-    protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
-        return getDefaultInjector(configuration, new InMemorySessionProvider(session));
     }
 
     protected Injector getDefaultInjector() {

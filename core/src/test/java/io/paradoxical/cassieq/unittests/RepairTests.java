@@ -40,7 +40,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class RepairTests extends TestBase {
+public class RepairTests extends DbTestBase {
     private static final Logger logger = getLogger(RepairTests.class);
 
 

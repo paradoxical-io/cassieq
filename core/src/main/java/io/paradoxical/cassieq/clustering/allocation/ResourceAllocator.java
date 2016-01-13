@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 public interface ResourceAllocator extends AutoCloseable {
     void claim();
 
+    @FunctionalInterface
     interface Factory {
         ResourceAllocator getAllocator(ResourceConfig config,
                                        Supplier<Set<ResourceIdentity>> masterSetSupplier,

@@ -2,10 +2,12 @@ package io.paradoxical.cassieq.unittests.modules;
 
 import com.godaddy.logging.Logger;
 import com.google.inject.Module;
+import com.google.inject.Provides;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.GroupConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.netflix.governator.guice.lazy.LazySingleton;
 import io.paradoxical.cassieq.modules.ClusteringModule;
 import io.paradoxical.common.test.guice.OverridableModule;
 
@@ -28,6 +30,8 @@ public class HazelcastTestModule extends OverridableModule {
         return ClusteringModule.class;
     }
 
+    @Provides
+    @LazySingleton
     public synchronized HazelcastInstance getInstance() {
         if (instance == null) {
             Config config = new Config();
@@ -48,7 +52,7 @@ public class HazelcastTestModule extends OverridableModule {
 
     @Override
     protected void configure() {
-        bind(HazelcastInstance.class).toInstance(getInstance());
+
     }
 
     @Override
