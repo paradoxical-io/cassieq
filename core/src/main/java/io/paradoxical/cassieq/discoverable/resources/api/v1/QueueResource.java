@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.discoverable.resources.api.v1;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;

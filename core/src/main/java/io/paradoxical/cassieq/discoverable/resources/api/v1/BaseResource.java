@@ -1,8 +1,9 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.discoverable.resources.api.v1;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.paradoxical.cassieq.model.QueueName;
 import lombok.Getter;
+import lombok.NonNull;
 
 import javax.ws.rs.core.Response;
 
@@ -28,7 +29,7 @@ public abstract class BaseResource {
                        .build();
     }
 
-    protected Response buildErrorResponse(final String operation, final QueueName queue, final Exception e) {
+    protected Response buildErrorResponse(@NonNull final String operation, final QueueName queue, @NonNull final Exception e) {
 
         final String errorMessage = e.getMessage();
 
@@ -40,7 +41,7 @@ public abstract class BaseResource {
             private final String op = operation;
 
             @Getter
-            @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private final QueueName queueName = queue;
 
             @Getter

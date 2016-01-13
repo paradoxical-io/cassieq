@@ -2,6 +2,7 @@ package io.paradoxical.cassieq;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
+import com.google.common.base.Charsets;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
@@ -9,29 +10,43 @@ import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.auth.Authenticator;
+import io.dropwizard.auth.chained.ChainedAuthFilter;
+import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
+import io.dropwizard.jersey.setup.JerseyContainerHolder;
+import io.dropwizard.servlets.assets.AssetServlet;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
+import io.dropwizard.views.ViewMessageBodyWriter;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
+import io.paradoxical.cassieq.admin.AdminRoot;
+import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
+import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.auth.AccountPrincipal;
-import io.paradoxical.cassieq.auth.AuthToken;
 import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
+import io.paradoxical.cassieq.auth.SignedRequestCredentials;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.configurations.LogMapping;
+import io.paradoxical.cassieq.discoverable.GuiceDiscoverablePackageMarker;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
+import io.swagger.config.Scanner;
+import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import io.swagger.jersey.listing.ApiListingResourceJSON;
+import io.swagger.models.Swagger;
 import lombok.Getter;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.joda.time.DateTimeZone;
 
+import javax.servlet.ServletConfig;
 import javax.ws.rs.core.Response;
-import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -121,14 +136,74 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureAuth);
 
+        run.add(this::configureAdmin);
+
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
+    }
+
+    private void configureAdmin(final ServiceConfiguration serviceConfiguration, final Environment environment) {
+        environment.admin().addServlet("assets-admin", new AssetServlet("/assets", "/assets", null, Charsets.UTF_8)).addMapping("/assets/*");
+
+        final DropwizardResourceConfig adminResourceConfig = new DropwizardResourceConfig(environment.metrics());
+        JerseyContainerHolder adminContainerHolder = new JerseyContainerHolder(new ServletContainer(adminResourceConfig));
+
+        adminResourceConfig.register(AdminPagesResource.class);
+        adminResourceConfig.register(AccountResource.class);
+
+        adminResourceConfig.register(new SwaggerSerializers());
+
+        configureAdminSwagger(adminResourceConfig);
+
+        List<ViewRenderer> viewRenders = new ArrayList<>();
+
+        viewRenders.add(new MustacheViewRenderer());
+
+        final ViewMessageBodyWriter viewMessageBodyWriter = new ViewMessageBodyWriter(environment.metrics(), viewRenders);
+
+        adminResourceConfig.register(viewMessageBodyWriter);
+
+        environment.admin().addServlet("admin-resources", adminContainerHolder.getContainer()).addMapping("/admin/*");
+    }
+
+    private void configureAdminSwagger(DropwizardResourceConfig resourceConfig) {
+
+        final BeanConfig swagConfig = new BeanConfig();
+        swagConfig.setTitle("cassieq admin");
+        swagConfig.setDescription("cassieq admin API");
+        swagConfig.setLicense("Apache 2.0");
+        swagConfig.setResourcePackage(AdminRoot.class.getPackage().getName());
+        swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
+
+
+        swagConfig.setVersion("1.0.1");
+        swagConfig.setBasePath("/admin");
+
+        addSavingSwaggerLocator(resourceConfig, swagConfig);
+
+    }
+
+    private void addSavingSwaggerLocator(final DropwizardResourceConfig resourceConfig, final BeanConfig swagConfig) {
+        resourceConfig.register(new ApiListingResourceJSON() {
+            @Override
+            protected synchronized Swagger scan(final javax.ws.rs.core.Application app, final ServletConfig sc) {
+                final Scanner savedScanner = ScannerFactory.getScanner();
+
+                ScannerFactory.setScanner(swagConfig);
+
+                final Swagger result = super.scan(app, sc);
+
+                ScannerFactory.setScanner(savedScanner);
+
+                return result;
+            }
+        });
     }
 
     private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
 
         final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
 
-        final Key<Authenticator<AuthToken, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthToken, AccountPrincipal>>() {});
+        final Key<Authenticator<SignedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<SignedRequestCredentials, AccountPrincipal>>() {});
 
         final SignedRequestAuthFilter<AccountPrincipal> authFilter =
                 SignedRequestAuthFilter.<AccountPrincipal>builder()
@@ -138,6 +213,10 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
                         .setAuthorizer((principal, role) -> true)
                         .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
                         .buildAuthFilter();
+
+
+        final ChainedAuthFilter<SignedRequestCredentials, AccountPrincipal> authFilterChain = new ChainedAuthFilter<>(Arrays.asList(
+                authFilter));
 
 
         environment.jersey().register(authFilter);
@@ -164,16 +243,15 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setTitle("cassieq");
         swagConfig.setDescription("cassieq API");
         swagConfig.setLicense("Apache 2.0");
-        swagConfig.setResourcePackage("io.paradoxical.cassieq");
+        swagConfig.setResourcePackage(GuiceDiscoverablePackageMarker.class.getPackage().getName());
         swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
 
 
         swagConfig.setVersion("1.0.1");
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
-        environment.jersey().register(new ApiListingResourceJSON());
         environment.jersey().register(new SwaggerSerializers());
-
+        addSavingSwaggerLocator(environment.jersey().getResourceConfig(), swagConfig);
     }
 
     protected void configureJson(ServiceConfiguration config, final Environment environment) {

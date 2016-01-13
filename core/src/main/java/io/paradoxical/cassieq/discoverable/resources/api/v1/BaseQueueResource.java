@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.discoverable.resources.api.v1;
 
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 
 import javax.ws.rs.PathParam;
-import javax.ws.rs.core.Response;
 import java.util.Optional;
 
 public abstract class BaseQueueResource extends BaseAccountResource {

@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.healthChecks;
+package io.paradoxical.cassieq.discoverable.healthChecks;
 
 import com.hubspot.dropwizard.guice.InjectableHealthCheck;
 import com.jcabi.manifests.Manifests;

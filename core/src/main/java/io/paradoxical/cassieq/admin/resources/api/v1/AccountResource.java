@@ -1,16 +1,12 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.admin.resources.api.v1;
 
 import com.codahale.metrics.annotation.Timed;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
-import com.hazelcast.client.impl.client.BaseClientRemoveListenerRequest;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
+import io.paradoxical.cassieq.discoverable.resources.api.v1.BaseResource;
 import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.model.BucketSize;
-import io.paradoxical.cassieq.model.QueueCreateOptions;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.swagger.annotations.Api;
@@ -18,14 +14,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Optional;
@@ -69,14 +62,18 @@ public class AccountResource extends BaseResource {
 
     @GET
     @Timed
-    @ApiOperation(value = "Create Account")
-    @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
+    @Path("/{accountName}")
+    @ApiOperation(value = "Get Account")
+    @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getAccount(AccountName accountName) {
+    public Response getAccount(
+            @PathParam("accountName") AccountName accountName) {
 
         try {
+            final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
-            return Response.status(Response.Status.CONFLICT).build();
+
+            return Response.ok().build();
         }
         catch (Exception e) {
             logger.error(e, "Error");

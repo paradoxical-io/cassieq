@@ -1,9 +1,8 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.discoverable.resources.api.v1;
 
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;

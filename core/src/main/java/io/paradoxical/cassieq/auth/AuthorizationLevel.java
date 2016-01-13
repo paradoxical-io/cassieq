@@ -27,6 +27,10 @@ public enum AuthorizationLevel {
         this.shortForm = shortForm;
     }
 
+    public static EnumSet<AuthorizationLevel> emptyPermissions(){
+        return EnumSet.noneOf(AuthorizationLevel.class);
+    }
+
     public static EnumSet<AuthorizationLevel> parse(final String shortForm) {
 
         final ImmutableSet<String> levels = ImmutableSet.copyOf(Splitter.fixedLength(1).split(shortForm));
@@ -34,7 +38,7 @@ public enum AuthorizationLevel {
         final EnumSet<AuthorizationLevel> authorizationLevels = EnumSet.copyOf(levels.stream().map(AuthorizationLevel::parseLevel).collect(toList()));
 
         if (authorizationLevels.contains(None)) {
-            return EnumSet.noneOf(AuthorizationLevel.class);
+            return emptyPermissions();
         }
 
         return authorizationLevels;

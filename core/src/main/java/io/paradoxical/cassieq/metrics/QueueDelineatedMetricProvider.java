@@ -2,6 +2,8 @@ package io.paradoxical.cassieq.metrics;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import io.paradoxical.cassieq.metrics.QueueTimer;
+import io.paradoxical.cassieq.metrics.QueueTimerProvider;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 import org.glassfish.jersey.server.model.Resource;
 import org.glassfish.jersey.server.model.ResourceMethod;
@@ -14,7 +16,6 @@ import javax.ws.rs.ext.Provider;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
-@Provider
 public class QueueDelineatedMetricProvider implements ApplicationEventListener {
     private ImmutableMap<Method, QueueTimerProvider> timers = ImmutableMap.of();
 

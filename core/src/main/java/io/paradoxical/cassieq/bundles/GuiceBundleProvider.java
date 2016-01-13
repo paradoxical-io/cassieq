@@ -5,6 +5,7 @@ import com.hubspot.dropwizard.guice.GuiceBundle;
 import com.netflix.governator.Governator;
 import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.ServiceConfiguration;
+import io.paradoxical.cassieq.discoverable.GuiceDiscoverablePackageMarker;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public class GuiceBundleProvider {
     private GuiceBundle<ServiceConfiguration> buildGuiceBundle() {
         final GuiceBundle.Builder<ServiceConfiguration> builder = GuiceBundle.<ServiceConfiguration>newBuilder();
 
-        builder.enableAutoConfig(ServiceApplication.class.getPackage().getName())
+        builder.enableAutoConfig(GuiceDiscoverablePackageMarker.class.getPackage().getName())
                .setConfigClass(ServiceConfiguration.class)
                .setInjectorFactory((stage, modules) -> Governator.createInjector(modules));
 
