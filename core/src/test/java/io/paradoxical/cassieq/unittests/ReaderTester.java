@@ -21,15 +21,18 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class ReaderTester extends TestBase {
-    private final Injector defaultInjector;
+public class ReaderTester extends DbTestBase {
+    private Injector defaultInjector;
 
     public ReaderTester() {
-        this.defaultInjector = getDefaultInjector();
+
     }
 
     @Before
     public void setup() {
+        super.beforeTest();
+
+        this.defaultInjector = getDefaultInjector();
     }
 
     @Test

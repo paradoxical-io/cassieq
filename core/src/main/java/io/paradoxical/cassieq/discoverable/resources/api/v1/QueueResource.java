@@ -155,9 +155,6 @@ public class QueueResource extends BaseQueueResource {
                 return Response.status(Response.Status.CONFLICT).build();
             }
 
-            // try and start a repair worker for the new queue
-            repairWorkerManager.notifyChanges();
-
             if (wasInserted) {
                 return Response.status(Response.Status.CREATED).build();
             }

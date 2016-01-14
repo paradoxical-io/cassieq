@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import categories.BuildVerification;
 import com.datastax.driver.core.Session;
+import com.godaddy.logging.Logger;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
@@ -35,18 +36,20 @@ import org.junit.experimental.categories.Category;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class RepairTests extends TestBase {
+public class RepairTests extends DbTestBase {
+    private static final Logger logger = getLogger(RepairTests.class);
 
 
     @Test
     public void repair_manager_claims_workers() throws Exception {
         Session session = CqlDb.createFresh();
 
-        @Cleanup SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
-        @Cleanup SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule());
+        @Cleanup SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule("repair_manager_claims_workers"));
+        @Cleanup SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule("repair_manager_claims_workers"));
 
         server1.start();
 
@@ -59,9 +62,9 @@ public class RepairTests extends TestBase {
 
         final SimpleRepairWorkerManager managerInstance1 = (SimpleRepairWorkerManager) server1Injector.getInstance(RepairWorkerManager.class);
 
-        managerInstance1.notifyChanges();
+        managerInstance1.claim();
 
-        assertThat(managerInstance1.getCurrentRepairWorkers().size()).isEqualTo(1);
+        assertThat(managerInstance1.getClaimedRepairWorkers().size()).isEqualTo(1);
 
         server2.start();
 
@@ -69,18 +72,17 @@ public class RepairTests extends TestBase {
 
         final SimpleRepairWorkerManager managerInstance2 = (SimpleRepairWorkerManager) server2Injector.getInstance(RepairWorkerManager.class);
 
-        managerInstance2.notifyChanges();
+        managerInstance2.claim();
 
         // all repair workers should be claimed
-        assertThat(managerInstance2.getCurrentRepairWorkers().size()).isEqualTo(0);
+        assertThat(managerInstance2.getClaimedRepairWorkers().size()).isEqualTo(0);
 
         // shut down the first server
         server1.stop();
 
-        // make sure manager 2 picks up the ownership
-        managerInstance2.notifyChanges();
+        managerInstance2.claim();
 
-        assertThat(managerInstance2.getCurrentRepairWorkers().size()).isEqualTo(1);
+        assertThat(managerInstance2.getClaimedRepairWorkers().size()).isEqualTo(1);
     }
 
     @Test
@@ -230,7 +232,13 @@ public class RepairTests extends TestBase {
 
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+
+        queueRepository.tryMarkForDeletion(queueDefinition);
+
+        manager.notifyChanges();
+
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 
     @Test
@@ -257,7 +265,7 @@ public class RepairTests extends TestBase {
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
 
         queueRepository.tryMarkForDeletion(queueDefinition);
         queueRepository.tryMarkForDeletion(queueDefinition);
@@ -265,7 +273,7 @@ public class RepairTests extends TestBase {
         manager.notifyChanges();
         manager.notifyChanges();
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 
     private Optional<AccountDefinition> ensureTestAccountCreated(final Injector injector) {
@@ -298,14 +306,14 @@ public class RepairTests extends TestBase {
 
         final QueueDefinition queueDefinition = setupQueue(queueName, 2);
 
-        Thread.sleep(2000);
+        Thread.sleep(500);
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum + 1);
 
         queueRepository.tryMarkForDeletion(queueDefinition);
 
-        Thread.sleep(2000);
+        Thread.sleep(500);
 
-        assertThat(((SimpleRepairWorkerManager) manager).getCurrentRepairWorkers().size()).isEqualTo(currentQueueNum);
+        assertThat(((SimpleRepairWorkerManager) manager).getClaimedRepairWorkers().size()).isEqualTo(currentQueueNum);
     }
 }

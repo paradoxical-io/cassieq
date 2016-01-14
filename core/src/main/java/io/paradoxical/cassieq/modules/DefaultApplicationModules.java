@@ -18,6 +18,8 @@ public class DefaultApplicationModules {
                 new SessionProviderModule(),
                 new RepairWorkerModule(),
                 new ReaderModule(),
+                new ResourceAllocationModule(),
+                new EventingModule(),
                 new ConfigProviderModule(),
                 new ClockModule(),
                 new AuthModule());

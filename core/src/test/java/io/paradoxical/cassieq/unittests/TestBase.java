@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
 import ch.qos.logback.classic.Level;
-import com.datastax.driver.core.Session;
 import com.godaddy.logging.Logger;
 import com.google.inject.Injector;
 import com.netflix.governator.Governator;
@@ -17,11 +16,8 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
-import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
-import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
-import io.paradoxical.cassieq.unittests.modules.MockLeadershipProviderModule;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.ModuleUtils;
@@ -39,6 +35,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,9 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestBase {
     private static final Logger logger = getLogger(TestBase.class);
 
-    public static Session session;
-
-    private static final Object lock = new Object();
+    protected static final Object lock = new Object();
 
     public static final AccountName testAccountName = AccountName.valueOf("test");
 
@@ -67,6 +62,8 @@ public class TestBase {
                                                 "com.datastax",
                                                 "org.cassandraunit",
                                                 "io.netty",
+                                                "com.netflix.governator",
+                                                "com.hazelcast.nio",
                                                 "org.glassfish",
                                                 "org.apache"
         };
@@ -74,19 +71,6 @@ public class TestBase {
         Arrays.stream(disableLogging).forEach(i -> {
             ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(i)).setLevel(Level.OFF);
         });
-
-        synchronized (lock) {
-            if (session == null) {
-                try {
-                    session = CqlDb.create();
-                }
-                catch (Exception e) {
-                    logger.error(e, "Error");
-
-                    throw new RuntimeException(e);
-                }
-            }
-        }
     }
 
     protected static CassieqCredentials getTestAccountCredintials(Injector injector) throws InvalidKeyException, NoSuchAlgorithmException {
@@ -113,7 +97,7 @@ public class TestBase {
 
     @Before
     public void beforeTest() {
-        hazelCastModule = new HazelcastTestModule();
+        hazelCastModule = new HazelcastTestModule("test_" + UUID.randomUUID());
     }
 
     @After
@@ -141,14 +125,6 @@ public class TestBase {
         return setupTestContext(queueDefinition);
     }
 
-    protected Injector getDefaultInjector(ServiceConfiguration configuration) {
-        return getDefaultInjector(configuration, session);
-    }
-
-    protected Injector getDefaultInjector(ServiceConfiguration configuration, Session session) {
-        return getDefaultInjector(configuration, new InMemorySessionProvider(session));
-    }
-
     protected Injector getDefaultInjector() {
         return getDefaultInjector(new ServiceConfiguration());
     }
@@ -160,7 +136,7 @@ public class TestBase {
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
         return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
                                                      Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
-                                                                   new MockLeadershipProviderModule(),
+                                                                   hazelCastModule,
                                                                    new TestClockModule(testClock))));
     }
 

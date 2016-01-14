@@ -6,7 +6,7 @@ import lombok.Data;
 public class ClusteringConfig {
     private boolean enabled = true;
 
-    private int lockWaitSeconds = 5;
+    private int lockWaitSeconds = 15;
 
     private String clusterPassword = "cassieq";
 
