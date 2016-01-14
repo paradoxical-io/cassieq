@@ -257,7 +257,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
     private void updateQueueSize(int amount){
         final Statement with = QueryBuilder.update(Tables.QueueSize.TABLE_NAME)
-                                           .where(eq(Tables.QueueSize.QUEUE_ID, queueDefinition.getId().get()))
+                                           .where(eq(Tables.QueueSize.QUEUE_SIZE_COUNTER_ID, queueDefinition.getQueueSizeCounterId().get()))
                                            .with(incr(Tables.QueueSize.SIZE, amount));
 
         session.execute(with);

@@ -27,6 +27,7 @@ public final class Tables {
         public static final String TABLE_NAME = "queue";
 
         public static final String QUEUE_NAME = "queuename";
+        public static final String QUEUE_SIZE_COUNTER_ID = "queue_size_counter_id";
         public static final String ACCOUNT_NAME = "account_name";
 
         public static final String MAX_DELIVERY_COUNT = "max_delivery_count";
@@ -40,7 +41,7 @@ public final class Tables {
 
     public static class QueueSize {
         public static final String TABLE_NAME = "queue_size";
-        public static final String QUEUE_ID = "queueid";
+        public static final String QUEUE_SIZE_COUNTER_ID = "queue_size_counter_id";
         public static final String SIZE = "size";
     }
 

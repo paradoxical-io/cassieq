@@ -93,9 +93,7 @@ public class TestBase {
     }
 
     protected TestQueueContext setupTestContext(QueueDefinition queueDefinition) {
-        createQueue(queueDefinition);
-
-        return new TestQueueContext(queueDefinition, getDefaultInjector());
+        return new TestQueueContext(createQueue(queueDefinition), getDefaultInjector());
     }
 
     protected TestQueueContext setupTestContext(String queueName) {
@@ -151,22 +149,22 @@ public class TestBase {
                                                                .repairWorkerTombstonedBucketTimeoutSeconds(3)
                                                                .build();
 
-        createQueue(queueDefinition, injector);
-
-        return queueDefinition;
+        return createQueue(queueDefinition, injector);
     }
 
-    private void createQueue(final QueueDefinition queueDefinition, final Injector injector) {
+    private QueueDefinition createQueue(final QueueDefinition queueDefinition, final Injector injector) {
         final DataContextFactory dataContextFactory = injector.getInstance(DataContextFactory.class);
 
         final QueueRepository queueRepository = dataContextFactory.forAccount(testAccountName);
 
-        queueRepository.createQueue(queueDefinition);
+        final QueueDefinition createdDefinition = queueRepository.createQueue(queueDefinition).get();
 
-        assertThat(queueRepository.getQueueUnsafe(queueDefinition.getQueueName()).isPresent()).isTrue();
+        assertThat(queueRepository.getQueueUnsafe(createdDefinition.getQueueName()).isPresent()).isTrue();
+
+        return createdDefinition;
     }
 
-    protected void createQueue(final QueueDefinition queueDefinition) {
-        createQueue(queueDefinition, getDefaultInjector());
+    protected QueueDefinition createQueue(final QueueDefinition queueDefinition) {
+        return createQueue(queueDefinition, getDefaultInjector());
     }
 }

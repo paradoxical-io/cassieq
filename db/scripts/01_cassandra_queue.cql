@@ -1,6 +1,7 @@
 CREATE TABLE queue (
   account_name text,
   queuename text,
+  queue_size_counter_id text,
   bucket_size int,
   max_delivery_count int,
   status int,
@@ -13,7 +14,7 @@ CREATE TABLE queue (
 );
 
 CREATE TABLE queue_size (
-    queueid text PRIMARY KEY,
+    queue_size_counter_id text PRIMARY KEY,
     size counter
 );
 
@@ -52,11 +53,6 @@ CREATE TABLE message (
   updated_date timestamp,
 
   PRIMARY KEY ((queueid, bucket_num), monoton)
-);
-
-CREATE TABLE leadership_election (
-    group text PRIMARY KEY,
-    leader_id text
 );
 
 CREATE TABLE account (

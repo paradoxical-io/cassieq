@@ -28,41 +28,65 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestQueueContext {
 
     @NonNull
-    private final QueueName queueName;
+    @Getter
+    private QueueName queueName;
 
     @NonNull
     @Getter
-    private final QueueDefinition queueDefinition;
+    private QueueDefinition queueDefinition;
 
     @NonNull
-    private final Reader reader;
-    private final AccountName accountName;
-    private final Injector injector;
+    @Getter
+    private Reader reader;
+
+    @Getter
+    private AccountName accountName;
+
+    @Getter
+    private Injector injector;
 
     @Getter
     private QueueDataContext context;
 
     @Getter
-    private final QueueRepository queueRepository;
+    private QueueRepository queueRepository;
 
     public TestQueueContext(AccountName accountName, QueueName name, Injector injector) {
-        this(QueueDefinition.builder()
-                            .accountName(accountName)
-                            .queueName(name)
-                            .build(), injector);
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                     .accountName(accountName)
+                                                     .queueName(name)
+                                                     .build();
+
+        preInitialize(queueDefinition, injector);
+
+        // get the right definition version after create
+        this.queueDefinition = queueRepository.createQueue(queueDefinition).get();
+
+        initWithFinalDefinition(this.queueDefinition);
     }
 
     public TestQueueContext(QueueDefinition queueDefinition, Injector injector) {
+        preInitialize(queueDefinition, injector);
 
-        if(queueDefinition.getAccountName() == null){
+        this.queueDefinition = queueDefinition;
+    }
+
+    /**
+     * Create queue definition agnostic factories
+     *
+     * @param queueDefinition
+     * @param injector
+     */
+    private void preInitialize(final QueueDefinition queueDefinition, final Injector injector) {
+
+        if (queueDefinition.getAccountName() == null) {
             throw new IllegalArgumentException("Queue Definition should not be missing an account name");
         }
 
         this.accountName = queueDefinition.getAccountName();
-        this.queueDefinition = queueDefinition;
-        this.injector = injector;
 
-        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, queueDefinition);
+        this.injector = injector;
 
         this.queueName = queueDefinition.getQueueName();
 
@@ -72,7 +96,20 @@ public class TestQueueContext {
 
         queueRepository = factory.forAccount(accountName);
 
-        this.queueRepository.createQueue(queueDefinition);
+        initWithFinalDefinition(queueDefinition);
+    }
+
+    /**
+     * Apply final queue definition for initialization
+     *
+     * @param queueDefinition
+     */
+    private void initWithFinalDefinition(final QueueDefinition queueDefinition) {
+        final DataContextFactory factory = injector.getInstance(DataContextFactory.class);
+
+        factory.getAccountRepository().createAccount(accountName);
+
+        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, queueDefinition);
 
         context = factory.forQueue(queueDefinition);
     }
@@ -104,7 +141,7 @@ public class TestQueueContext {
                        .build(), Duration.standardSeconds(seconds));
     }
 
-    public QueueDeleter createQueueDeleter(){
+    public QueueDeleter createQueueDeleter() {
         return injector.getInstance(QueueDeleter.Factory.class).create(accountName);
     }
 
