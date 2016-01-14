@@ -171,7 +171,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .ifNotExists()
                             .value(Tables.Queue.ACCOUNT_NAME, accountName.get())
                             .value(Tables.Queue.QUEUE_NAME, initDefinition.getQueueName().get())
-                            .value(Tables.Queue.VERSION, initDefinition)
+                            .value(Tables.Queue.VERSION, initDefinition.getVersion())
                             .value(Tables.Queue.BUCKET_SIZE, initDefinition.getBucketSize().get())
                             .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, initDefinition.getDeleteBucketsAfterFinalization())
                             .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, initDefinition.getRepairWorkerPollFrequencySeconds())

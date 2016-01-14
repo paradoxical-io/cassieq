@@ -76,12 +76,12 @@ public class TestQueueContext {
 
         queueRepository = factory.forAccount(accountName);
 
-        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, queueDefinition);
-
-        context = factory.forQueue(queueDefinition);
-
         // try and create queue, but if it already exists, then just get the correct version
         this.queueDefinition = queueRepository.createQueue(queueDefinition).orElse(queueDefinition);
+
+        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, this.queueDefinition);
+
+        context = factory.forQueue(this.queueDefinition);
     }
 
     public Optional<Message> readNextMessage(Duration invisiblity) {

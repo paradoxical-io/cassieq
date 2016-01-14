@@ -96,17 +96,15 @@ public class RepairTests extends DbTestBase {
 
         final QueueName queueName = QueueName.valueOf("repairer_republishes_newly_visible_in_tombstoned_bucket");
 
-        final QueueDefinition queueDefinition = QueueDefinition.builder()
-                                                               .accountName(testAccountName)
-                                                               .queueName(queueName)
-                                                               .bucketSize(BucketSize.valueOf(1))
-                                                               .repairWorkerPollFrequencySeconds(1)
-                                                               .repairWorkerTombstonedBucketTimeoutSeconds(3)
-                                                               // dont delete since we need to query after
-                                                               .deleteBucketsAfterFinalization(false)
-                                                               .build();
-
-        createQueue(queueDefinition);
+        final QueueDefinition queueDefinition = createQueue(QueueDefinition.builder()
+                                                                           .accountName(testAccountName)
+                                                                           .queueName(queueName)
+                                                                           .bucketSize(BucketSize.valueOf(1))
+                                                                           .repairWorkerPollFrequencySeconds(1)
+                                                                           .repairWorkerTombstonedBucketTimeoutSeconds(3)
+                                                                           // dont delete since we need to query after
+                                                                           .deleteBucketsAfterFinalization(false)
+                                                                           .build());
 
         repairWorkerFactory.forQueue(queueDefinition);
 

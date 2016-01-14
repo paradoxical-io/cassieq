@@ -77,9 +77,7 @@ public class TestBase {
     }
 
     protected TestQueueContext createTestQueueContext(QueueName queueName) {
-        final TestQueueContext testQueueContext = new TestQueueContext(testAccountName, queueName, getDefaultInjector());
-
-        return testQueueContext;
+        return new TestQueueContext(testAccountName, queueName, getDefaultInjector());
     }
 
     @Before
