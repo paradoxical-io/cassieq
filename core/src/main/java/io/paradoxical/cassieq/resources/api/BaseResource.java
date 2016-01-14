@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.discoverable.resources.api.v1;
+package io.paradoxical.cassieq.resources.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.paradoxical.cassieq.model.QueueName;

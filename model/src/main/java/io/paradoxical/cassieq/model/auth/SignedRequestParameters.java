@@ -35,8 +35,6 @@ public class SignedRequestParameters implements RequestParameters {
     @NotNull
     private final String requestPath;
 
-    @NonNull
-    @NotNull
     private final String providedSignature;
 
     @Override
@@ -74,8 +72,6 @@ public class SignedRequestParameters implements RequestParameters {
 
     public String getSignedString() {
         final CharMatcher charMatcher = CharMatcher.is('/');
-
-
 
         return Joiner.on("\n")
                      .skipNulls()

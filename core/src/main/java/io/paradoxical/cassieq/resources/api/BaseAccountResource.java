@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.discoverable.resources.api.v1;
+package io.paradoxical.cassieq.resources.api;
 
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.AccessLevel;

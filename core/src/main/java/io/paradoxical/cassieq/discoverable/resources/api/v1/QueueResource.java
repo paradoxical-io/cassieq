@@ -14,6 +14,7 @@ import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.swagger.annotations.Api;

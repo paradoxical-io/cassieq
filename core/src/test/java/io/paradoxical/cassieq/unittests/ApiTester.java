@@ -39,8 +39,6 @@ public class ApiTester extends TestBase {
     }
 
 
-    ;
-
     @BeforeClass
     public static void setup() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
         server = new SelfHostServer(new InMemorySessionProvider(session));

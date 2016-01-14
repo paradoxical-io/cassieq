@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.discoverable.resources.api.v1;
+package io.paradoxical.cassieq.resources.api;
 
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.resources.api.BaseAccountResource;
 import lombok.AccessLevel;
 import lombok.Getter;
 

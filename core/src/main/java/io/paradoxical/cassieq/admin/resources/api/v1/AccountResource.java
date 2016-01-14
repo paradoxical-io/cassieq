@@ -5,7 +5,7 @@ import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
-import io.paradoxical.cassieq.discoverable.resources.api.v1.BaseResource;
+import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
@@ -21,7 +21,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.List;
 import java.util.Optional;
 
 @Path("/api/v1/accounts/")
