@@ -1,12 +1,19 @@
 package io.paradoxical.cassieq.auth;
 
 import com.godaddy.logging.Logger;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import io.dropwizard.auth.AuthFilter;
 import io.dropwizard.auth.AuthenticationException;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AccountKeyParameters;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
+import io.paradoxical.cassieq.model.auth.RequestParameters;
+import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
+import io.paradoxical.cassieq.model.auth.SignedUrlParameters;
 import lombok.Builder;
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,7 +33,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 
 @Priority(Priorities.AUTHENTICATION)
 @Builder(builderClassName = "Builder")
-public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<SignedRequestCredentials, P> {
+public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<AuthorizedRequestCredentials, P> {
     private static final Logger logger = getLogger(SignedRequestAuthFilter.class);
 
     private final String accountNamePathParameter;
@@ -44,24 +51,15 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Sig
             final MultivaluedMap<String, String> pathParameters = requestContext.getUriInfo().getPathParameters();
             if (pathParameters.containsKey(accountNamePathParameter)) {
 
-                final String accountName = pathParameters.getFirst(accountNamePathParameter);
+                final AccountName accountName = AccountName.valueOf(pathParameters.getFirst(accountNamePathParameter));
 
-                final String signature = parseSignature(requestContext);
+                final RequestParameters headerRequestParameters = parseHeaderRequestParameters(requestContext, accountName);
+                final SignedUrlParameters signedUrlParameters = parseSignedUrlParameters(requestContext, accountName);
 
-                final String key = parseAuthKey(requestContext);
-
-                final EnumSet<AuthorizationLevel> authorizationLevels = parseAuthorizationLevel(requestContext);
-
-
-                final SignedRequestCredentials credentials =
-                        SignedRequestCredentials.builder()
-                                                .signature(signature)
-                                                .requestPath(requestContext.getUriInfo().getPath())
-                                                .requestMethod(requestContext.getMethod())
-                                                .accountName(AccountName.valueOf(accountName))
-                                                .authorizationLevels(authorizationLevels)
-                                                .authKey(key)
-                                                .build();
+                final AuthorizedRequestCredentials credentials =
+                        AuthorizedRequestCredentials.builder()
+                                                    .requestParameters(MoreObjects.firstNonNull(headerRequestParameters, signedUrlParameters))
+                                                    .build();
 
                 if (setPrincipal(requestContext, credentials)) {
                     return;
@@ -78,38 +76,55 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Sig
         throw new WebApplicationException(unauthorizedHandler.buildResponse(prefix, realm));
     }
 
-    private String parseAuthKey(final ContainerRequestContext requestContext) {
+    private RequestParameters parseHeaderRequestParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
         final String header = requestContext.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-        final String keyValue = parseAuthHeader(header, keyAuthPrefix);
-
-        if (keyValue != null) {
-            return keyValue;
-        }
-
-        return StringUtils.EMPTY;
-
-    }
-
-    private String parseAuthHeader(final String header, final String expectedPrefix) {
         if (!Strings.isNullOrEmpty(header)) {
             final Splitter splitter = Splitter.on(' ').limit(2).trimResults();
             final List<String> components = splitter.splitToList(header);
 
-            if (components.size() == 2 && expectedPrefix.equalsIgnoreCase(components.get(0))) {
-                return Strings.nullToEmpty(components.get(1));
+            if (components.size() == 2) {
+                final String authScheme = components.get(0);
+
+                if (keyAuthPrefix.equalsIgnoreCase(authScheme)) {
+                    return AccountKeyParameters.builder()
+                                               .accountName(accountName)
+                                               .authKey(components.get(1))
+                                               .build();
+                }
+
+                if (prefix.equalsIgnoreCase(authScheme)) {
+                    return SignedRequestParameters.builder()
+                                                  .accountName(accountName)
+                                                  .requestMethod(requestContext.getMethod())
+                                                  .providedSignature(components.get(1))
+                                                  .requestPath(requestContext.getUriInfo().getPath())
+                                                  .build();
+                }
             }
         }
+
         return null;
     }
 
-    private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final ContainerRequestContext requestContext) {
-        final String header = requestContext.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+    private SignedUrlParameters parseSignedUrlParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
+        final String sig = requestContext.getUriInfo().getQueryParameters().getFirst("sig");
 
-        if (!Strings.isNullOrEmpty(header)) {
-            return AuthorizationLevel.All;
+        if (Strings.isNullOrEmpty(sig)) {
+            return null;
         }
 
+        final EnumSet<AuthorizationLevel> authorizationLevels = parseAuthorizationLevel(requestContext);
+
+        return SignedUrlParameters.builder()
+                                  .accountName(accountName)
+                                  .authorizationLevels(authorizationLevels)
+                                  .querySignature(sig)
+                                  .build();
+
+    }
+
+    private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final ContainerRequestContext requestContext) {
         String authParam = requestContext.getUriInfo().getQueryParameters().getFirst("auth");
 
         if (!Strings.isNullOrEmpty(authParam)) {
@@ -120,21 +135,7 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Sig
     }
 
 
-    private String parseSignature(final ContainerRequestContext requestContext) {
-        final String header = requestContext.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-
-        String headerSignature = parseAuthHeader(header, prefix);
-
-        if (!Strings.isNullOrEmpty(headerSignature)) {
-            return headerSignature;
-        }
-
-        final String sig = requestContext.getUriInfo().getQueryParameters().getFirst("sig");
-
-        return Strings.nullToEmpty(sig);
-    }
-
-    private boolean setPrincipal(final ContainerRequestContext requestContext, final SignedRequestCredentials credentials) {
+    private boolean setPrincipal(final ContainerRequestContext requestContext, final AuthorizedRequestCredentials credentials) {
         try {
             final Optional<P> optionalPrincipal = authenticator.authenticate(credentials);
             if (optionalPrincipal.isPresent()) {
@@ -154,7 +155,7 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Sig
         return false;
     }
 
-    public static class Builder<P extends Principal> extends AuthFilterBuilder<SignedRequestCredentials, P, SignedRequestAuthFilter<P>> {
+    public static class Builder<P extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, P, SignedRequestAuthFilter<P>> {
 
         @Override
         protected SignedRequestAuthFilter<P> newInstance() {

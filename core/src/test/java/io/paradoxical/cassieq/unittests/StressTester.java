@@ -1,7 +1,7 @@
 package io.paradoxical.cassieq.unittests;
 
 import com.godaddy.logging.Logger;
-import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.api.client.CassieqApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
@@ -10,21 +10,23 @@ import org.junit.Test;
 import retrofit.Response;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Random;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 @Ignore("Stress tests")
-public class StressTester {
+public class StressTester extends TestBase {
     private static final Logger logger = getLogger(StressTester.class);
 
     public static final AccountName testAccountName = AccountName.valueOf("stress-testing");
 
     @Ignore
     @Test
-    public void stress_test() throws InterruptedException {
-        final CassandraQueueApi client = CassandraQueueApi.createClient("http://localhost:8080");
+    public void stress_test() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
+        final CassieqApi client = CassieqApi.createClient("http://localhost:8080", getTestAccountCredintials(getDefaultInjector()));
 
         final QueueName perftest = QueueName.valueOf("perftest1");
 
@@ -39,7 +41,7 @@ public class StressTester {
         Thread.sleep(Duration.ofDays(1).toMillis());
     }
 
-    private void startReader(final CassandraQueueApi client, final QueueName perftest) {
+    private void startReader(final CassieqApi client, final QueueName perftest) {
         new Thread(() -> {
             while (true) {
                 try {
@@ -56,7 +58,7 @@ public class StressTester {
         }).start();
     }
 
-    private void startWriter(final CassandraQueueApi client, final QueueName perftest) {
+    private void startWriter(final CassieqApi client, final QueueName perftest) {
         new Thread(() -> {
             final Random random = new Random();
             while (true) {

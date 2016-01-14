@@ -10,6 +10,8 @@ public interface AccountRepository {
 
     Optional<AccountDefinition> createAccount(AccountName accountName);
 
+    Optional<AccountDefinition> getAccount(AccountName accountName);
+
     List<AccountDefinition> getAllAccounts();
 
     void deleteAccount(AccountName accountName);

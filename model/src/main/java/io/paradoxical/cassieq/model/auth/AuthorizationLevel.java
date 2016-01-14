@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.auth;
+package io.paradoxical.cassieq.model.auth;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -15,10 +15,15 @@ public enum AuthorizationLevel {
     ReadMessage("r"),
     PutMessage("p"),
     UpdateMessage("u"),
-    AckMessage("a");
+    AckMessage("a"),
+    GetQueueInformation("g"),
+    CreateQueue("c"),
+    DeleteQueue("d");
 
     public static final EnumSet<AuthorizationLevel> All =
             EnumSet.of(ReadMessage, PutMessage, UpdateMessage, AckMessage);
+
+    public String Role = "BLAH";
 
     @Getter
     private final String shortForm;

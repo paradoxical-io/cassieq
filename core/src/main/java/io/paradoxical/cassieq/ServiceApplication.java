@@ -26,24 +26,20 @@ import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.auth.AccountPrincipal;
 import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
-import io.paradoxical.cassieq.auth.SignedRequestCredentials;
+import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.discoverable.GuiceDiscoverablePackageMarker;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
+import io.paradoxical.cassieq.swagger.SwaggerApiResource;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
-import io.swagger.config.Scanner;
-import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
-import io.swagger.jersey.listing.ApiListingResourceJSON;
-import io.swagger.models.Swagger;
 import lombok.Getter;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.joda.time.DateTimeZone;
 
-import javax.servlet.ServletConfig;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -178,32 +174,17 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setVersion("1.0.1");
         swagConfig.setBasePath("/admin");
 
-        addSavingSwaggerLocator(resourceConfig, swagConfig);
-
+        resourceConfig.register(new SwaggerApiResource(swagConfig));
     }
 
     private void addSavingSwaggerLocator(final DropwizardResourceConfig resourceConfig, final BeanConfig swagConfig) {
-        resourceConfig.register(new ApiListingResourceJSON() {
-            @Override
-            protected synchronized Swagger scan(final javax.ws.rs.core.Application app, final ServletConfig sc) {
-                final Scanner savedScanner = ScannerFactory.getScanner();
-
-                ScannerFactory.setScanner(swagConfig);
-
-                final Swagger result = super.scan(app, sc);
-
-                ScannerFactory.setScanner(savedScanner);
-
-                return result;
-            }
-        });
     }
 
     private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
 
         final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
 
-        final Key<Authenticator<SignedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<SignedRequestCredentials, AccountPrincipal>>() {});
+        final Key<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>>() {});
 
         final SignedRequestAuthFilter<AccountPrincipal> authFilter =
                 SignedRequestAuthFilter.<AccountPrincipal>builder()
@@ -215,7 +196,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
                         .buildAuthFilter();
 
 
-        final ChainedAuthFilter<SignedRequestCredentials, AccountPrincipal> authFilterChain = new ChainedAuthFilter<>(Arrays.asList(
+        final ChainedAuthFilter<AuthorizedRequestCredentials, AccountPrincipal> authFilterChain = new ChainedAuthFilter<>(Arrays.asList(
                 authFilter));
 
 
@@ -251,7 +232,8 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
         environment.jersey().register(new SwaggerSerializers());
-        addSavingSwaggerLocator(environment.jersey().getResourceConfig(), swagConfig);
+
+        environment.jersey().register(new SwaggerApiResource(swagConfig));
     }
 
     protected void configureJson(ServiceConfiguration config, final Environment environment) {

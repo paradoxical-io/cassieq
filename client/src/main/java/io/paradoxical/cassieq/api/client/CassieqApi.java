@@ -1,5 +1,7 @@
 package io.paradoxical.cassieq.api.client;
 
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
@@ -20,19 +22,29 @@ import retrofit.http.Query;
 
 import java.net.URI;
 
-public interface CassandraQueueApi {
+public interface CassieqApi {
 
-    static CassandraQueueApi createClient(URI baseUri) {
-        return createClient(baseUri.toString());
+    static CassieqApi createClient(URI baseUri, CassieqCredentials cassieqCredentials) {
+        return createClient(baseUri.toString(), cassieqCredentials);
     }
 
-    static CassandraQueueApi createClient(String baseUri) {
+    static CassieqApi createClient(String baseUri, CassieqCredentials cassieqCredentials) {
+
+        OkHttpClient client = new OkHttpClient();
+        client.interceptors().add(chain -> {
+            final Request request = chain.request();
+
+
+            return chain.proceed(cassieqCredentials.authorize(request));
+        });
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUri)
                 .addConverterFactory(JacksonConverterFactory.create())
+                .client(client)
                 .build();
 
-        return retrofit.create(CassandraQueueApi.class);
+        return retrofit.create(CassieqApi.class);
     }
 
     @POST("api/v1/accounts/{accountName}/queues")

@@ -32,6 +32,10 @@ public final class AccountKey extends StringValue {
         super(value);
     }
 
+    public byte[] getBytes() {
+        return Base64.getUrlDecoder().decode(get());
+    }
+
     public static AccountKey valueOf(String value) {
         return new AccountKey(StringUtils.trimToEmpty(value));
     }

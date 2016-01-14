@@ -7,7 +7,9 @@ import com.google.inject.Injector;
 import com.netflix.governator.Governator;
 import io.dropwizard.logging.BootstrapLogging;
 import io.paradoxical.cassieq.ServiceConfiguration;
+import io.paradoxical.cassieq.api.client.CassieqCredentials;
 import io.paradoxical.cassieq.configurations.LogMapping;
+import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.BucketSize;
@@ -33,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import uk.co.jemos.podam.api.PodamFactory;
 import uk.co.jemos.podam.api.PodamFactoryImpl;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -83,6 +87,15 @@ public class TestBase {
                 }
             }
         }
+    }
+
+    protected static CassieqCredentials getTestAccountCredintials(Injector injector) throws InvalidKeyException, NoSuchAlgorithmException {
+        final AccountRepository instance = injector.getInstance(AccountRepository.class);
+
+        instance.createAccount(testAccountName);
+
+        return CassieqCredentials.key(testAccountName, instance.getAccount(testAccountName).get().getKeys().asList().get(0));
+
     }
 
     @Getter(AccessLevel.PROTECTED)

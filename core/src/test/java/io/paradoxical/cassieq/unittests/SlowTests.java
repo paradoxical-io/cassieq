@@ -6,7 +6,7 @@ import com.godaddy.logging.Logger;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
-import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.api.client.CassieqApi;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -34,6 +34,8 @@ import org.junit.experimental.categories.Category;
 import retrofit.Response;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +63,8 @@ public class SlowTests extends TestBase {
                              1);  // bad workers
     }
 
-    private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers) throws InterruptedException, IOException {
+    private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers)
+            throws InterruptedException, IOException, NoSuchAlgorithmException, InvalidKeyException {
 
         final TestClock testClock = new TestClock();
 
@@ -74,7 +77,7 @@ public class SlowTests extends TestBase {
 
         final Collection<Integer> counter = ConcurrentHashMultiset.create();
 
-        final CassandraQueueApi client = CassandraQueueApi.createClient(server.getBaseUri());
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri(), getTestAccountCredintials(server.getService().getGuiceBundleProvider().getInjector()));
 
         final QueueName queueName = QueueName.valueOf(String.valueOf(new Random().nextInt()));
 
@@ -170,7 +173,7 @@ public class SlowTests extends TestBase {
 
     class FailingWorker extends Worker {
         public FailingWorker(
-                final CassandraQueueApi client,
+                final CassieqApi client,
                 final QueueName queueName,
                 final Collection<Integer> counter,
                 final ExecutorService executorService) {
@@ -186,7 +189,7 @@ public class SlowTests extends TestBase {
     }
 
     class Worker implements Runnable {
-        protected final CassandraQueueApi client;
+        protected final CassieqApi client;
         protected final QueueName queueName;
         private final Collection<Integer> counter;
         private final ExecutorService executorService;
@@ -195,7 +198,7 @@ public class SlowTests extends TestBase {
 
 
         public Worker(
-                CassandraQueueApi client,
+                CassieqApi client,
                 QueueName queueName,
                 Collection<Integer> counter,
                 final ExecutorService executorService, final TestClock testClock) {

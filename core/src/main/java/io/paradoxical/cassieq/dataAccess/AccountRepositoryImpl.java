@@ -12,6 +12,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static java.util.stream.Collectors.toList;
 
@@ -41,14 +42,23 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
 
         final ResultSet createAccountResult = session.execute(createNewAccount);
 
-        if(createAccountResult.wasApplied()){
+        if (createAccountResult.wasApplied()) {
             return Optional.of(AccountDefinition.builder()
-                              .accountName(accountName)
-                              .keys(ImmutableSet.of(primaryKey, secondaryKey))
+                                                .accountName(accountName)
+                                                .keys(ImmutableSet.of(primaryKey, secondaryKey))
                                                 .build());
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<AccountDefinition> getAccount(final AccountName accountName) {
+
+        final Select.Where selectAccount = select().all().from(Tables.Account.TABLE_NAME)
+                                                   .where(eq(Tables.Account.ACCOUNT_NAME, accountName.get()));
+
+        return Optional.ofNullable(getOne(session.execute(selectAccount), AccountDefinition::fromRow));
     }
 
     @Override

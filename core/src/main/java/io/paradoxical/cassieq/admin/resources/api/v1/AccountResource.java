@@ -21,6 +21,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Optional;
 
 @Path("/api/v1/accounts/")
@@ -72,8 +73,13 @@ public class AccountResource extends BaseResource {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
+            final Optional<AccountDefinition> account = accountRepository.getAccount(accountName);
 
-            return Response.ok().build();
+            if(!account.isPresent()){
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+
+            return Response.ok(account.get()).build();
         }
         catch (Exception e) {
             logger.error(e, "Error");

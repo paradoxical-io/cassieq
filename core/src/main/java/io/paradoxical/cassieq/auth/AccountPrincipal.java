@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.auth;
 
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import lombok.Value;
 
 import java.security.Principal;
