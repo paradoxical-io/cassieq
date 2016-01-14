@@ -3,6 +3,7 @@ package io.paradoxical.cassieq.model;
 import com.datastax.driver.core.Row;
 import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.common.valuetypes.IntegerValue;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
@@ -61,5 +62,24 @@ public class QueueDefinition {
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
                               .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
                               .build();
+    }
+
+    public QueueDefinition withVersion(Integer version){
+        return new QueueDefinition(
+                accountName,
+                queueName,
+                bucketSize,
+                maxDeliveryCount,
+                status,
+                version,
+                repairWorkerPollFrequencySeconds,
+                repairWorkerTombstonedBucketTimeoutSeconds,
+                deleteBucketsAfterFinalization,
+                queueSizeCounterId
+        );
+    }
+
+    public QueueDefinition withNextVersion(){
+        return withVersion(version + 1);
     }
 }

@@ -164,20 +164,20 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     private boolean insertQueueIfNotExist(final QueueDefinition queueDefinition) {
 
-        final int version = 0;
+        final QueueDefinition initDefinition = queueDefinition.withVersion(0);
 
         final Insert insertQueue =
                 QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
                             .ifNotExists()
                             .value(Tables.Queue.ACCOUNT_NAME, accountName.get())
-                            .value(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get())
-                            .value(Tables.Queue.VERSION, version)
-                            .value(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get())
-                            .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, queueDefinition.getDeleteBucketsAfterFinalization())
-                            .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, queueDefinition.getRepairWorkerPollFrequencySeconds())
-                            .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, queueDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
-                            .value(Tables.Queue.QUEUE_SIZE_COUNTER_ID, getUniqueQueueCounterId(queueDefinition.getQueueName(), version).get())
-                            .value(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount())
+                            .value(Tables.Queue.QUEUE_NAME, initDefinition.getQueueName().get())
+                            .value(Tables.Queue.VERSION, initDefinition)
+                            .value(Tables.Queue.BUCKET_SIZE, initDefinition.getBucketSize().get())
+                            .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, initDefinition.getDeleteBucketsAfterFinalization())
+                            .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, initDefinition.getRepairWorkerPollFrequencySeconds())
+                            .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, initDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
+                            .value(Tables.Queue.QUEUE_SIZE_COUNTER_ID, getUniqueQueueCounterId(initDefinition.getId()).get())
+                            .value(Tables.Queue.MAX_DELIVERY_COUNT, initDefinition.getMaxDeliveryCount())
                             .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
 
         final boolean queueInserted = session.execute(insertQueue).wasApplied();
@@ -234,21 +234,22 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         // first check the table name version table
 
         final int currentVersion = currentQueueDefinition.getVersion();
-        final int nextVersion = currentVersion + 1;
 
-        final QueueSizeCounterId newQueueCounterId = getUniqueQueueCounterId(currentQueueDefinition.getQueueName(), nextVersion);
+        final QueueDefinition nextQueueDefinition = currentQueueDefinition.withNextVersion();
+
+        final QueueSizeCounterId newQueueCounterId = getUniqueQueueCounterId(nextQueueDefinition.getId());
 
         // update the tracking table to see who can grab the next version
         // only if the queue name status is inactive
         // if its available grab it
         final Statement updateQueueDefinitionStatement =
                 QueryBuilder.update(Tables.Queue.TABLE_NAME)
-                            .where(eq(Tables.Queue.QUEUE_NAME, queueDefinition.getQueueName().get()))
+                            .where(eq(Tables.Queue.QUEUE_NAME, nextQueueDefinition.getQueueName().get()))
                             .and(eq(Tables.Queue.ACCOUNT_NAME, accountName.get()))
-                            .with(set(Tables.Queue.VERSION, nextVersion))
+                            .with(set(Tables.Queue.VERSION, nextQueueDefinition.getVersion()))
                             .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
-                            .and(set(Tables.Queue.BUCKET_SIZE, queueDefinition.getBucketSize().get()))
-                            .and(set(Tables.Queue.MAX_DELIVERY_COUNT, queueDefinition.getMaxDeliveryCount()))
+                            .and(set(Tables.Queue.BUCKET_SIZE, nextQueueDefinition.getBucketSize().get()))
+                            .and(set(Tables.Queue.MAX_DELIVERY_COUNT, nextQueueDefinition.getMaxDeliveryCount()))
                             .and(set(Tables.Queue.QUEUE_SIZE_COUNTER_ID, newQueueCounterId.get()))
                             .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
                             .and(gte(Tables.Queue.STATUS, QueueStatus.Deleting.ordinal()));
@@ -262,8 +263,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return queueUpdateApplied;
     }
 
-    private QueueSizeCounterId getUniqueQueueCounterId(final QueueName queueName, final int version) {
-        return QueueSizeCounterId.valueOf(String.format("%s_%s", UUID.randomUUID(), QueueId.valueOf(accountName, queueName, version)));
+    private QueueSizeCounterId getUniqueQueueCounterId(final QueueId queueId) {
+        return QueueSizeCounterId.valueOf(String.format("%s_%s", UUID.randomUUID(), queueId));
     }
 
     private void ensurePointers(final QueueDefinition queueDefinition) {
