@@ -151,7 +151,7 @@ public class QueueDeleterTests extends DbTestBase {
         final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
         final Optional<QueueDefinition> createdDef = queueRepository.createQueue(definition);
 
-        final QueueDataContext dataContext = contextFactory.forQueue(definition);
+        final QueueDataContext dataContext = contextFactory.forQueue(createdDef.get());
 
         // move monton up
         dataContext.getMessageRepository()
