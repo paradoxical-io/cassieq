@@ -48,7 +48,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
 @Category({ StressTests.class, VerySlowTests.class })
-public class SlowTests extends TestBase {
+public class SlowTests extends DbTestBase {
     private static final Logger logger = getLogger(SlowTests.class);
 
     @Rule
@@ -67,7 +67,7 @@ public class SlowTests extends TestBase {
 
         @Cleanup("stop") SelfHostServer server = new SelfHostServer(
                 new InMemorySessionProvider(session),
-                new HazelcastTestModule(),
+                new HazelcastTestModule("parallel_read_worker"),
                 new TestClockModule(testClock));
 
         server.start();

@@ -8,6 +8,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.clustering.eventing.EventBus;
 import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
@@ -15,6 +16,8 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.model.events.QueueAddedEvent;
+import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.NonNull;
 
@@ -33,15 +36,20 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     private static final Logger logger = getLogger(QueueRepositoryImpl.class);
 
     private final Session session;
+
+    private final EventBus eventBus;
+
     private final AccountName accountName;
 
     @Inject
     public QueueRepositoryImpl(
             @NonNull final Session session,
+            final EventBus eventBus,
             @NonNull
             @Assisted AccountName accountName) {
         this.session = session;
         this.accountName = accountName;
+        this.eventBus = eventBus;
     }
 
 
@@ -64,6 +72,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                 // anyone can create a queue with the same name now
 
                 logger.with("definition", definition).success("Marked for deletion");
+
+                eventBus.publish(new QueueDeletingEvent());
 
                 return deletionJob;
             }
@@ -101,6 +111,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     @Override
     public Optional<QueueDefinition> createQueue(@NonNull final QueueDefinition definition) {
         if (upsertQueueDefinition(definition)) {
+            eventBus.publish(new QueueAddedEvent());
+
             return getActiveQueue(definition.getQueueName());
         }
 

@@ -25,7 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class MessageRepositoryTester extends TestBase {
+public class MessageRepositoryTester extends DbTestBase {
     @Test
     public void put_message_should_succeed() throws Exception {
         final Injector defaultInjector = getDefaultInjector();

@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ClusterTests {
     @Test
     public void test_hazelcasts(){
-        @Cleanup("shutdown") final HazelcastInstance instance1 = new HazelcastTestModule().getInstance();
-        @Cleanup("shutdown") final HazelcastInstance instance2 = new HazelcastTestModule().getInstance();
+        @Cleanup("shutdown") final HazelcastInstance instance1 = new HazelcastTestModule("test_hazelcasts").getInstance();
+        @Cleanup("shutdown") final HazelcastInstance instance2 = new HazelcastTestModule("test_hazelcasts").getInstance();
 
         assertThat(instance2.getCluster().getMembers().size()).isEqualTo(2);
 

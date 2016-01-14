@@ -39,7 +39,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @Category(BuildVerification.class)
-public class QueueDeleterTests extends TestBase {
+public class QueueDeleterTests extends DbTestBase {
     private static final Logger logger = getLogger(QueueDeleterTests.class);
 
     @Test

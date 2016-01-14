@@ -4,7 +4,7 @@ import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
-import com.hazelcast.core.Member;
+import io.paradoxical.cassieq.clustering.HazelcastBase;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.model.ClusterMember;
 import io.paradoxical.cassieq.model.LeadershipRole;
@@ -14,19 +14,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
-import static java.util.stream.Collectors.toSet;
 
-public class HazelcastLeadershipProvider implements LeadershipProvider {
+public class HazelcastLeadershipProvider extends HazelcastBase implements LeadershipProvider {
     private final HazelcastInstance hazelcastInstance;
     private final ClusteringConfig config;
 
     private static final Logger logger = getLogger(HazelcastLeadershipProvider.class);
 
-
     @Inject
     public HazelcastLeadershipProvider(
             HazelcastInstance hazelcastInstance,
             ClusteringConfig config) {
+        super(hazelcastInstance);
         this.hazelcastInstance = hazelcastInstance;
         this.config = config;
     }
@@ -78,16 +77,6 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
         return false;
     }
 
-    private boolean inCluster(final ClusterMember clusterId) {
-        return hazelcastInstance.getCluster()
-                                .getMembers()
-                                .stream()
-                                .map(Member::getUuid)
-                                .map(ClusterMember::valueOf)
-                                .collect(toSet())
-                                .contains(clusterId);
-    }
-
     private <T> Optional<T> clusterSyncedExecute(final LeadershipRole key, final Function<KeySetter, T> action) {
         final KeySetter keySetter = new KeySetter(key);
 
@@ -104,10 +93,6 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
     }
 
 
-    private ClusterMember thisClusterMember() {
-        return ClusterMember.valueOf(hazelcastInstance.getCluster().getLocalMember().getUuid());
-    }
-
     class KeySetter {
         private final IMap<LeadershipRole, String> backingMap;
         private final LeadershipRole key;
@@ -120,7 +105,7 @@ public class HazelcastLeadershipProvider implements LeadershipProvider {
 
         public boolean amLeader() {
             final ClusterMember value = value();
-            
+
             return value != null && value.equals(thisClusterMember());
         }
 

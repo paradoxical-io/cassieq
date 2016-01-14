@@ -24,7 +24,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(BuildVerification.class)
-public class ApiTester extends TestBase {
+public class ApiTester extends DbTestBase {
 
     private static final Logger logger = getLogger(ApiTester.class);
 
