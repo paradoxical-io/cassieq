@@ -102,6 +102,7 @@
         <apache.commons.io.version>2.4</apache.commons.io.version>
         <hazelcast.version>3.5.4</hazelcast.version>
         <apache.collections4.version>4.0</apache.collections4.version>
+        <guava.retrying.version>2.0.0</guava.retrying.version>
 
         <!-- Maven Plugin versions -->
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
@@ -127,6 +128,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.rholder</groupId>
+                <artifactId>guava-retrying</artifactId>
+                <version>${guava.retrying.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>uk.co.jemos.podam</groupId>
                 <artifactId>podam</artifactId>

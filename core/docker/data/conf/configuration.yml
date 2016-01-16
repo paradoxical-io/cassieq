@@ -15,6 +15,17 @@ cassandra:
   port: ${env.CASSANDRA_PORT!9042}
   socketOptions:
     keepAlive: true
+  poolingOptions:
+    local:
+        coreConnections: ${env.LOCAL_CORE_CONNECTIONS!1}
+        maxSimultaneousRequests: ${env.LOCAL_MAX_SIMUL_CONNECTIONS!1500}
+        minSimultaneousRequests: ${env.LOCAL_MIN_SIMUL_CONNECTIONS!1}
+        maxConnections: ${env.LOCAL_MAX_CONNECTIONS!1500}
+    remote:
+        coreConnections: ${env.REMOTE_REMOTE_CONNECTIONS!1}
+        maxSimultaneousRequests: ${env.REMOTE_MAX_SIMUL_CONNECTIONS!500}
+        minSimultaneousRequests: ${env.REMOTE_MIN_SIMUL_CONNECTIONS!1}
+        maxConnections: ${env.REMOTE_MAX_CONNECTIONS!500}
   authProvider:
     type: ${env.AUTH_PROVIDER!"plainText"}
     username: ${env.USERNAME!'test'}
