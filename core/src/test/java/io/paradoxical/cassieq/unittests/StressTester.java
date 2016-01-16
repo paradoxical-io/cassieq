@@ -28,13 +28,13 @@ public class StressTester {
 
         final QueueName perftest = QueueName.valueOf("perftest1");
 
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 5; i++) {
             startWriter(client, perftest);
         }
 
-//        for (int i = 0; i < 5; i++) {
-//            startReader(client, perftest);
-//        }
+        for (int i = 0; i < 10; i++) {
+            startReader(client, perftest);
+        }
 
         Thread.sleep(Duration.ofDays(1).toMillis());
     }

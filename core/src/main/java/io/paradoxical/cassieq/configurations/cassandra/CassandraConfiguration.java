@@ -27,6 +27,9 @@ public class CassandraConfiguration extends CassandraFactory {
     @JsonProperty
     private Ssl ssl;
 
+    @Valid
+    private CompareAndSetRetryConfig casConfig = new CompareAndSetRetryConfig();
+
     /**
      * Builds a {@link com.datastax.driver.core.Cluster} instance.
      *

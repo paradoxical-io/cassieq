@@ -1,6 +1,5 @@
 package io.paradoxical.cassieq.unittests;
 
-import categories.BuildVerification;
 import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.common.test.junit.RetryRule;
@@ -8,7 +7,6 @@ import io.paradoxical.common.test.logging.TestLoggingInitializer;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -49,4 +47,3 @@ public class YamlConfigTest {
         serviceApplication.stop();
     }
 }
-

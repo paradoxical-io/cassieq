@@ -40,6 +40,7 @@ public class DataAccessModule extends AbstractModule {
                         .build(QueueRepositoryFactory.class));
 
         bind(AccountRepository.class).to(AccountRepositoryImpl.class);
+
         bind(DataContextFactory.class).to(DataContextFactoryImpl.class);
     }
 }
