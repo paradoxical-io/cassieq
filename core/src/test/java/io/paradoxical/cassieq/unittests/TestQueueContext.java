@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestQueueContext {
 
     @NonNull
+    @Getter
     private final QueueName queueName;
 
     @NonNull
@@ -35,12 +36,17 @@ public class TestQueueContext {
     private final QueueDefinition queueDefinition;
 
     @NonNull
+    @Getter
     private final Reader reader;
+
+    @Getter
     private final AccountName accountName;
+
+    @Getter
     private final Injector injector;
 
     @Getter
-    private QueueDataContext context;
+    private final QueueDataContext context;
 
     @Getter
     private final QueueRepository queueRepository;
@@ -50,19 +56,17 @@ public class TestQueueContext {
                             .accountName(accountName)
                             .queueName(name)
                             .build(), injector);
+
     }
 
     public TestQueueContext(QueueDefinition queueDefinition, Injector injector) {
-
-        if(queueDefinition.getAccountName() == null){
+        if (queueDefinition.getAccountName() == null) {
             throw new IllegalArgumentException("Queue Definition should not be missing an account name");
         }
 
         this.accountName = queueDefinition.getAccountName();
-        this.queueDefinition = queueDefinition;
-        this.injector = injector;
 
-        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, queueDefinition);
+        this.injector = injector;
 
         this.queueName = queueDefinition.getQueueName();
 
@@ -72,9 +76,12 @@ public class TestQueueContext {
 
         queueRepository = factory.forAccount(accountName);
 
-        this.queueRepository.createQueue(queueDefinition);
+        // try and create queue, but if it already exists, then just get the correct version
+        this.queueDefinition = queueRepository.createQueue(queueDefinition).orElse(queueDefinition);
 
-        context = factory.forQueue(queueDefinition);
+        this.reader = injector.getInstance(ReaderFactory.class).forQueue(accountName, this.queueDefinition);
+
+        context = factory.forQueue(this.queueDefinition);
     }
 
     public Optional<Message> readNextMessage(Duration invisiblity) {
@@ -104,7 +111,7 @@ public class TestQueueContext {
                        .build(), Duration.standardSeconds(seconds));
     }
 
-    public QueueDeleter createQueueDeleter(){
+    public QueueDeleter createQueueDeleter() {
         return injector.getInstance(QueueDeleter.Factory.class).create(accountName);
     }
 

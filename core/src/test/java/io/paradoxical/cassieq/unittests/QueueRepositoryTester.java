@@ -116,18 +116,15 @@ public class QueueRepositoryTester extends DbTestBase {
         final QueueName queueName = QueueName.valueOf("can_create_new_queue_while_old_queue_is_deleting");
 
         final TestQueueContext testContext = createTestQueueContext(queueName);
+
         final QueueRepository queueRepository = testContext.getQueueRepository();
-
-        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
-
-        queueRepository.createQueue(queueDefinition);
 
         assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
-        queueRepository.tryMarkForDeletion(queueDefinition);
+        queueRepository.tryMarkForDeletion(testContext.getQueueDefinition());
 
         // should be able to create a new definition here
-        queueRepository.createQueue(queueDefinition);
+        queueRepository.createQueue(testContext.getQueueDefinition());
     }
 
     @Test
@@ -138,8 +135,7 @@ public class QueueRepositoryTester extends DbTestBase {
         final TestQueueContext testContext = createTestQueueContext(queueName);
         final QueueRepository queueRepository = testContext.getQueueRepository();
 
-
-        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
+        final QueueDefinition queueDefinition = testContext.getQueueDefinition();
 
         queueRepository.createQueue(queueDefinition);
 
@@ -156,10 +152,56 @@ public class QueueRepositoryTester extends DbTestBase {
                 .withFailMessage("Deleted queue still shows up as active");
 
         assertThat(queueRepository.getQueueUnsafe(queueName).isPresent())
-                .isEqualTo(true)
-                .withFailMessage("Raw queue definition does not exists. Queue definitions should never be removed");
+                .isEqualTo(false)
+                .withFailMessage("Raw queue definition should not have existed. Queue definition was not removed");
 
         assertThat(queueRepository.getQueueNames()).doesNotContain(queueName);
+    }
+
+    @Test
+    public void counters_work_after_complete_delete() throws Exception {
+
+        final QueueName queueName = QueueName.valueOf("counters_work_after_complete_delete");
+
+        final TestQueueContext testContext = createTestQueueContext(queueName);
+
+        final QueueRepository queueRepository = testContext.getQueueRepository();
+
+        final QueueDefinition queueDefinition = testContext.getQueueDefinition();
+
+        assertThat(queueRepository.getQueueSize(queueDefinition)).isEmpty();
+
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
+
+        assertThat(queueRepository.getQueueNames()).contains(queueName);
+
+        // attempt a delete
+
+        final QueueDeleter queueDeleter = testContext.createQueueDeleter();
+
+        queueDeleter.delete(queueName);
+
+        assertThat(queueRepository.getActiveQueue(queueName).isPresent())
+                .isEqualTo(false)
+                .withFailMessage("Deleted queue still shows up as active");
+
+        assertThat(queueRepository.getQueueUnsafe(queueName).isPresent())
+                .isEqualTo(false)
+                .withFailMessage("Raw queue definition should not have existed. Queue definition was not removed");
+
+        assertThat(queueRepository.getQueueNames()).doesNotContain(queueName);
+
+        // make sure that after a delete occurred we can get a valid counter result
+        // it should have a new counter id
+        final QueueDefinition recreatedDefinition = queueRepository.createQueue(queueDefinition).get();
+
+        final TestQueueContext newContext = new TestQueueContext(recreatedDefinition, getDefaultInjector());
+
+        newContext.putMessage("0");
+
+        final Long afterRecreateSize = newContext.getQueueRepository().getQueueSize(recreatedDefinition).get();
+
+        assertThat(afterRecreateSize).isEqualTo(1);
     }
 
     @Test

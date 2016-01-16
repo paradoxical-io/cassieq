@@ -11,7 +11,6 @@ import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundExceptio
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
@@ -145,11 +144,12 @@ public class QueueDeleterTests extends DbTestBase {
         final DataContextFactory contextFactory = getDefaultInjector().getInstance(DataContextFactory.class);
 
         final QueueName name = QueueName.valueOf("test_deleter_cleans_up_pointers");
-
-        final QueueDefinition definition = QueueDefinition.builder().accountName(testAccountName).queueName(name).build();
-
         final QueueRepository queueRepository = contextFactory.forAccount(testAccountName);
-        final Optional<QueueDefinition> createdDef = queueRepository.createQueue(definition);
+
+
+        final QueueDefinition definition = queueRepository.createQueue(QueueDefinition.builder()
+                                                                                      .accountName(testAccountName)
+                                                                                      .queueName(name).build()).get();
 
         final QueueDataContext dataContext = contextFactory.forQueue(definition);
 
@@ -163,7 +163,7 @@ public class QueueDeleterTests extends DbTestBase {
         dataContext.getPointerRepository().tryMoveInvisiblityPointerTo(InvisibilityMessagePointer.valueOf(0), InvisibilityMessagePointer.valueOf(10));
         dataContext.getPointerRepository().advanceMessageBucketPointer(ReaderBucketPointer.valueOf(0), ReaderBucketPointer.valueOf(10));
 
-        assertThat(queueRepository.getQueueSize(createdDef.orElse(definition))
+        assertThat(queueRepository.getQueueSize(definition)
                                   .orElse(0L))
                 .isEqualTo(1)
                 .withFailMessage("Queue Size wasn't updated");
