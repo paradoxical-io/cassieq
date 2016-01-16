@@ -6,6 +6,7 @@ import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.clustering.allocation.EventableDispatchAllocater;
 import io.paradoxical.cassieq.clustering.allocation.HazelcastResourceAllocater;
 import io.paradoxical.cassieq.clustering.allocation.ManualResourceAllocater;
 import io.paradoxical.cassieq.clustering.allocation.ResourceAllocator;
@@ -24,7 +25,7 @@ public class ResourceAllocationModule extends AbstractModule {
     }
 
     @Provides
-    public ResourceAllocator.Factory getResourceFactory(AllocationConfig config, Injector injector){
+    public ResourceAllocator.Factory getResourceFactory(AllocationConfig config, Injector injector) {
         return new ResourceAllocatorStrategySelector(config, injector).getFactory();
     }
 
@@ -41,7 +42,19 @@ public class ResourceAllocationModule extends AbstractModule {
         public ResourceAllocator.Factory getFactory() {
             switch (config.getStrategy()) {
                 case CLUSTER:
-                    return (config, setSupplier, claimSetConsumer) -> getChildInjector(config, setSupplier, claimSetConsumer).getInstance(HazelcastResourceAllocater.class);
+                    return (config, setSupplier, claimSetConsumer) -> {
+                        final Injector childInjector = getChildInjector(config, setSupplier, claimSetConsumer);
+
+                        // create a clustered allocator and wrap it with an eventable allocator
+                        final ResourceAllocator clusteredResourceAllocator = childInjector.getInstance(HazelcastResourceAllocater.class);
+
+                        return childInjector.createChildInjector(new AbstractModule() {
+                            @Override
+                            protected void configure() {
+                                bind(ResourceAllocator.class).toInstance(clusteredResourceAllocator);
+                            }
+                        }).getInstance(EventableDispatchAllocater.class);
+                    };
                 case NONE:
                     return (config, setSupplier, claimSetConsumer) -> passThroughResourceAllocator(setSupplier, claimSetConsumer);
                 case MANUAL:
@@ -67,7 +80,10 @@ public class ResourceAllocationModule extends AbstractModule {
             };
         }
 
-        private Injector getChildInjector(final ResourceConfig config, final Supplier<Set<ResourceIdentity>> setSupplier, final Consumer<Set<ResourceIdentity>> claimSetConsumer) {
+        private Injector getChildInjector(
+                final ResourceConfig config,
+                final Supplier<Set<ResourceIdentity>> setSupplier,
+                final Consumer<Set<ResourceIdentity>> claimSetConsumer) {
 
             final Injector childInjector = injector.createChildInjector(new AbstractModule() {
                 @Override

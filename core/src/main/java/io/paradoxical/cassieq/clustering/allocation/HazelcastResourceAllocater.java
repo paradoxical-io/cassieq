@@ -10,12 +10,8 @@ import com.hazelcast.core.MemberAttributeEvent;
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
 import io.paradoxical.cassieq.clustering.HazelcastBase;
-import io.paradoxical.cassieq.clustering.eventing.EventBus;
-import io.paradoxical.cassieq.clustering.eventing.EventListener;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.model.ClusterMember;
-import io.paradoxical.cassieq.model.events.QueueAddedEvent;
-import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
@@ -35,8 +31,6 @@ import static java.util.stream.Collectors.toSet;
 public class HazelcastResourceAllocater extends HazelcastBase implements ResourceAllocator {
     private final HazelcastInstance hazelcastInstance;
 
-    private final EventBus eventBus;
-
     private final ClusteringConfig clusteringConfig;
 
     private final ResourceConfig config;
@@ -47,48 +41,28 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
 
     private final String hazelcastMembershipListenerId;
 
-    private final Set<String> eventBusListenerIds = new HashSet<>();
-
     private static final Logger logger = getLogger(HazelcastResourceAllocater.class);
 
     @Inject
     public HazelcastResourceAllocater(
             HazelcastInstance hazelcastInstance,
-            EventBus eventBus,
             ClusteringConfig clusteringConfig,
             @Assisted ResourceConfig config,
             @Assisted Supplier<Set<ResourceIdentity>> inputSupplier,
             @Assisted Consumer<Set<ResourceIdentity>> onDistributed) {
         super(hazelcastInstance);
         this.hazelcastInstance = hazelcastInstance;
-        this.eventBus = eventBus;
         this.clusteringConfig = clusteringConfig;
         this.config = config;
         this.inputSupplier = inputSupplier;
         this.allocationEvent = onDistributed;
 
         hazelcastMembershipListenerId = hazelcastInstance.getCluster().addMembershipListener(getMembershipListener());
-
-        eventBusListenerIds.add(eventBus.register(QueueAddedEvent.class, new EventListener<QueueAddedEvent>() {
-            @Override
-            public void onMessage(final QueueAddedEvent item) {
-                claim();
-            }
-        }));
-
-        eventBusListenerIds.add(eventBus.register(QueueDeletingEvent.class, new EventListener<QueueDeletingEvent>() {
-            @Override
-            public void onMessage(final QueueDeletingEvent item) {
-                claim();
-            }
-        }));
     }
 
     @Override
     public void close() throws Exception {
         hazelcastInstance.getCluster().removeMembershipListener(hazelcastMembershipListenerId);
-
-        eventBusListenerIds.forEach(eventBus::unregister);
     }
 
     private MembershipListener getMembershipListener() {
@@ -231,7 +205,7 @@ public class HazelcastResourceAllocater extends HazelcastBase implements Resourc
                                       .with("current-allocations-to-this", currentlyAllocatedToMe.size());
 
         // can't take any more, and we're as good as its gonna get
-        if(currentlyAllocatedToMe.size() == perClusterMemberClaimMax){
+        if (currentlyAllocatedToMe.size() == perClusterMemberClaimMax) {
             return currentlyAllocatedToMe;
         }
 
