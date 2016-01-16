@@ -28,7 +28,11 @@ public class InMemorySessionProvider extends OverridableModule {
 
     @Provides
     @LazySingleton
-    public Session session(CassandraConfiguration configuration) {
-        return new SessionProxy(session, configuration);
+    public Session session(CassandraConfiguration config) {
+        if (config.getCasConfig().getEnabled()) {
+            return new SessionProxy(session, config);
+        }
+
+        return session;
     }
 }

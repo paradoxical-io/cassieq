@@ -28,6 +28,10 @@ public class SessionProviderModule extends AbstractModule {
             session = keyspace != null ? cluster.connect(keyspace) : cluster.connect();
         }
 
-        return new SessionProxy(session, config.getCassandra());
+        if (config.getCassandra().getCasConfig().getEnabled()) {
+            return new SessionProxy(session, config.getCassandra());
+        }
+
+        return session;
     }
 }
