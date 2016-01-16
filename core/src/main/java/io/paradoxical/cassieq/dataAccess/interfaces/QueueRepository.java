@@ -3,7 +3,7 @@ package io.paradoxical.cassieq.dataAccess.interfaces;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueSizeCounterId;
+import io.paradoxical.cassieq.model.QueueStatsId;
 import io.paradoxical.cassieq.model.QueueStatus;
 
 import java.util.List;
@@ -47,6 +47,6 @@ public interface QueueRepository {
 
     void deleteCompletionJob(DeletionJob queue);
 
-    void deleteQueueStats(QueueSizeCounterId queueId);
+    void deleteQueueStats(QueueStatsId queueId);
 }
 

@@ -116,18 +116,15 @@ public class QueueRepositoryTester extends DbTestBase {
         final QueueName queueName = QueueName.valueOf("can_create_new_queue_while_old_queue_is_deleting");
 
         final TestQueueContext testContext = createTestQueueContext(queueName);
+
         final QueueRepository queueRepository = testContext.getQueueRepository();
-
-        final QueueDefinition queueDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(queueName).build();
-
-        queueRepository.createQueue(queueDefinition);
 
         assertThat(queueRepository.getQueueUnsafe(queueName).isPresent()).isEqualTo(true);
 
-        queueRepository.tryMarkForDeletion(queueDefinition);
+        queueRepository.tryMarkForDeletion(testContext.getQueueDefinition());
 
         // should be able to create a new definition here
-        queueRepository.createQueue(queueDefinition);
+        queueRepository.createQueue(testContext.getQueueDefinition());
     }
 
     @Test

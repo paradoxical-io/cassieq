@@ -15,7 +15,7 @@ import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueSizeCounterId;
+import io.paradoxical.cassieq.model.QueueStatsId;
 import io.paradoxical.cassieq.model.QueueStatus;
 import io.paradoxical.cassieq.model.events.QueueAddedEvent;
 import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
@@ -86,11 +86,11 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     @Override
     public Optional<Long> getQueueSize(final QueueDefinition definition) {
-        final Statement where = QueryBuilder.select(Tables.QueueSize.SIZE)
-                                            .from(Tables.QueueSize.TABLE_NAME)
-                                            .where(eq(Tables.QueueSize.QUEUE_SIZE_COUNTER_ID, definition.getQueueSizeCounterId().get()));
+        final Statement where = QueryBuilder.select(Tables.QueueStats.SIZE)
+                                            .from(Tables.QueueStats.TABLE_NAME)
+                                            .where(eq(Tables.QueueStats.QUEUE_STATS_ID, definition.getQueueStatsId().get()));
 
-        return Optional.ofNullable(getOne(session.execute(where), r -> r.getLong(Tables.QueueSize.SIZE)));
+        return Optional.ofNullable(getOne(session.execute(where), r -> r.getLong(Tables.QueueStats.SIZE)));
     }
 
     private Optional<DeletionJob> insertDeletionJobIfNotExists(final QueueDefinition definition) {
@@ -101,6 +101,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                                              .value(Tables.DeletionJob.QUEUE_NAME, deletionJob.getQueueName().get())
                                              .value(Tables.DeletionJob.ACCOUNT_NAME, accountName.get())
                                              .value(Tables.DeletionJob.VERSION, deletionJob.getVersion())
+                                             .value(Tables.DeletionJob.QUEUE_STATS_ID, definition.getQueueStatsId().get())
                                              .value(Tables.DeletionJob.BUCKET_SIZE, deletionJob.getBucketSize().get());
 
         if (session.execute(insert).wasApplied()) {
@@ -176,7 +177,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .value(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION, initDefinition.getDeleteBucketsAfterFinalization())
                             .value(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS, initDefinition.getRepairWorkerPollFrequencySeconds())
                             .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, initDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
-                            .value(Tables.Queue.QUEUE_SIZE_COUNTER_ID, getUniqueQueueCounterId(initDefinition.getId()).get())
+                            .value(Tables.Queue.QUEUE_STATS_ID, getUniqueQueueCounterId(initDefinition.getId()).get())
                             .value(Tables.Queue.MAX_DELIVERY_COUNT, initDefinition.getMaxDeliveryCount())
                             .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
 
@@ -237,7 +238,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
         final QueueDefinition nextQueueDefinition = currentQueueDefinition.withNextVersion();
 
-        final QueueSizeCounterId newQueueCounterId = getUniqueQueueCounterId(nextQueueDefinition.getId());
+        final QueueStatsId newQueueCounterId = getUniqueQueueCounterId(nextQueueDefinition.getId());
 
         // update the tracking table to see who can grab the next version
         // only if the queue name status is inactive
@@ -250,7 +251,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .and(set(Tables.Queue.STATUS, QueueStatus.Active.ordinal()))
                             .and(set(Tables.Queue.BUCKET_SIZE, nextQueueDefinition.getBucketSize().get()))
                             .and(set(Tables.Queue.MAX_DELIVERY_COUNT, nextQueueDefinition.getMaxDeliveryCount()))
-                            .and(set(Tables.Queue.QUEUE_SIZE_COUNTER_ID, newQueueCounterId.get()))
+                            .and(set(Tables.Queue.QUEUE_STATS_ID, newQueueCounterId.get()))
                             .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
                             .and(gte(Tables.Queue.STATUS, QueueStatus.Deleting.ordinal()));
 
@@ -263,8 +264,8 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return queueUpdateApplied;
     }
 
-    private QueueSizeCounterId getUniqueQueueCounterId(final QueueId queueId) {
-        return QueueSizeCounterId.valueOf(String.format("%s_%s", UUID.randomUUID(), queueId));
+    private QueueStatsId getUniqueQueueCounterId(final QueueId queueId) {
+        return QueueStatsId.valueOf(String.format("%s_%s", UUID.randomUUID(), queueId));
     }
 
     private void ensurePointers(final QueueDefinition queueDefinition) {
@@ -357,10 +358,10 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
     }
 
     @Override
-    public void deleteQueueStats(QueueSizeCounterId counterId) {
+    public void deleteQueueStats(QueueStatsId counterId) {
         final Statement delete = QueryBuilder.delete()
-                                             .from(Tables.QueueSize.TABLE_NAME)
-                                             .where(eq(Tables.QueueSize.QUEUE_SIZE_COUNTER_ID, counterId.get()));
+                                             .from(Tables.QueueStats.TABLE_NAME)
+                                             .where(eq(Tables.QueueStats.QUEUE_STATS_ID, counterId.get()));
 
         if (session.execute(delete).wasApplied()) {
             logger.with("counter_id", counterId)

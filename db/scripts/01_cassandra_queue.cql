@@ -1,7 +1,7 @@
 CREATE TABLE queue (
   account_name text,
   queuename text,
-  queue_size_counter_id text,
+  queue_stats_id text,
   bucket_size int,
   max_delivery_count int,
   status int,
@@ -13,8 +13,8 @@ CREATE TABLE queue (
   PRIMARY KEY (account_name, queuename)
 );
 
-CREATE TABLE queue_size (
-    queue_size_counter_id text PRIMARY KEY,
+CREATE TABLE queue_stats (
+    queue_stats_id text PRIMARY KEY,
     size counter
 );
 
@@ -36,6 +36,7 @@ CREATE TABLE deletion_job (
     queuename text,
     version int,
     bucket_size int,
+    queue_stats_id text,
     PRIMARY KEY (account_name, queuename, version)
 );
 

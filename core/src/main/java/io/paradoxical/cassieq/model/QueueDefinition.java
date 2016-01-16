@@ -3,7 +3,6 @@ package io.paradoxical.cassieq.model;
 import com.datastax.driver.core.Row;
 import io.paradoxical.cassieq.dataAccess.Tables;
 import io.paradoxical.cassieq.model.accounts.AccountName;
-import io.paradoxical.common.valuetypes.IntegerValue;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
@@ -20,7 +19,7 @@ public class QueueDefinition {
     private final Integer repairWorkerPollFrequencySeconds;
     private final Integer repairWorkerTombstonedBucketTimeoutSeconds;
     private final Boolean deleteBucketsAfterFinalization;
-    private final QueueSizeCounterId queueSizeCounterId;
+    private final QueueStatsId queueStatsId;
 
     public QueueId getId() {
         return QueueId.valueOf(accountName, queueName, version);
@@ -36,10 +35,10 @@ public class QueueDefinition {
             final Integer repairWorkerPollFrequencySeconds,
             final Integer repairWorkerTombstonedBucketTimeoutSeconds,
             final Boolean deleteBucketsAfterFinalization,
-            final QueueSizeCounterId queueSizeCounterId) {
+            final QueueStatsId queueStatsId) {
         this.accountName = accountName;
         this.queueName = queueName;
-        this.queueSizeCounterId = queueSizeCounterId;
+        this.queueStatsId = queueStatsId;
         this.deleteBucketsAfterFinalization = deleteBucketsAfterFinalization == null ? true : deleteBucketsAfterFinalization;
         this.version = version == null ? 0 : version;
         this.bucketSize = bucketSize == null ? BucketSize.valueOf(20) : bucketSize;
@@ -57,7 +56,7 @@ public class QueueDefinition {
                               .queueName(QueueName.valueOf(row.getString(Tables.Queue.QUEUE_NAME)))
                               .accountName(AccountName.valueOf(row.getString(Tables.Queue.ACCOUNT_NAME)))
                               .version(row.getInt(Tables.Queue.VERSION))
-                              .queueSizeCounterId(QueueSizeCounterId.valueOf(row.getString(Tables.Queue.QUEUE_SIZE_COUNTER_ID)))
+                              .queueStatsId(QueueStatsId.valueOf(row.getString(Tables.Queue.QUEUE_STATS_ID)))
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
                               .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
@@ -75,7 +74,7 @@ public class QueueDefinition {
                 repairWorkerPollFrequencySeconds,
                 repairWorkerTombstonedBucketTimeoutSeconds,
                 deleteBucketsAfterFinalization,
-                queueSizeCounterId
+                queueStatsId
         );
     }
 

@@ -4,7 +4,7 @@ import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
-import io.paradoxical.cassieq.model.QueueSizeCounterId;
+import io.paradoxical.cassieq.model.QueueStatsId;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Data;
 
@@ -14,7 +14,7 @@ public class DeletionJob {
 
     private final QueueName queueName;
 
-    private final QueueSizeCounterId queueSizeCounterId;
+    private final QueueStatsId queueStatsId;
 
     private final int version;
 
@@ -33,6 +33,6 @@ public class DeletionJob {
 
         this.accountName = definition.getAccountName();
 
-        this.queueSizeCounterId = definition.getQueueSizeCounterId();
+        this.queueStatsId = definition.getQueueStatsId();
     }
 }

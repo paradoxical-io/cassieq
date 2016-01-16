@@ -18,42 +18,42 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.IOException;
 
 @Immutable
-@XmlJavaTypeAdapter(value = QueueSizeCounterId.XmlAdapter.class)
-@JsonSerialize(using = QueueSizeCounterId.JsonSerializeAdapter.class)
-@JsonDeserialize(using = QueueSizeCounterId.JsonDeserializeAdapater.class)
-public final class QueueSizeCounterId extends StringValue {
-    protected QueueSizeCounterId(final String value) {
+@XmlJavaTypeAdapter(value = QueueStatsId.XmlAdapter.class)
+@JsonSerialize(using = QueueStatsId.JsonSerializeAdapter.class)
+@JsonDeserialize(using = QueueStatsId.JsonDeserializeAdapater.class)
+public final class QueueStatsId extends StringValue {
+    protected QueueStatsId(final String value) {
         super(value);
     }
 
-    public static QueueSizeCounterId valueOf(String value) {
-        return new QueueSizeCounterId(StringUtils.trimToEmpty(value));
+    public static QueueStatsId valueOf(String value) {
+        return new QueueStatsId(StringUtils.trimToEmpty(value));
     }
 
-    public static QueueSizeCounterId valueOf(StringValue value) {
-        return QueueSizeCounterId.valueOf(value.get());
+    public static QueueStatsId valueOf(StringValue value) {
+        return QueueStatsId.valueOf(value.get());
     }
 
-    public static class XmlAdapter extends JaxbStringValueAdapter<QueueSizeCounterId> {
+    public static class XmlAdapter extends JaxbStringValueAdapter<QueueStatsId> {
         @Override
-        protected QueueSizeCounterId createNewInstance(String value) {
-            return QueueSizeCounterId.valueOf(value);
+        protected QueueStatsId createNewInstance(String value) {
+            return QueueStatsId.valueOf(value);
         }
     }
 
-    public static class JsonDeserializeAdapater extends JsonDeserializer<QueueSizeCounterId> {
+    public static class JsonDeserializeAdapater extends JsonDeserializer<QueueStatsId> {
 
         @Override
-        public QueueSizeCounterId deserialize(
+        public QueueStatsId deserialize(
                 final JsonParser jp, final DeserializationContext ctxt) throws IOException, JsonProcessingException {
-            return QueueSizeCounterId.valueOf(jp.getValueAsString());
+            return QueueStatsId.valueOf(jp.getValueAsString());
         }
     }
 
-    public static class JsonSerializeAdapter extends JsonSerializer<QueueSizeCounterId> {
+    public static class JsonSerializeAdapter extends JsonSerializer<QueueStatsId> {
         @Override
         public void serialize(
-                final QueueSizeCounterId value, final JsonGenerator jgen, final SerializerProvider provider) throws
+                final QueueStatsId value, final JsonGenerator jgen, final SerializerProvider provider) throws
                                                                                                              IOException,
                                                                                                              JsonProcessingException {
             jgen.writeString(value.get());

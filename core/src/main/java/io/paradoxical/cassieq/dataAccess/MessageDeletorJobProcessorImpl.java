@@ -78,7 +78,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
             pointerRepository.deleteAll();
 
-            queueRepository.deleteQueueStats(job.getQueueSizeCounterId());
+            queueRepository.deleteQueueStats(job.getQueueStatsId());
 
             complete();
         }
