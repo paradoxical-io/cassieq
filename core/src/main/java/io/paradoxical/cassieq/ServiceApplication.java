@@ -12,6 +12,7 @@ import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
+import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
@@ -59,13 +60,13 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
     @Override
     public void initialize(Bootstrap<ServiceConfiguration> bootstrap) {
+        bootstrap.addCommand(new ConfigDumpCommand());
+
         bootstrap.addBundle(new TemplateConfigBundle());
 
         initializeViews(bootstrap);
 
         initializeDepedencyInjection(bootstrap);
-
-
     }
 
     public void stop() {

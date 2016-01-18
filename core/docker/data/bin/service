@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
+conf_dir=/data/conf
+
+libs_dir=/data/lib
+
+configFile=$conf_dir/configuration.yml
+
 function run_app(){
 
     classname="io.paradoxical.cassieq.ServiceApplication"
 
-    command="server"
-
-    conf_dir=/data/conf
-
-    libs_dir=/data/lib
+    command=$1
 
     for jar in ${libs_dir}/*.jar; do
         classpath=$classpath:$jar
@@ -28,9 +30,7 @@ function run_app(){
 
     echo "USING JAVA DEBUG $properties"
 
-    configFile=$conf_dir/configuration.yml
-
-    cmd="java $properties -cp $classpath $classname $command $configFile"
+    cmd="java $properties -cp $classpath $classname $command"
 
     echo ${cmd}
 
@@ -47,11 +47,18 @@ function boostrap(){
         "$@"
 }
 
-if [ "$1" == "bootstrap" ]; then
-    shift
-    boostrap $@
-elif [ "$1" == "debug" ]; then
-    exec /bin/bash
-else
-    run_app
-fi
+case "$1" in
+    "bootstrap")
+        shift
+        bootstrap $@;;
+
+    "debug")
+        shift
+        exec /bin/bash;;
+
+    "default-config")
+        run_app "config -a $configFile";;
+
+    *)
+        run_app "server $configFile";;
+esac
