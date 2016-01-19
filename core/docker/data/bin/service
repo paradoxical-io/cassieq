@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
+conf_dir=/data/conf
+
+libs_dir=/data/lib
+
+configFile=$conf_dir/configuration.yml
+
 function run_app(){
 
     classname="io.paradoxical.cassieq.ServiceApplication"
 
-    command="server"
-
-    conf_dir=/data/conf
-
-    libs_dir=/data/lib
+    command=$1
 
     for jar in ${libs_dir}/*.jar; do
         classpath=$classpath:$jar
@@ -16,23 +18,21 @@ function run_app(){
 
     properties="-Djava.library.path=${libs_dir} "
 
-    properties="${properties} -Dcom.sun.management.jmxremote.rmi.port=1898"
-    properties="${properties} -Dcom.sun.management.jmxremote.port=1898"
-    properties="${properties} -Dcom.sun.management.jmxremote.ssl=false"
-    properties="${properties} -Dcom.sun.management.jmxremote.authenticate=false"
-    properties="${properties} -Djava.rmi.server.hostname=${HOST_IPADDR}"
+    if [ "${ENABLE_JMX}" == "true" ] ; then
+        properties="${properties} -Dcom.sun.management.jmxremote.rmi.port=1898"
+        properties="${properties} -Dcom.sun.management.jmxremote.port=1898"
+        properties="${properties} -Dcom.sun.management.jmxremote.ssl=false"
+        properties="${properties} -Dcom.sun.management.jmxremote.authenticate=false"
+        properties="${properties} -Djava.rmi.server.hostname=${HOST_IPADDR}"
+    fi
 
     if [ "${DEBUG_JAVA}" == "true" ]; then
         properties="$properties -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"
+
+        echo "USING JAVA DEBUG $properties"
     fi
 
-    echo "USING JAVA DEBUG $properties"
-
-    configFile=$conf_dir/configuration.yml
-
-    cmd="java $properties -cp $classpath $classname $command $configFile"
-
-    echo ${cmd}
+    cmd="java $properties -cp $classpath $classname $command"
 
     exec ${cmd}
 }
@@ -47,11 +47,42 @@ function boostrap(){
         "$@"
 }
 
-if [ "$1" == "bootstrap" ]; then
-    shift
-    boostrap $@
-elif [ "$1" == "debug" ]; then
-    exec /bin/bash
-else
-    run_app
-fi
+function printHelp(){
+echo """
+Welcome to CassieQ!  This docker image contains several modes of execution to help you configure and run CassieQ.
+
+1. bootstrap.  This mode populates (and upgrades) a cassandra keyspace to be useable with cassieq. It takes the following environment variables:
+
+KEYSPACE='cassandra keyspace to use for cassieq'
+CONTACT_POINTS='contact point'
+USERNAME=''
+PASSWORD=''
+
+2. help. This menu
+
+3. debug.  Debug starts in an empty shell and lets you bypass normal startup mode
+
+4. default-config.  This prints out the CassieQ default config (with your normal CassieQ environemnt variables applied)
+in order for you to create a customized config file to place in a virtual mount at /data/conf
+
+For more information see our github at http://github.com/paradoxical-io/cassieq"""
+}
+
+case "$1" in
+    "bootstrap")
+        shift
+        bootstrap $@;;
+
+    "debug")
+        shift
+        exec /bin/bash;;
+
+    "default-config")
+        run_app "config -a $configFile";;
+
+    "help")
+        printHelp;;
+
+    *)
+        run_app "server $configFile";;
+esac
