@@ -11,9 +11,6 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 
 public class AuthModule extends AbstractModule {
     @Override protected void configure() {
-//        bind(new TypeLiteral<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>>(){})
-//                .to(SignedRequestAuthenticator.class)
-//                .in(LazySingletonScope.get());
     }
 
     @Provides

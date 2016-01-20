@@ -42,7 +42,7 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
                 }
             }
             catch (Exception e) {
-                logger.error(e, "Error");
+                logger.error(e, "Credential Verification Failed");
                 throw new AuthenticationException("Credential Verification Failed", e);
             }
         }

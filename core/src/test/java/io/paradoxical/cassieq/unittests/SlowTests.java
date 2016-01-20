@@ -77,7 +77,7 @@ public class SlowTests extends DbTestBase {
 
         final Collection<Integer> counter = ConcurrentHashMultiset.create();
 
-        final CassieqApi client = CassieqApi.createClient(server.getBaseUri(), getTestAccountCredintials(server.getService().getGuiceBundleProvider().getInjector()));
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri(), getTestAccountCredentials(server.getService().getGuiceBundleProvider().getInjector()));
 
         final QueueName queueName = QueueName.valueOf(String.valueOf(new Random().nextInt()));
 

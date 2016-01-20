@@ -26,7 +26,7 @@ public class StressTester extends TestBase {
     @Ignore
     @Test
     public void stress_test() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
-        final CassieqApi client = CassieqApi.createClient("http://localhost:8080", getTestAccountCredintials(getDefaultInjector()));
+        final CassieqApi client = CassieqApi.createClient("http://localhost:8080", getTestAccountCredentials(getDefaultInjector()));
 
         final QueueName perftest = QueueName.valueOf("perftest1");
 

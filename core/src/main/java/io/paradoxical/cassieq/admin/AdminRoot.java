@@ -1,4 +1,7 @@
 package io.paradoxical.cassieq.admin;
 
-public class AdminRoot {
+public interface AdminRoot {
+    static String packageName() {
+        return AdminRoot.class.getPackage().getName();
+    }
 }

@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.model.auth;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -21,9 +22,9 @@ public enum AuthorizationLevel {
     DeleteQueue("d");
 
     public static final EnumSet<AuthorizationLevel> All =
-            EnumSet.of(ReadMessage, PutMessage, UpdateMessage, AckMessage);
+            EnumSet.of(ReadMessage, PutMessage, UpdateMessage, AckMessage, GetQueueInformation, CreateQueue, DeleteQueue);
 
-    public String Role = "BLAH";
+    private static final Splitter parseSplitter = Splitter.fixedLength(1);
 
     @Getter
     private final String shortForm;
@@ -32,13 +33,17 @@ public enum AuthorizationLevel {
         this.shortForm = shortForm;
     }
 
-    public static EnumSet<AuthorizationLevel> emptyPermissions(){
+    public static EnumSet<AuthorizationLevel> emptyPermissions() {
         return EnumSet.noneOf(AuthorizationLevel.class);
     }
 
-    public static EnumSet<AuthorizationLevel> parse(final String shortForm) {
+    public static EnumSet<AuthorizationLevel> parse(final String authLevels) {
 
-        final ImmutableSet<String> levels = ImmutableSet.copyOf(Splitter.fixedLength(1).split(shortForm));
+        if (Strings.isNullOrEmpty(authLevels)) {
+            return emptyPermissions();
+        }
+
+        final ImmutableSet<String> levels = ImmutableSet.copyOf(parseSplitter.split(authLevels));
 
         final EnumSet<AuthorizationLevel> authorizationLevels = EnumSet.copyOf(levels.stream().map(AuthorizationLevel::parseLevel).collect(toList()));
 
@@ -50,18 +55,14 @@ public enum AuthorizationLevel {
     }
 
     private static AuthorizationLevel parseLevel(final String levelString) {
-        switch (levelString) {
-            case "r":
-                return ReadMessage;
-            case "p":
-                return PutMessage;
-            case "u":
-                return UpdateMessage;
-            case "a":
-                return AckMessage;
-            default:
-                return None;
+
+        for (final AuthorizationLevel authorizationLevel : values()) {
+            if (authorizationLevel.getShortForm().equals(levelString)) {
+                return authorizationLevel;
+            }
         }
+
+        return None;
     }
 
     public static String stringify(EnumSet<AuthorizationLevel> authorizationLevels) {

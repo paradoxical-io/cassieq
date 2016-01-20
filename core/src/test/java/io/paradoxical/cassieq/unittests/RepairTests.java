@@ -55,7 +55,7 @@ public class RepairTests extends DbTestBase {
 
         final QueueCreateOptions createOptions = fixture.manufacturePojo(QueueCreateOptions.class);
 
-        assertThat(server1.getClient(getTestAccountCredintials(server1.getService().getGuiceBundleProvider().getInjector())).createQueue(testAccountName, createOptions).execute().isSuccess()).isTrue();
+        assertThat(server1.getClient(getTestAccountCredentials(server1.getService().getGuiceBundleProvider().getInjector())).createQueue(testAccountName, createOptions).execute().isSuccess()).isTrue();
 
         final Injector server1Injector = server1.getService().getGuiceBundleProvider().getBundle().getInjector();
         ensureTestAccountCreated(server1Injector);

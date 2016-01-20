@@ -33,7 +33,7 @@ public class AccountSecurityContext<P extends Principal>  implements SecurityCon
 
     @Override
     public boolean isSecure() {
-        return requestContext.getSecurityContext().isSecure();
+        return true;
     }
 
     @Override

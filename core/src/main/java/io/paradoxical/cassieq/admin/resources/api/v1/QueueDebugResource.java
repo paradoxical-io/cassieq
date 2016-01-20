@@ -164,7 +164,7 @@ public class QueueDebugResource extends BaseQueueResource {
 
     @GET
     @Path("/{queueName}/messages/{messagePointer}")
-    @ApiOperation(value = "Raw getAccountRepository message")
+    @ApiOperation(value = "Raw get message")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Queue doesn't exist"),

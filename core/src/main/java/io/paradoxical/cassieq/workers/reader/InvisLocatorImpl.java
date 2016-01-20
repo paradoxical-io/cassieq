@@ -339,7 +339,7 @@ public class InvisLocatorImpl implements InvisLocator {
             final Optional<Message> tryConsumedMessage = messageConsumer.tryConsume(revivedMessage.get(), invisiblity);
 
             // if we were able to consume the message, try and move the invis pointer to this since its going to now be invis.
-            // if someone else finds an earlier invis, it'll getAccountRepository moved to that
+            // if someone else finds an earlier invis, it'll get moved to that
             // we can do this only because we don't already have an invis pointer
             if (tryConsumedMessage.isPresent()) {
                 trySetNewInvisPointer(currentPointer, revivedMessage.get().getIndex());

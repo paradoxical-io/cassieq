@@ -29,7 +29,7 @@ import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
 import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.configurations.LogMapping;
-import io.paradoxical.cassieq.discoverable.GuiceDiscoverablePackageMarker;
+import io.paradoxical.cassieq.discoverable.ApiDiscoverableRoot;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.cassieq.swagger.SwaggerApiResource;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
@@ -84,8 +84,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         initializeViews(bootstrap);
 
         initializeDepedencyInjection(bootstrap);
-
-
     }
 
     public void stop() {
@@ -167,17 +165,13 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setTitle("cassieq admin");
         swagConfig.setDescription("cassieq admin API");
         swagConfig.setLicense("Apache 2.0");
-        swagConfig.setResourcePackage(AdminRoot.class.getPackage().getName());
+        swagConfig.setResourcePackage(AdminRoot.packageName());
         swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
+        swagConfig.setVersion("0.9");
 
-
-        swagConfig.setVersion("1.0.1");
         swagConfig.setBasePath("/admin");
 
         resourceConfig.register(new SwaggerApiResource(swagConfig));
-    }
-
-    private void addSavingSwaggerLocator(final DropwizardResourceConfig resourceConfig, final BeanConfig swagConfig) {
     }
 
     private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
@@ -224,11 +218,9 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setTitle("cassieq");
         swagConfig.setDescription("cassieq API");
         swagConfig.setLicense("Apache 2.0");
-        swagConfig.setResourcePackage(GuiceDiscoverablePackageMarker.class.getPackage().getName());
+        swagConfig.setResourcePackage(ApiDiscoverableRoot.packageName());
         swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
-
-
-        swagConfig.setVersion("1.0.1");
+        swagConfig.setVersion("0.9");
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
         environment.jersey().register(new SwaggerSerializers());

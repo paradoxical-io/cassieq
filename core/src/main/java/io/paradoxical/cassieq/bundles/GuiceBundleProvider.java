@@ -2,16 +2,12 @@ package io.paradoxical.cassieq.bundles;
 
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.google.inject.Stage;
 import com.hubspot.dropwizard.guice.GuiceBundle;
 import com.hubspot.dropwizard.guice.InjectorFactory;
 import com.netflix.governator.Governator;
-import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.ServiceConfiguration;
-import io.paradoxical.cassieq.discoverable.GuiceDiscoverablePackageMarker;
+import io.paradoxical.cassieq.discoverable.ApiDiscoverableRoot;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
-import lombok.AccessLevel;
-import lombok.Getter;
 
 import java.util.List;
 
@@ -49,7 +45,7 @@ public class GuiceBundleProvider {
     private GuiceBundle<ServiceConfiguration> buildGuiceBundle() {
         final GuiceBundle.Builder<ServiceConfiguration> builder = GuiceBundle.<ServiceConfiguration>newBuilder();
 
-        builder.enableAutoConfig(GuiceDiscoverablePackageMarker.class.getPackage().getName())
+        builder.enableAutoConfig(ApiDiscoverableRoot.class.getPackage().getName())
                .setConfigClass(ServiceConfiguration.class)
                .setInjectorFactory(injectorFactory);
 

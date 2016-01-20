@@ -261,7 +261,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <groups>categories.BuildVerification</groups>
+                    <test>suites.BuildVerificationTestSuite</test>
                 </configuration>
             </plugin>
             <plugin>

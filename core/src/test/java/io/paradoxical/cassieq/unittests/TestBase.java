@@ -73,7 +73,7 @@ public class TestBase {
         });
     }
 
-    protected static CassieqCredentials getTestAccountCredintials(Injector injector) throws InvalidKeyException, NoSuchAlgorithmException {
+    protected static CassieqCredentials getTestAccountCredentials(Injector injector) throws InvalidKeyException, NoSuchAlgorithmException {
         final AccountRepository instance = injector.getInstance(AccountRepository.class);
 
         instance.createAccount(testAccountName);

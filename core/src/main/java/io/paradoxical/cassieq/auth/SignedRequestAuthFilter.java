@@ -15,7 +15,8 @@ import io.paradoxical.cassieq.model.auth.RequestParameters;
 import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
 import io.paradoxical.cassieq.model.auth.SignedUrlParameters;
 import lombok.Builder;
-import org.apache.commons.lang3.StringUtils;
+import lombok.Getter;
+import lombok.NonNull;
 
 import javax.annotation.Priority;
 import javax.ws.rs.InternalServerErrorException;
@@ -33,7 +34,7 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 
 @Priority(Priorities.AUTHENTICATION)
 @Builder(builderClassName = "Builder")
-public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<AuthorizedRequestCredentials, P> {
+public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthFilter<AuthorizedRequestCredentials, TPrincipal> {
     private static final Logger logger = getLogger(SignedRequestAuthFilter.class);
 
     private final String accountNamePathParameter;
@@ -86,6 +87,7 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Aut
             if (components.size() == 2) {
                 final String authScheme = components.get(0);
 
+                // first check if the request is using a raw key scheme
                 if (keyAuthPrefix.equalsIgnoreCase(authScheme)) {
                     return AccountKeyParameters.builder()
                                                .accountName(accountName)
@@ -93,6 +95,7 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Aut
                                                .build();
                 }
 
+                // then check if the request is using a "signed" (or what ever we're configured to expect via prefix) request scheme,
                 if (prefix.equalsIgnoreCase(authScheme)) {
                     return SignedRequestParameters.builder()
                                                   .accountName(accountName)
@@ -108,7 +111,7 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Aut
     }
 
     private SignedUrlParameters parseSignedUrlParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
-        final String sig = requestContext.getUriInfo().getQueryParameters().getFirst("sig");
+        final String sig = requestContext.getUriInfo().getQueryParameters().getFirst(SignedUrlParameterNames.Signature.getParameterName());
 
         if (Strings.isNullOrEmpty(sig)) {
             return null;
@@ -125,22 +128,18 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Aut
     }
 
     private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final ContainerRequestContext requestContext) {
-        String authParam = requestContext.getUriInfo().getQueryParameters().getFirst("auth");
+        String authParam = requestContext.getUriInfo().getQueryParameters().getFirst(SignedUrlParameterNames.AuthorizationLevels.getParameterName());
 
-        if (!Strings.isNullOrEmpty(authParam)) {
-            return AuthorizationLevel.parse(authParam);
-        }
-
-        return AuthorizationLevel.emptyPermissions();
+        return AuthorizationLevel.parse(authParam);
     }
 
 
     private boolean setPrincipal(final ContainerRequestContext requestContext, final AuthorizedRequestCredentials credentials) {
         try {
-            final Optional<P> optionalPrincipal = authenticator.authenticate(credentials);
+            final Optional<TPrincipal> optionalPrincipal = authenticator.authenticate(credentials);
             if (optionalPrincipal.isPresent()) {
 
-                final P principal = optionalPrincipal.get();
+                final TPrincipal principal = optionalPrincipal.get();
 
                 requestContext.setSecurityContext(new AccountSecurityContext<>(principal, authorizer, requestContext));
 
@@ -155,16 +154,23 @@ public class SignedRequestAuthFilter<P extends Principal> extends AuthFilter<Aut
         return false;
     }
 
-    public static class Builder<P extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, P, SignedRequestAuthFilter<P>> {
+    public static class Builder<TPrincipal extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, TPrincipal, SignedRequestAuthFilter<TPrincipal>> {
 
-        @Override
-        protected SignedRequestAuthFilter<P> newInstance() {
-            return new SignedRequestAuthFilter<>(
-                    Strings.isNullOrEmpty(accountNamePathParameter) ? "accountName" : accountNamePathParameter,
-                    Strings.isNullOrEmpty(keyAuthPrefix) ? "Key" : keyAuthPrefix);
+        public Builder() {
+            setPrefix("Signed");
+            setRealm("cassieq");
         }
 
-        public SignedRequestAuthFilter<P> build() {
+        @Override
+        protected SignedRequestAuthFilter<TPrincipal> newInstance() {
+            final SignedRequestAuthFilter<TPrincipal> filter = new SignedRequestAuthFilter<>(
+                    Strings.isNullOrEmpty(accountNamePathParameter) ? "accountName" : accountNamePathParameter,
+                    Strings.isNullOrEmpty(keyAuthPrefix) ? "Key" : keyAuthPrefix);
+
+            return filter;
+        }
+
+        public SignedRequestAuthFilter<TPrincipal> build() {
             return buildAuthFilter();
         }
     }

@@ -48,7 +48,7 @@ public class ApiTester extends DbTestBase {
         server.getService().waitForRun();
 
         client = CassieqApi.createClient(server.getBaseUri().toString(),
-                                         getTestAccountCredintials(server.getService().getGuiceBundleProvider().getInjector()));
+                                         getTestAccountCredentials(server.getService().getGuiceBundleProvider().getInjector()));
     }
 
     @AfterClass

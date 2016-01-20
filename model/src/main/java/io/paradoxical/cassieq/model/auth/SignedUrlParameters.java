@@ -6,6 +6,7 @@ import com.google.common.base.Joiner;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -17,9 +18,10 @@ import java.util.EnumSet;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
+@EqualsAndHashCode(callSuper = false)
 @Value
 @Builder
-public class SignedUrlParameters implements RequestParameters {
+public class SignedUrlParameters extends SignedParametersBase implements RequestParameters {
 
     private static final Logger logger = getLogger(SignedUrlParameters.class);
 
@@ -36,35 +38,13 @@ public class SignedUrlParameters implements RequestParameters {
     private final EnumSet<AuthorizationLevel> authorizationLevels;
 
     @Override
-    public boolean verify(final AccountKey key) throws Exception {
-        final Mac hmacSHA256 = Mac.getInstance("HmacSHA256");
-        final SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacSHA256");
-
-        hmacSHA256.init(secretKeySpec);
-
-        return verifySignature(hmacSHA256);
+    protected String getProvidedSignature() {
+        return querySignature;
     }
 
-    private boolean verifySignature(Mac hmac) {
-        final String computedSignature = computeSignature(hmac);
-
-        return computedSignature.equals(querySignature);
-    }
-
-    public String computeSignature(final Mac hmac) {
-        final String signedString = getSignedString();
-
-        final Base64.Encoder signatureEncoder = Base64.getUrlEncoder().withoutPadding();
-
-        logger.with("signed-string", signedString).info("Computing signature of string");
-
-        final byte[] bytes = hmac.doFinal(signedString.getBytes());
-        return signatureEncoder.encodeToString(bytes);
-    }
-
+    @Override
     public String getSignedString() {
-        return Joiner.on("\n")
-                     .skipNulls()
+        return signatureComponentJoiner
                      .join(accountName.get(),
                            AuthorizationLevel.stringify(authorizationLevels));
     }
