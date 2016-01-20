@@ -6,12 +6,15 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
+import org.apache.commons.lang3.NotImplementedException;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static java.util.stream.Collectors.toList;
@@ -35,17 +38,23 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
         AccountKey primaryKey = AccountKey.random(secureRandom);
         AccountKey secondaryKey = AccountKey.random(secureRandom);
 
+        final ImmutableMap<String, String> keys = ImmutableMap.of(
+                WellKnownKeyNames.Primary.getKeyName(), primaryKey.get(),
+                WellKnownKeyNames.Secondary.getKeyName(), secondaryKey.get());
+
         final Insert createNewAccount = insertInto(Tables.Account.TABLE_NAME)
                 .ifNotExists()
                 .value(Tables.Account.ACCOUNT_NAME, accountName.get())
-                .value(Tables.Account.KEYS, ImmutableSet.of(primaryKey.get(), secondaryKey.get()));
+                .value(Tables.Account.KEYS, keys);
 
         final ResultSet createAccountResult = session.execute(createNewAccount);
 
         if (createAccountResult.wasApplied()) {
             return Optional.of(AccountDefinition.builder()
                                                 .accountName(accountName)
-                                                .keys(ImmutableSet.of(primaryKey, secondaryKey))
+                                                .keys(ImmutableMap.of(
+                                                        WellKnownKeyNames.Primary.getKeyName(), primaryKey,
+                                                        WellKnownKeyNames.Secondary.getKeyName(), secondaryKey))
                                                 .build());
         }
 
@@ -74,6 +83,6 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
 
     @Override
     public void deleteAccount(final AccountName accountName) {
-
+        throw new NotImplementedException("deleteAccount Not implemented");
     }
 }

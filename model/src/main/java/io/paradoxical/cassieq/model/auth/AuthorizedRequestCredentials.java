@@ -4,6 +4,7 @@ import com.godaddy.logging.Logger;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableCollection;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.Builder;
@@ -16,6 +17,7 @@ import javax.validation.constraints.NotNull;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -31,7 +33,7 @@ public class AuthorizedRequestCredentials {
     @NonNull
     private final RequestParameters requestParameters;
 
-    public boolean verify(Set<AccountKey> keys) throws Exception {
+    public boolean verify(Collection<AccountKey> keys) throws Exception {
 
         for (AccountKey key : keys) {
 

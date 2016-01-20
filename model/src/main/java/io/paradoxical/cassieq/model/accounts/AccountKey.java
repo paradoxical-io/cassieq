@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.paradoxical.common.valuetypes.StringValue;
 import io.paradoxical.common.valuetypes.adapters.xml.JaxbStringValueAdapter;
 import jdk.nashorn.internal.ir.annotations.Immutable;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
