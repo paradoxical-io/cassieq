@@ -1,9 +1,9 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.admin.resources.api.v1;
 
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.MonotonicRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -164,7 +164,7 @@ public class QueueDebugResource extends BaseQueueResource {
 
     @GET
     @Path("/{queueName}/messages/{messagePointer}")
-    @ApiOperation(value = "Raw getAccountRepository message")
+    @ApiOperation(value = "Raw get message")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Queue doesn't exist"),

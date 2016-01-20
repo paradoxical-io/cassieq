@@ -3,7 +3,8 @@ package io.paradoxical.cassieq.unittests.server;
 import com.godaddy.logging.Logger;
 import com.google.common.collect.ImmutableList;
 import io.paradoxical.cassieq.ServiceConfiguration;
-import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.api.client.CassieqApi;
+import io.paradoxical.cassieq.api.client.CassieqCredentials;
 import io.paradoxical.common.test.guice.OverridableModule;
 import io.paradoxical.common.test.web.runner.ServiceTestRunner;
 import io.paradoxical.common.test.web.runner.ServiceTestRunnerConfig;
@@ -39,7 +40,7 @@ public class SelfHostServer implements AutoCloseable {
     public void start(ServiceConfiguration configuration) {
 
         serviceConfigurationTestServiceServiceTestRunner =
-                new ServiceTestRunner<>(TestService::new,
+                new ServiceTestRunner<ServiceConfiguration, TestService>(TestService::new,
                                         configuration,
                                         getNextPort());
 
@@ -80,8 +81,8 @@ public class SelfHostServer implements AutoCloseable {
         return random.nextInt(35000) + 15000;
     }
 
-    public CassandraQueueApi getClient() {
-        return CassandraQueueApi.createClient(getBaseUri().toString());
+    public CassieqApi getClient(CassieqCredentials cassieqCredentials) {
+        return CassieqApi.createClient(getBaseUri().toString(), cassieqCredentials);
     }
 
     public URI getBaseUri() {

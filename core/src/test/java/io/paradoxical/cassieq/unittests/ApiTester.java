@@ -4,7 +4,7 @@ import categories.BuildVerification;
 import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
 import com.squareup.okhttp.ResponseBody;
-import io.paradoxical.cassieq.api.client.CassandraQueueApi;
+import io.paradoxical.cassieq.api.client.CassieqApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
@@ -20,6 +20,8 @@ import org.junit.runner.RunWith;
 import retrofit.Response;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,15 +33,23 @@ public class ApiTester extends DbTestBase {
 
     private static SelfHostServer server;
 
-    private static CassandraQueueApi client;
+    private static CassieqApi client;
+
+    public ApiTester() throws NoSuchAlgorithmException, InvalidKeyException {
+
+    }
+
 
     @BeforeClass
-    public static void setup() {
+    public static void setup() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
         server = new SelfHostServer(new InMemorySessionProvider(session));
 
         server.start();
 
-        client = CassandraQueueApi.createClient(server.getBaseUri().toString());
+        server.getService().waitForRun();
+
+        client = CassieqApi.createClient(server.getBaseUri().toString(),
+                                         getTestAccountCredentials(server.getService().getGuiceBundleProvider().getInjector()));
     }
 
     @AfterClass
@@ -207,7 +217,7 @@ public class ApiTester extends DbTestBase {
         }
     }
 
-    private GetMessageResponse getMessage(final CassandraQueueApi client, final QueueName queueName) throws java.io.IOException {
+    private GetMessageResponse getMessage(final CassieqApi client, final QueueName queueName) throws java.io.IOException {
         final Response<GetMessageResponse> message = client.getMessage(testAccountName, queueName, 3L).execute();
 
         return message.body();

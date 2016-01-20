@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.resources.api.v1;
+package io.paradoxical.cassieq.resources.api;
 
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.AccessLevel;
@@ -6,7 +6,7 @@ import lombok.Getter;
 
 import javax.ws.rs.PathParam;
 
-public abstract class BaseAccountResource {
+public abstract class BaseAccountResource extends BaseResource {
 
     @Getter(AccessLevel.PROTECTED)
     private final AccountName accountName;

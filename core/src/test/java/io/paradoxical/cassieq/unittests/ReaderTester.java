@@ -227,7 +227,7 @@ public class ReaderTester extends DbTestBase {
         // the reader bucket is advanced here to bucket 1
         testContext.readAndAckMessage("ok2", 10L);
 
-        // inivs shorter is alive now but we can't getAccountRepository to it since
+        // inivs shorter is alive now but we can't get to it since
         // its held up by invis blocker
         testClock.tickSeconds(2L);
 
