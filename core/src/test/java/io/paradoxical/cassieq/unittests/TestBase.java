@@ -78,7 +78,7 @@ public class TestBase {
 
         instance.createAccount(testAccountName);
 
-        return CassieqCredentials.key(testAccountName, instance.getAccount(testAccountName).get().getKeys().asList().get(0));
+        return CassieqCredentials.key(testAccountName, instance.getAccount(testAccountName).get().getKeys().values().asList().get(0));
 
     }
 

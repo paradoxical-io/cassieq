@@ -58,5 +58,5 @@ CREATE TABLE message (
 
 CREATE TABLE account (
     account_name text PRIMARY KEY,
-    keys set<text>
+    keys map<text, text>
 );

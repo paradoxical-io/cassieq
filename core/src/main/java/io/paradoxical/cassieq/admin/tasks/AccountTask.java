@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.admin.tasks;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
@@ -11,6 +12,7 @@ import io.paradoxical.cassieq.model.accounts.AccountKey;
 
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
 
@@ -33,9 +35,13 @@ public class AccountTask extends Task {
 
         allAccounts.forEach(account -> {
 
-            final List<AccountKey> keys = account.getKeys().stream().collect(toList());
+            final ImmutableSet<Map.Entry<String, AccountKey>> keys = account.getKeys().entrySet();
 
-            output.format("account: %s\n    primary-key: %s\n    secondary-key: %s\n\n", account.getAccountName().get(), keys.get(0), keys.get(1));
+            output.format("account: %s\n", account.getAccountName().get());
+            keys.forEach(key -> output.format("    key: %s  value: %s\n", key.getKey(), key.getValue().get()));
+
+            output.println();
+            output.println();
         });
     }
 }

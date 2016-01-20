@@ -22,6 +22,7 @@ public interface CassieqCredentials {
     static CassieqCredentials key(final AccountName accountName, final AccountKey accountKey) throws NoSuchAlgorithmException, InvalidKeyException {
         final String hmacSHA2561Algo = "HmacSHA256";
         final Mac hmacSHA256 = Mac.getInstance(hmacSHA2561Algo);
+
         hmacSHA256.init(new SecretKeySpec(accountKey.getBytes(), hmacSHA2561Algo));
 
         final DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime();
