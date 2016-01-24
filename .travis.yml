@@ -1,10 +1,12 @@
 language: java
 jdk:
-- oraclejdk8
+  - oraclejdk8
+before_install:
+  - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
 after_success:
-- ./deploy.sh
+  - ./deploy.sh
 services:
-- docker
+  - docker
 notifications:
   slack:
     secure: f7MqnZutKlPgpbOdO+q+6NyY4icF2P7hjxDy2cV4ahz8OrT70YGufVVZK41JS/j9RzO9dDKIpEuMqEfQpAZrtcqqui1iWcYE9ziRG8N+8ROW05ohzM+wLsCUW8xXtAr1+A1UEm/PPlQ9yZrffpZ86XXgTGiA+Auu6gwPJ/9TioQcShm/K0kDdkdYoE7Vj78X56HkfWjQYFtuwyOggL46Rgx1Em0bbTlDFLZrmaK4cLgmNYcO+21FpW/26D9dzi1coCqEkSHkiDmZlJ6ur0X5pLvzOZhOl9An+z+/3TKuqVLSor6ggSDfy/Oq3QoRj0Rp0YuJAjvXAssiZQGHlIBUJ7tI48COEFvGp2JqJHJpq5wTuTApIR20g8bPE7aNtxuhF9lvsXQLi/smA1vXvAM3JZ2qJkFm9OQd04oVnfploD8NYn1cq3/XswXKilEtORlH3ta4wxnf36RvIAn5sYSAGlf6x8+q6ncBtRBXkUbvzZTuFCiGTvdbHF2I3AmpYUKN+rljN4qiYjmZYZZWPkwFA/mqGq1CI9BldHhqF7GGsQmHdHXS2GS04nHzzOIGdRkaRfWUVG4myWPo+XiD+k5TIeNXnPuI0DabZmIuceQZQZVl58CUT5t3UZU2/TfAAEBh/tZzzCzMCoTOgxoRN8j8H+oyaObyfe6Sl0YkvSi4Yg8=
