@@ -102,6 +102,73 @@ We have bundled a java client to talk to a simple rest api. The api supports
 Getting a message gives you a pop reciept that encodes the message index AND its version. This means that you can prevent multiple ackers of a message
 and do conditional atomic actions based on that message version.
 
+## Authentication
+
+CassieQ has three forms of authentication
+ 
+- Global account access via key
+- Endpoint signing by key
+- Granular access via permission claims by account
+ 
+### Claims
+
+Claims by account is the preferred method. To generate a claim for a user, you can create a named account key for that group (such as "ui-members") and create
+permission based url params for them. This may look of the form:
+
+```
+?auth=puag&sig=NygRs9GBh9n_i2s7KTMof0us-RXm5nt3RnlWKb3N15A
+```
+
+Which can be appended to any API url.  The auth is of a simple form (concatenation of single character based permissions) which in this scenario indicates
+
+```
+Put (p)
+Update (u)
+Add (a)
+Get (g)
+```
+
+For a full list of granular permissions go to the admin panel permissions api.  
+
+The advantage to transparent signature based auth is that you can pass the url to multiple teams and share common auth without leaking secrets.  To revoke access, 
+delete the key that was used to generate the signature.
+
+### Global
+
+This generates global access by account.
+
+Global account access is via header parameters. Add your account key as the authorization header with the value
+
+```
+Key: <your key>
+```
+
+### Endpoint singing by key
+
+This also provides global access by account.
+
+Generate auth tokens by signing using Hmac256 the following:
+
+```
+AccountName
+RequestMethod
+/RequestPath
+```
+
+For example
+
+```
+TestAccount
+GET
+/api/v1/accounts/TestAccount/queues/foo/messages/next
+```
+
+And taking this signed value and putting it in the auth header as 
+
+```
+Signed: <signature>
+```
+
 Execute cassieq local
 ====
 
