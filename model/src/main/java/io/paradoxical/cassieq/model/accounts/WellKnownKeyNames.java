@@ -3,13 +3,13 @@ package io.paradoxical.cassieq.model.accounts;
 import lombok.Getter;
 
 public enum WellKnownKeyNames {
-    Primary("primary"),
-    Secondary("secondary");
+    Primary(KeyName.valueOf("primary")),
+    Secondary(KeyName.valueOf("secondary"));
 
     @Getter
-    private final String keyName;
+    private final KeyName keyName;
 
-    WellKnownKeyNames(final String keyName) {
+    WellKnownKeyNames(final KeyName keyName) {
 
         this.keyName = keyName;
     }

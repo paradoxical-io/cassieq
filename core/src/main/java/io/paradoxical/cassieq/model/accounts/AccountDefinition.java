@@ -21,16 +21,16 @@ public class AccountDefinition {
     private AccountName accountName;
 
     @LoggingScope(scope = Scope.SKIP)
-    private ImmutableMap<String, AccountKey> keys = ImmutableMap.of();
+    private ImmutableMap<KeyName, AccountKey> keys = ImmutableMap.of();
 
     public static AccountDefinition fromRow(final Row row) {
         final Map<String, String> dbKeyMap = row.getMap(Tables.Account.KEYS, String.class, String.class);
 
-        final ImmutableMap<String, AccountKey> accountKeys =
+        final ImmutableMap<KeyName, AccountKey> accountKeys =
                 dbKeyMap.entrySet()
                         .stream()
-                        .reduce(ImmutableMap.<String, AccountKey>builder(),
-                                (builder, keyEntry) -> builder.put(keyEntry.getKey(),
+                        .reduce(ImmutableMap.<KeyName, AccountKey>builder(),
+                                (builder, keyEntry) -> builder.put(KeyName.valueOf(keyEntry.getKey()),
                                                                    AccountKey.valueOf(keyEntry.getValue())),
                                 (one, same) -> one).build();
 

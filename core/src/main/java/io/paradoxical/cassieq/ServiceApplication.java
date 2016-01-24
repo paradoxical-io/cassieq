@@ -3,13 +3,9 @@ package io.paradoxical.cassieq;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
 import com.google.common.base.Charsets;
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
 import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
-import io.dropwizard.auth.Authenticator;
 import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
 import io.dropwizard.jersey.setup.JerseyContainerHolder;
@@ -23,13 +19,12 @@ import io.dropwizard.views.mustache.MustacheViewRenderer;
 import io.paradoxical.cassieq.admin.AdminRoot;
 import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
-import io.paradoxical.cassieq.auth.AccountPrincipal;
-import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
+import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
+import io.paradoxical.cassieq.auth.AuthLevelDynamicFeature;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.discoverable.ApiDiscoverableRoot;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.cassieq.swagger.SwaggerApiResource;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
@@ -40,7 +35,6 @@ import lombok.Getter;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.joda.time.DateTimeZone;
 
-import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -142,6 +136,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         JerseyContainerHolder adminContainerHolder = new JerseyContainerHolder(new ServletContainer(adminResourceConfig));
 
         adminResourceConfig.register(AdminPagesResource.class);
+        adminResourceConfig.register(PermissionsResource.class);
         adminResourceConfig.register(AccountResource.class);
 
         adminResourceConfig.register(new SwaggerSerializers());
@@ -175,23 +170,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     }
 
     private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
-
-        final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
-
-        final Key<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthorizedRequestCredentials,
-                AccountPrincipal>>() {});
-
-        final SignedRequestAuthFilter<AccountPrincipal> authFilter =
-                SignedRequestAuthFilter.<AccountPrincipal>builder()
-                        .accountNamePathParameter("accountName")
-                        .setAuthenticator(injector.getInstance(authenticatorKey))
-                        .setPrefix("Signed")
-                        .setAuthorizer((principal, role) -> true)
-                        .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
-                        .buildAuthFilter();
-
-
-        environment.jersey().register(authFilter);
+        environment.jersey().register(AuthLevelDynamicFeature.class);
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {

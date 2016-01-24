@@ -6,10 +6,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.PointerRepository;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueId;
-import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
-
-import java.util.Optional;
 
 public interface DataContextFactory {
     QueueDataContext forQueue(QueueDefinition definition);

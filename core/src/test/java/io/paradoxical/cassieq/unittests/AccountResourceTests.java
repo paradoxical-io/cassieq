@@ -3,6 +3,7 @@ package io.paradoxical.cassieq.unittests;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyName;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,11 +61,13 @@ public class AccountResourceTests extends DbTestBase {
 
         assertThat(entity).isNotNull();
 
-        resource.addNewKey(accountName, "new-key");
+        final KeyName s = KeyName.valueOf("new-key");
+
+        resource.addNewKey(accountName, s);
 
         final AccountDefinition updatedAccount = (AccountDefinition) resource.getAccount(accountName).getEntity();
 
-        assertThat(updatedAccount.getKeys()).containsKey("new-key");
+        assertThat(updatedAccount.getKeys()).containsKey(s);
     }
 
     @Test
@@ -79,7 +82,7 @@ public class AccountResourceTests extends DbTestBase {
 
         assertThat(entity).isNotNull();
 
-        final String keyName = "new-key";
+        final KeyName keyName = KeyName.valueOf("new-key");
 
         resource.addNewKey(accountName, keyName);
 

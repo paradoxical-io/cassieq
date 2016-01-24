@@ -11,6 +11,8 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
@@ -28,11 +30,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static java.util.stream.Collectors.toList;
 
 @Path("/api/v1/accounts/")
 @Api(value = "/api/v1/accounts/", description = "Account api", tags = "accounts")
@@ -135,7 +140,7 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Delete Account Key")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response deleteAccountKey(@PathParam("accountName") AccountName accountName, @PathParam("keyName") String keyName) {
+    public Response deleteAccountKey(@PathParam("accountName") AccountName accountName, @PathParam("keyName") KeyName keyName) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -147,7 +152,7 @@ public class AccountResource extends BaseResource {
 
             final AccountDefinition accountDefinition = account.get();
 
-            final HashMap<String, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
+            final HashMap<KeyName, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
 
             prunedKeys.remove(keyName);
 
@@ -176,7 +181,7 @@ public class AccountResource extends BaseResource {
     @Consumes(MediaType.TEXT_PLAIN)
     public Response addNewKey(
             @PathParam("accountName") AccountName accountName,
-            @PathParam("keyName") String keyName) {
+            @PathParam("keyName") KeyName keyName) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -192,7 +197,7 @@ public class AccountResource extends BaseResource {
                 return buildConflictResponse("Key " + keyName + " already exists");
             }
 
-            final HashMap<String, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
+            final HashMap<KeyName, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
 
             final AccountKey key = AccountKey.random(secureRandom);
 

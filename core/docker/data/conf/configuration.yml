@@ -75,7 +75,7 @@ logging:
   appenders:
     # Log warnings and errors to stderr
     - type: console
-      threshold: INFO
+      threshold: DEBUG
       target: stderr
       logFormat: "%d [%p] %marker [%mdc{corrId}] %logger %m%n"
 

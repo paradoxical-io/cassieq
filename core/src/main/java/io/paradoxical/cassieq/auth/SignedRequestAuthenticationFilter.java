@@ -33,13 +33,15 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 @AccountAuth
 @Priority(Priorities.AUTHENTICATION)
 @Builder(builderClassName = "Builder")
-public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthFilter<AuthorizedRequestCredentials, TPrincipal> {
-    private static final Logger logger = getLogger(SignedRequestAuthFilter.class);
+public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> extends AuthFilter<AuthorizedRequestCredentials, TPrincipal> {
+    private static final Logger logger = getLogger(SignedRequestAuthenticationFilter.class);
 
     private final String accountNamePathParameter;
     private final String keyAuthPrefix;
 
-    public SignedRequestAuthFilter(String accountNamePathParameter, final String keyAuthPrefix) {
+    public SignedRequestAuthenticationFilter(
+            String accountNamePathParameter,
+            final String keyAuthPrefix) {
         this.accountNamePathParameter = accountNamePathParameter;
         this.keyAuthPrefix = keyAuthPrefix;
     }
@@ -57,13 +59,12 @@ public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthF
 
                 final SignedUrlParameters signedUrlParameters = parseSignedUrlParameters(requestContext, accountName);
 
-                if(headerRequestParameters == null && signedUrlParameters == null){
+                if (headerRequestParameters == null && signedUrlParameters == null) {
                     throw new WebApplicationException(unauthorizedHandler.buildResponse(prefix, realm));
                 }
 
                 // the request params we'll use to auth, with priority from header vs query param
                 final RequestParameters requestParameters = MoreObjects.firstNonNull(headerRequestParameters, signedUrlParameters);
-
 
                 final AuthorizedRequestCredentials credentials =
                         AuthorizedRequestCredentials.builder()
@@ -144,6 +145,7 @@ public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthF
 
     private boolean setPrincipal(final ContainerRequestContext requestContext, final AuthorizedRequestCredentials credentials) {
         try {
+
             final Optional<TPrincipal> optionalPrincipal = authenticator.authenticate(credentials);
             if (optionalPrincipal.isPresent()) {
 
@@ -162,7 +164,7 @@ public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthF
         return false;
     }
 
-    public static class Builder<TPrincipal extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, TPrincipal, SignedRequestAuthFilter<TPrincipal>> {
+    public static class Builder<TPrincipal extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, TPrincipal, SignedRequestAuthenticationFilter<TPrincipal>> {
 
         public Builder() {
             setPrefix("Signed");
@@ -170,15 +172,15 @@ public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthF
         }
 
         @Override
-        protected SignedRequestAuthFilter<TPrincipal> newInstance() {
-            final SignedRequestAuthFilter<TPrincipal> filter = new SignedRequestAuthFilter<>(
+        protected SignedRequestAuthenticationFilter<TPrincipal> newInstance() {
+            final SignedRequestAuthenticationFilter<TPrincipal> filter = new SignedRequestAuthenticationFilter<>(
                     Strings.isNullOrEmpty(accountNamePathParameter) ? "accountName" : accountNamePathParameter,
                     Strings.isNullOrEmpty(keyAuthPrefix) ? "Key" : keyAuthPrefix);
 
             return filter;
         }
 
-        public SignedRequestAuthFilter<TPrincipal> build() {
+        public SignedRequestAuthenticationFilter<TPrincipal> build() {
             return buildAuthFilter();
         }
     }

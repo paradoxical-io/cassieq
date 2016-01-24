@@ -15,6 +15,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 
 import java.security.SecureRandom;
@@ -47,14 +48,14 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
         AccountKey primaryKey = AccountKey.random(secureRandom);
         AccountKey secondaryKey = AccountKey.random(secureRandom);
 
-        final ImmutableMap<String, String> keys = ImmutableMap.of(
-                WellKnownKeyNames.Primary.getKeyName(), primaryKey.get(),
-                WellKnownKeyNames.Secondary.getKeyName(), secondaryKey.get());
+        final ImmutableMap<KeyName, AccountKey> keys = ImmutableMap.of(
+                WellKnownKeyNames.Primary.getKeyName(), primaryKey,
+                WellKnownKeyNames.Secondary.getKeyName(), secondaryKey);
 
         final Insert createNewAccount = insertInto(Tables.Account.TABLE_NAME)
                 .ifNotExists()
                 .value(Tables.Account.ACCOUNT_NAME, accountName.get())
-                .value(Tables.Account.KEYS, keys);
+                .value(Tables.Account.KEYS, saveableMap(keys));
 
         final ResultSet createAccountResult = session.execute(createNewAccount);
 
@@ -112,10 +113,10 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
         }
     }
 
-    private ImmutableMap<String, String> saveableMap(final ImmutableMap<String, AccountKey> keys) {
+    private ImmutableMap<String, String> saveableMap(final ImmutableMap<KeyName, AccountKey> keys) {
         final HashMap<String, String> target = new HashMap<>();
 
-        keys.keySet().forEach(entry -> target.put(entry, keys.get(entry).get()));
+        keys.keySet().forEach(entry -> target.put(entry.get(), keys.get(entry).get()));
 
         return ImmutableMap.copyOf(target);
     }

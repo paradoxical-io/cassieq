@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import org.junit.Test;
 
@@ -56,7 +57,7 @@ public class AccountRepoTests extends DbTestBase {
 
         assertThat(accountDefinition.get().getKeys()).containsKeys(WellKnownKeyNames.Primary.getKeyName(), WellKnownKeyNames.Secondary.getKeyName());
 
-        final HashMap<String, AccountKey> stringAccountKeyHashMap = new HashMap<>(accountDefinition.get().getKeys());
+        final HashMap<KeyName, AccountKey> stringAccountKeyHashMap = new HashMap<>(accountDefinition.get().getKeys());
 
         stringAccountKeyHashMap.remove(WellKnownKeyNames.Primary.getKeyName());
 

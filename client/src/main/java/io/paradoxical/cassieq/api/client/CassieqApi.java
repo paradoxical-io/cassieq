@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.api.client;
 
+import com.godaddy.logging.Logger;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
@@ -21,6 +22,10 @@ import retrofit.http.Path;
 import retrofit.http.Query;
 
 import java.net.URI;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public interface CassieqApi {
 
@@ -30,10 +35,19 @@ public interface CassieqApi {
 
     static CassieqApi createClient(String baseUri, CassieqCredentials cassieqCredentials) {
 
+        final Logger logger = getLogger(CassieqApi.class);
+
         OkHttpClient client = new OkHttpClient();
         client.interceptors().add(chain -> {
             final Request request = chain.request();
-            return chain.proceed(cassieqCredentials.authorize(request));
+            try {
+                return chain.proceed(cassieqCredentials.authorize(request));
+            }
+            catch (InvalidKeyException | NoSuchAlgorithmException e) {
+                logger.error(e, "Error authorizing credentials!");
+
+                throw new RuntimeException("Error authorizing credentials!", e);
+            }
         });
 
         Retrofit retrofit = new Retrofit.Builder()

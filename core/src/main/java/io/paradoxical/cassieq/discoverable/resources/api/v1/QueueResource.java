@@ -15,6 +15,7 @@ import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
@@ -36,6 +37,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +64,7 @@ public class QueueResource extends BaseQueueResource {
 
     @GET
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get all account queue definitions")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -75,6 +78,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get a queue definition")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -96,6 +100,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/statistics")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get queue statistics")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -127,6 +132,7 @@ public class QueueResource extends BaseQueueResource {
 
     @POST
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.CreateQueue)
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -170,6 +176,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.DeleteQueue)
     @QueueTimer(actionName = "delete")
     @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
@@ -193,6 +200,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/messages/next")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.ReadMessage)
     @QueueTimer(actionName = "read")
     @ApiOperation(value = "Get Message")
     @ApiResponses(value = {
@@ -248,6 +256,7 @@ public class QueueResource extends BaseQueueResource {
     @PUT
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.UpdateMessage)
     @QueueTimer(actionName = "update-message")
     @ApiOperation(value = "Update Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK", response = UpdateMessageResponse.class),
@@ -282,6 +291,7 @@ public class QueueResource extends BaseQueueResource {
     @POST
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.PutMessage)
     @QueueTimer(actionName = "publish")
     @ApiOperation(value = "Put Message")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Message Added"),
@@ -327,6 +337,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(levels = AuthorizationLevel.AckMessage)
     @QueueTimer(actionName = "ack")
     @ApiOperation(value = "Ack Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),

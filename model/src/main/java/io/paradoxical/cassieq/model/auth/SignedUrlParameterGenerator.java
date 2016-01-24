@@ -2,7 +2,6 @@ package io.paradoxical.cassieq.model.auth;
 
 import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.model.accounts.AccountName;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
@@ -13,12 +12,11 @@ import java.util.EnumSet;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 /**
- * Represents the parsed signed URL pamaters from a request
+ * Generates a signed query param set for use for clients
  */
 @EqualsAndHashCode(callSuper = false)
 @Value
-@Builder
-public class SignedUrlParameters extends SignedParametersBase implements RequestParameters {
+public class SignedUrlParameterGenerator implements SignatureGenerator {
 
     private static final Logger logger = getLogger(SignedUrlParameters.class);
 
@@ -28,20 +26,13 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
 
     @NonNull
     @NotNull
-    private final String querySignature;
-
-    @NonNull
-    @NotNull
     private final EnumSet<AuthorizationLevel> authorizationLevels;
 
     @Override
-    protected String getProvidedSignature() {
-        return querySignature;
-    }
-
-    @Override
     public String getStringToSign() {
-        return new SignedUrlParameterGenerator(accountName, authorizationLevels).getStringToSign();
+        return SignatureJoiner
+                .componentJoiner
+                .join(accountName.get(),
+                      AuthorizationLevel.stringify(authorizationLevels));
     }
 }
-
