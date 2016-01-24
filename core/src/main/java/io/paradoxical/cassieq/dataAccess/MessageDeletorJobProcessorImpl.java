@@ -42,7 +42,7 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
     private final PointerRepository pointerRepository;
     private final MonotonicRepository monotonicRepository;
 
-    private static final Logger logger = getLogger(MessageDeletorJobProcessorImpl.class);
+    private Logger logger = getLogger(MessageDeletorJobProcessorImpl.class);
     private final QueueRepository queueRepository;
 
     @Inject
@@ -60,6 +60,8 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
         queueRepository = dataContextFactory.forAccount(job.getAccountName());
         pointerRepository = dataContextFactory.getPointerRepository(queueId);
         monotonicRepository = dataContextFactory.getMonotonicRepository(queueId);
+
+        logger = logger.with(job);
     }
 
     /**
@@ -72,15 +74,27 @@ public class MessageDeletorJobProcessorImpl implements MessageDeleterJobProcesso
 
             final MessagePointer endPointer = monotonicRepository.getCurrent();
 
+            logger.debug("Starting deletion job");
+
             delete(startPointer, endPointer);
+
+            logger.success("Deleted all messages!");
 
             monotonicRepository.deleteAll();
 
+            logger.success("Deleted all monotons!");
+
             pointerRepository.deleteAll();
+
+            logger.success("Deleted all pointers!");
 
             queueRepository.deleteQueueStats(job.getQueueStatsId());
 
+            logger.success("Deleted all stats!");
+
             complete();
+
+            logger.success("Complete");
         }
     }
 

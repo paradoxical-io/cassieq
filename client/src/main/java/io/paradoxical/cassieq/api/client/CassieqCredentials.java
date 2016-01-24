@@ -67,7 +67,6 @@ public interface CassieqCredentials {
                           .url(newUrlBuilder.build())
                           .build();
         };
-
     }
 
     Request authorize(Request request);
