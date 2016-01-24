@@ -58,7 +58,7 @@ public class AuthLevelDynamicFeature implements DynamicFeature {
                 .accountNamePathParameter("accountName")
                 .setAuthenticator(authenticator)
                 .setPrefix("Signed")
-                .setAuthorizer((principal, role) -> {
+                .setAuthorizer((principal, _ignore) -> {
                     final EnumSet<AuthorizationLevel> claimedLevels = principal.getAuthorizationLevels();
 
                     return allowedLevels.stream().anyMatch(claimedLevels::contains);
