@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.auth.SignedUrlParameterNames;
 import io.paradoxical.cassieq.factories.DataContextFactory;
+import io.paradoxical.cassieq.model.QueryAuthUrlResult;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
@@ -95,8 +96,6 @@ public class PermissionsResource extends BaseResource {
                                                          .sig(computedSignature)
                                                          .build();
 
-        return Response.ok(new Object(){
-            public String queryUrl = queryParam;
-        }).build();
+        return Response.ok(new QueryAuthUrlResult(queryParam)).build();
     }
 }
