@@ -66,7 +66,7 @@ public class PermissionsResource extends BaseResource {
 
     @POST
     @Timed
-    @ApiOperation(value = "Generator auth url")
+    @ApiOperation(value = "Generate auth url")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response generateAuthUrl(
