@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.auth.AccountAuth;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -16,7 +17,6 @@ import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
-import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -39,13 +39,13 @@ import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
 
+@AccountAuth
 @Path("/api/v1/accounts/{accountName}/queues")
 @Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api", tags = "cassieq")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
-    private final RepairWorkerManager repairWorkerManager;
     private final QueueDeleter queueDeleter;
 
     @Inject
@@ -54,11 +54,9 @@ public class QueueResource extends BaseQueueResource {
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
             DataContextFactory dataContextFactory,
-            RepairWorkerManager repairWorkerManager,
             QueueDeleter.Factory queueDeleterFactory,
             @PathParam("accountName") AccountName accountName) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
-        this.repairWorkerManager = repairWorkerManager;
         this.queueDeleter = queueDeleterFactory.create(accountName);
     }
 

@@ -15,8 +15,6 @@ import io.paradoxical.cassieq.model.auth.RequestParameters;
 import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
 import io.paradoxical.cassieq.model.auth.SignedUrlParameters;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
 
 import javax.annotation.Priority;
 import javax.ws.rs.InternalServerErrorException;
@@ -32,6 +30,7 @@ import java.util.List;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
+@AccountAuth
 @Priority(Priorities.AUTHENTICATION)
 @Builder(builderClassName = "Builder")
 public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthFilter<AuthorizedRequestCredentials, TPrincipal> {
@@ -55,11 +54,20 @@ public class SignedRequestAuthFilter<TPrincipal extends Principal> extends AuthF
                 final AccountName accountName = AccountName.valueOf(pathParameters.getFirst(accountNamePathParameter));
 
                 final RequestParameters headerRequestParameters = parseHeaderRequestParameters(requestContext, accountName);
+
                 final SignedUrlParameters signedUrlParameters = parseSignedUrlParameters(requestContext, accountName);
+
+                if(headerRequestParameters == null && signedUrlParameters == null){
+                    throw new WebApplicationException(unauthorizedHandler.buildResponse(prefix, realm));
+                }
+
+                // the request params we'll use to auth, with priority from header vs query param
+                final RequestParameters requestParameters = MoreObjects.firstNonNull(headerRequestParameters, signedUrlParameters);
+
 
                 final AuthorizedRequestCredentials credentials =
                         AuthorizedRequestCredentials.builder()
-                                                    .requestParameters(MoreObjects.firstNonNull(headerRequestParameters, signedUrlParameters))
+                                                    .requestParameters(requestParameters)
                                                     .build();
 
                 if (setPrincipal(requestContext, credentials)) {

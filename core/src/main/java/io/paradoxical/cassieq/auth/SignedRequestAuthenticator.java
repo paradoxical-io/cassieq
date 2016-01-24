@@ -11,9 +11,6 @@ import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.model.auth.RequestParameters;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class SignedRequestAuthenticator implements Authenticator<AuthorizedRequestCredentials, AccountPrincipal> {
@@ -34,15 +31,16 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
 
         final java.util.Optional<AccountDefinition> account = accountRepository.getAccount(requestParameters.getAccountName());
 
-        if(account.isPresent()){
+        if (account.isPresent()) {
             try {
-                if(credentials.verify(account.get().getKeys().values())){
+                if (credentials.verify(account.get().getKeys().values())) {
 
                     return Optional.of(new AccountPrincipal(requestParameters.getAccountName(), requestParameters.getAuthorizationLevels()));
                 }
             }
             catch (Exception e) {
                 logger.error(e, "Credential Verification Failed");
+
                 throw new AuthenticationException("Credential Verification Failed", e);
             }
         }

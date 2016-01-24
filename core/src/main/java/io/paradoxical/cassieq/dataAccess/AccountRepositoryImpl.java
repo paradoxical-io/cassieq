@@ -3,27 +3,36 @@ package io.paradoxical.cassieq.dataAccess;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.godaddy.logging.Logger;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
-import org.apache.commons.lang3.NotImplementedException;
-
-import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
-import static java.util.stream.Collectors.toList;
 
 import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.delete;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.update;
+import static com.godaddy.logging.LoggerFactory.getLogger;
+import static java.util.stream.Collectors.toList;
+
 public class AccountRepositoryImpl extends RepositoryBase implements AccountRepository {
+    private static final Logger logger = getLogger(AccountRepositoryImpl.class);
 
     private final Session session;
     private static final SecureRandom secureRandom = new SecureRandom();
@@ -83,6 +92,31 @@ public class AccountRepositoryImpl extends RepositoryBase implements AccountRepo
 
     @Override
     public void deleteAccount(final AccountName accountName) {
-        throw new NotImplementedException("deleteAccount Not implemented");
+        final Statement update =
+                delete().all().from(Tables.Account.TABLE_NAME)
+                        .where(eq(Tables.Account.ACCOUNT_NAME, accountName.get()));
+
+        if (session.execute(update).wasApplied()) {
+            logger.with("account-name", accountName).success("Deleted account");
+        }
+    }
+
+    @Override
+    public void updateAccount(final AccountDefinition accountDefinition) {
+        final Statement update =
+                update(Tables.Account.TABLE_NAME).where(eq(Tables.Account.ACCOUNT_NAME, accountDefinition.getAccountName().get()))
+                                                 .with(set(Tables.Account.KEYS, saveableMap(accountDefinition.getKeys())));
+
+        if (session.execute(update).wasApplied()) {
+            logger.with(accountDefinition).success("Updated account");
+        }
+    }
+
+    private ImmutableMap<String, String> saveableMap(final ImmutableMap<String, AccountKey> keys) {
+        final HashMap<String, String> target = new HashMap<>();
+
+        keys.keySet().forEach(entry -> target.put(entry, keys.get(entry).get()));
+
+        return ImmutableMap.copyOf(target);
     }
 }

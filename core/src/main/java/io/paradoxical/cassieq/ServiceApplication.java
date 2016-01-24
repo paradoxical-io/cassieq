@@ -10,7 +10,6 @@ import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.auth.Authenticator;
-import io.dropwizard.auth.chained.ChainedAuthFilter;
 import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
 import io.dropwizard.jersey.setup.JerseyContainerHolder;
@@ -26,11 +25,11 @@ import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.auth.AccountPrincipal;
 import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.discoverable.ApiDiscoverableRoot;
+import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
 import io.paradoxical.cassieq.swagger.SwaggerApiResource;
 import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
@@ -43,7 +42,6 @@ import org.joda.time.DateTimeZone;
 
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -89,19 +87,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         initializeDepedencyInjection(bootstrap);
     }
 
-    public void stop() {
-        try {
-            logger.info("Stopping!");
-
-            env.getApplicationContext().getServer().stop();
-
-            logger.info("Stopped");
-        }
-        catch (Exception ex) {
-            logger.error(ex, "Unclean stop occurred!");
-        }
-    }
-
     private void initializeViews(final Bootstrap<ServiceConfiguration> bootstrap) {
         List<ViewRenderer> viewRenders = new ArrayList<>();
 
@@ -111,7 +96,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         bootstrap.addBundle(new AssetsBundle("/assets", "/assets"));
     }
-
 
     private void initializeDepedencyInjection(final Bootstrap<ServiceConfiguration> bootstrap) {
         bootstrap.addBundle(guiceBundleProvider.getBundle());
@@ -136,6 +120,19 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         run.add(this::configureAdmin);
 
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
+    }
+
+    public void stop() {
+        try {
+            logger.info("Stopping!");
+
+            env.getApplicationContext().getServer().stop();
+
+            logger.info("Stopped");
+        }
+        catch (Exception ex) {
+            logger.error(ex, "Unclean stop occurred!");
+        }
     }
 
     private void configureAdmin(final ServiceConfiguration serviceConfiguration, final Environment environment) {
@@ -181,7 +178,8 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
 
-        final Key<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>>() {});
+        final Key<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthorizedRequestCredentials,
+                AccountPrincipal>>() {});
 
         final SignedRequestAuthFilter<AccountPrincipal> authFilter =
                 SignedRequestAuthFilter.<AccountPrincipal>builder()
@@ -191,10 +189,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
                         .setAuthorizer((principal, role) -> true)
                         .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
                         .buildAuthFilter();
-
-
-        final ChainedAuthFilter<AuthorizedRequestCredentials, AccountPrincipal> authFilterChain = new ChainedAuthFilter<>(Arrays.asList(
-                authFilter));
 
 
         environment.jersey().register(authFilter);
