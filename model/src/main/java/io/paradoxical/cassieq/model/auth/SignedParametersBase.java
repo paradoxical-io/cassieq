@@ -5,7 +5,6 @@ import com.google.common.base.Strings;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 
 import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
@@ -19,12 +18,7 @@ public abstract class SignedParametersBase implements RequestParameters, Signatu
             return false;
         }
 
-        final Mac hmacSHA256 = Mac.getInstance(HMAC.SHA256);
-        final SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), HMAC.SHA256);
-
-        hmacSHA256.init(secretKeySpec);
-
-        return verifySignature(hmacSHA256);
+        return verifySignature(MacProviders.Hmac256(key));
     }
 
     private boolean verifySignature(Mac hmac) {

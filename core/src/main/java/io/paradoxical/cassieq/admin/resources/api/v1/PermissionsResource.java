@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.MacProviders;
 import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
 import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.swagger.annotations.Api;
@@ -86,7 +87,9 @@ public class PermissionsResource extends BaseResource {
 
         final SignedUrlParameterGenerator signedUrlParameterGenerator = new SignedUrlParameterGenerator(request.getAccountName(), authorizationLevels);
 
-        final String computedSignature = signedUrlParameterGenerator.computeSignature(keys.get(request.getKeyName()));
+        final AccountKey key = keys.get(request.getKeyName());
+
+        final String computedSignature = signedUrlParameterGenerator.computeSignature(MacProviders.Hmac256(key));
 
         final String queryParam = SignedUrlParameterNames.builder()
                                                          .auth(authorizationLevels)
