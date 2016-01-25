@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
+import categories.BuildVerification;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
@@ -7,11 +8,13 @@ import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import javax.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(BuildVerification.class)
 public class AccountResourceTests extends DbTestBase {
     private AccountResource resource;
 
