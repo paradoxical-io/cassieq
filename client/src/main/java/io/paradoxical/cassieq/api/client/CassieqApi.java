@@ -22,8 +22,6 @@ import retrofit.http.Path;
 import retrofit.http.Query;
 
 import java.net.URI;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
@@ -40,14 +38,8 @@ public interface CassieqApi {
         OkHttpClient client = new OkHttpClient();
         client.interceptors().add(chain -> {
             final Request request = chain.request();
-            try {
-                return chain.proceed(cassieqCredentials.authorize(request));
-            }
-            catch (InvalidKeyException | NoSuchAlgorithmException e) {
-                logger.error(e, "Error authorizing credentials!");
-
-                throw new RuntimeException("Error authorizing credentials!", e);
-            }
+            
+            return chain.proceed(cassieqCredentials.authorize(request));
         });
 
         Retrofit retrofit = new Retrofit.Builder()

@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.api.client;
 
+import com.godaddy.logging.Logger;
 import com.google.common.base.Splitter;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
@@ -15,9 +16,13 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
+
 @FunctionalInterface
 public interface CassieqCredentials {
     static CassieqCredentials key(final AccountName accountName, final AccountKey accountKey) throws NoSuchAlgorithmException, InvalidKeyException {
+        final Logger logger = getLogger(CassieqCredentials.class);
+
         final DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime();
 
         return request -> {
@@ -30,7 +35,15 @@ public interface CassieqCredentials {
                                            .requestMethod(request.method())
                                            .build();
 
-            final String signature = requestParameters.computeSignature(accountKey);
+            final String signature;
+            try {
+                signature = requestParameters.computeSignature(accountKey);
+            }
+            catch (InvalidKeyException | NoSuchAlgorithmException e) {
+                logger.error(e, "Error computing siganture!");
+
+                throw new RuntimeException(e);
+            }
 
             return request.newBuilder()
                           .header("Authorization", "Signed " + signature)
@@ -62,5 +75,5 @@ public interface CassieqCredentials {
         };
     }
 
-    Request authorize(Request request) throws NoSuchAlgorithmException, InvalidKeyException;
+    Request authorize(Request request);
 }
