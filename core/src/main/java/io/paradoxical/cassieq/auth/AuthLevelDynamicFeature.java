@@ -17,12 +17,14 @@ import javax.ws.rs.container.DynamicFeature;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumSet;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
+@Provider
 public class AuthLevelDynamicFeature implements DynamicFeature {
     private static final Logger logger = getLogger(AuthLevelDynamicFeature.class);
 

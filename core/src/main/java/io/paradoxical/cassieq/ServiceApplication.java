@@ -109,8 +109,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureLogging);
 
-        run.add(this::configureAuth);
-
         run.add(this::configureAdmin);
 
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
@@ -154,10 +152,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setBasePath("/admin");
 
         resourceConfig.register(new SwaggerApiResource(swagConfig));
-    }
-
-    private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
-        environment.jersey().register(AuthLevelDynamicFeature.class);
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
