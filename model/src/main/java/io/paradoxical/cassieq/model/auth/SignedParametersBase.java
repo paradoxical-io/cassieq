@@ -19,8 +19,8 @@ public abstract class SignedParametersBase implements RequestParameters, Signatu
             return false;
         }
 
-        final Mac hmacSHA256 = Mac.getInstance("HmacSHA256");
-        final SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacSHA256");
+        final Mac hmacSHA256 = Mac.getInstance(HMAC.SHA256);
+        final SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), HMAC.SHA256);
 
         hmacSHA256.init(secretKeySpec);
 

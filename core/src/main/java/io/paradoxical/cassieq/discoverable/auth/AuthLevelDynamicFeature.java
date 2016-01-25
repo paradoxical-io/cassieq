@@ -37,17 +37,17 @@ public class AuthLevelDynamicFeature implements DynamicFeature {
 
     @Override
     public void configure(final ResourceInfo resourceInfo, final FeatureContext context) {
-        final AnnotatedMethod am = new AnnotatedMethod(resourceInfo.getResourceMethod());
+        final AnnotatedMethod annotatedMethod = new AnnotatedMethod(resourceInfo.getResourceMethod());
 
         /**
          * Register a custom filter for each method based on what the filter asked its auth level to be
          */
-        if (am.isAnnotationPresent(AuthLevelRequired.class)) {
+        if (annotatedMethod.isAnnotationPresent(AuthLevelRequired.class)) {
             logger.with("method", resourceInfo.getResourceMethod().getName())
                   .with("resource", resourceInfo.getResourceClass().getSimpleName())
                   .info("Registering auth filter");
 
-            final EnumSet<AuthorizationLevel> requiredLevels = EnumSet.copyOf(Arrays.asList(am.getAnnotation(AuthLevelRequired.class).levels()));
+            final EnumSet<AuthorizationLevel> requiredLevels = EnumSet.copyOf(Arrays.asList(annotatedMethod.getAnnotation(AuthLevelRequired.class).level()));
 
             context.register(getAuthFilter(requiredLevels));
 
@@ -55,7 +55,7 @@ public class AuthLevelDynamicFeature implements DynamicFeature {
         }
     }
 
-    public SignedRequestAuthenticationFilter<AccountPrincipal> getAuthFilter(EnumSet<AuthorizationLevel> allowedLevels) {
+    public SignedRequestAuthenticationFilter<AccountPrincipal> getAuthFilter(final EnumSet<AuthorizationLevel> allowedLevels) {
         return SignedRequestAuthenticationFilter.<AccountPrincipal>builder()
                 .accountNamePathParameter("accountName")
                 .setAuthenticator(authenticator)

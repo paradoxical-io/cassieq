@@ -16,13 +16,19 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
  */
 public interface SignatureGenerator {
 
-    default String computeSignature(AccountKey key) throws InvalidKeyException, NoSuchAlgorithmException {
-        final String hmacSHA2561Algo = "HmacSHA256";
-        final Mac hmacSHA256 = Mac.getInstance(hmacSHA2561Algo);
+    default String computeSignature(AccountKey key) {
+        final String hmacSHA2561Algo = HMAC.SHA256;
 
-        hmacSHA256.init(new SecretKeySpec(key.getBytes(), hmacSHA2561Algo));
+        try {
+            final Mac hmacSHA256 = Mac.getInstance(hmacSHA2561Algo);
 
-        return computeSignature(hmacSHA256);
+            hmacSHA256.init(new SecretKeySpec(key.getBytes(), hmacSHA2561Algo));
+
+            return computeSignature(hmacSHA256);
+        }
+        catch (InvalidKeyException | NoSuchAlgorithmException e) {
+            throw new AssertionError("Error initializing mac", e);
+        }
     }
 
     default String computeSignature(final Mac hmac) {

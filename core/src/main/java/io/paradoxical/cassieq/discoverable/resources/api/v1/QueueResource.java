@@ -63,7 +63,7 @@ public class QueueResource extends BaseQueueResource {
 
     @GET
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get all account queue definitions")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -77,7 +77,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get a queue definition")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -99,7 +99,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/statistics")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.GetQueueInformation)
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get queue statistics")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -131,7 +131,7 @@ public class QueueResource extends BaseQueueResource {
 
     @POST
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.CreateQueue)
+    @AuthLevelRequired(level = AuthorizationLevel.CreateQueue)
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -175,7 +175,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.DeleteQueue)
+    @AuthLevelRequired(level = AuthorizationLevel.DeleteQueue)
     @QueueTimer(actionName = "delete")
     @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
@@ -199,7 +199,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/messages/next")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.ReadMessage)
+    @AuthLevelRequired(level = AuthorizationLevel.ReadMessage)
     @QueueTimer(actionName = "read")
     @ApiOperation(value = "Get Message")
     @ApiResponses(value = {
@@ -255,7 +255,7 @@ public class QueueResource extends BaseQueueResource {
     @PUT
     @Path("/{queueName}/messages")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.UpdateMessage)
+    @AuthLevelRequired(level = AuthorizationLevel.UpdateMessage)
     @QueueTimer(actionName = "update-message")
     @ApiOperation(value = "Update Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK", response = UpdateMessageResponse.class),
@@ -290,7 +290,7 @@ public class QueueResource extends BaseQueueResource {
     @POST
     @Path("/{queueName}/messages")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.PutMessage)
+    @AuthLevelRequired(level = AuthorizationLevel.PutMessage)
     @QueueTimer(actionName = "publish")
     @ApiOperation(value = "Put Message")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Message Added"),
@@ -336,7 +336,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}/messages")
     @Timed
-    @AuthLevelRequired(levels = AuthorizationLevel.AckMessage)
+    @AuthLevelRequired(level = AuthorizationLevel.AckMessage)
     @QueueTimer(actionName = "ack")
     @ApiOperation(value = "Ack Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),

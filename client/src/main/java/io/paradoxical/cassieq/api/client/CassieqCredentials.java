@@ -35,15 +35,8 @@ public interface CassieqCredentials {
                                            .requestMethod(request.method())
                                            .build();
 
-            final String signature;
-            try {
-                signature = requestParameters.computeSignature(accountKey);
-            }
-            catch (InvalidKeyException | NoSuchAlgorithmException e) {
-                logger.error(e, "Error computing siganture!");
 
-                throw new RuntimeException(e);
-            }
+            final String signature = requestParameters.computeSignature(accountKey);
 
             return request.newBuilder()
                           .header("Authorization", "Signed " + signature)
