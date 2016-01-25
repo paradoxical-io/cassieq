@@ -16,6 +16,7 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.UpdateMessageRequest;
 import io.paradoxical.cassieq.model.UpdateMessageResponse;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
@@ -30,6 +31,7 @@ import retrofit.Response;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,9 +123,12 @@ public class ApiTester extends DbTestBase {
 
         accountResource.createAccount(accountName);
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(accountName,
-                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                   AuthorizationLevel.CreateQueue.getShortForm()).getEntity();
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest)
+                                                                                  .getEntity();
 
         final String queryParam = result.getQueryParam();
 
@@ -154,9 +159,11 @@ public class ApiTester extends DbTestBase {
 
         accountResource.createAccount(accountName);
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(accountName,
-                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                   AuthorizationLevel.ReadMessage.getShortForm()).getEntity();
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.ReadMessage));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
 
         final String queryParam = result.getQueryParam();
 
@@ -190,9 +197,11 @@ public class ApiTester extends DbTestBase {
 
         accountResource.createAccount(accountName);
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(accountName,
-                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                   AuthorizationLevel.CreateQueue.getShortForm()).getEntity();
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
 
         final String queryParam = result.getQueryParam();
 
@@ -220,9 +229,11 @@ public class ApiTester extends DbTestBase {
 
         accountResource.createAccount(accountName);
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(accountName,
-                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                   AuthorizationLevel.CreateQueue.getShortForm()).getEntity();
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
 
         final String queryParam = result.getQueryParam();
 

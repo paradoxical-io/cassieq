@@ -11,8 +11,8 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
-import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
@@ -30,14 +30,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static java.util.stream.Collectors.toList;
 
 @Path("/api/v1/accounts/")
 @Api(value = "/api/v1/accounts/", description = "Account api", tags = "accounts")
@@ -137,8 +134,8 @@ public class AccountResource extends BaseResource {
     @DELETE
     @Timed
     @Path("/{accountName}/keys/{keyName}")
-    @ApiOperation(value = "Delete Account Key")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
+    @ApiOperation(value = "Delete an account key")
+    @ApiResponses(value = { @ApiResponse(code = 204, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response deleteAccountKey(@PathParam("accountName") AccountName accountName, @PathParam("keyName") KeyName keyName) {
         try {
@@ -160,13 +157,13 @@ public class AccountResource extends BaseResource {
 
             accountRepository.updateAccount(accountDefinition);
 
-            return Response.ok(accountDefinition).build();
+            return Response.noContent().build();
 
         }
         catch (Exception e) {
             logger.with("account-name", accountName)
                   .with("key-name", keyName)
-                  .error(e, "Error getting account");
+                  .error(e, "Error deleting account key");
 
             return buildErrorResponse("RemoveAccountKey", null, e);
         }
@@ -174,14 +171,14 @@ public class AccountResource extends BaseResource {
 
     @POST
     @Timed
-    @Path("/{accountName}/keys/{keyName}")
-    @ApiOperation(value = "Delete Account Key")
+    @Path("/{accountName}/keys")
+    @ApiOperation(value = "Add an account key")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     @Consumes(MediaType.TEXT_PLAIN)
     public Response addNewKey(
             @PathParam("accountName") AccountName accountName,
-            @PathParam("keyName") KeyName keyName) {
+            KeyCreateRequest keyCreateRequest) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -193,25 +190,25 @@ public class AccountResource extends BaseResource {
 
             final AccountDefinition accountDefinition = account.get();
 
-            if (accountDefinition.getKeys().containsKey(keyName)) {
-                return buildConflictResponse("Key " + keyName + " already exists");
+            if (accountDefinition.getKeys().containsKey(keyCreateRequest.getKeyName())) {
+                return buildConflictResponse("Key " + keyCreateRequest.getKeyName() + " already exists");
             }
 
             final HashMap<KeyName, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
 
             final AccountKey key = AccountKey.random(secureRandom);
 
-            prunedKeys.put(keyName, key);
+            prunedKeys.put(keyCreateRequest.getKeyName(), key);
 
             accountDefinition.setKeys(ImmutableMap.copyOf(prunedKeys));
 
             accountRepository.updateAccount(accountDefinition);
 
-            return Response.ok(key).build();
+            return Response.status(Response.Status.CREATED).entity(key).build();
         }
         catch (Exception e) {
             logger.with("account-name", accountName)
-                  .with("key-name", keyName)
+                  .with("key-request", keyCreateRequest)
                   .error(e, "Error creating account key");
 
             return buildErrorResponse("AddAccountKey", null, e);
@@ -222,8 +219,8 @@ public class AccountResource extends BaseResource {
     @DELETE
     @Timed
     @Path("/{accountName}")
-    @ApiOperation(value = "Delete Account")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
+    @ApiOperation(value = "Delete Account", notes = "Deleting an account will also kick off jobs to delete all related queues. BE CAREFUL")
+    @ApiResponses(value = { @ApiResponse(code = 204, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response deleteAccount(@PathParam("accountName") final AccountName accountName) {
         try {
@@ -253,11 +250,11 @@ public class AccountResource extends BaseResource {
 
             accountRepository.deleteAccount(accountName);
 
-            return Response.ok().build();
+            return Response.noContent().build();
         }
         catch (Exception e) {
             logger.with("account-name", accountName)
-                  .error(e, "Error creating deleting key");
+                  .error(e, "Error deleting account");
 
             return buildErrorResponse("DeleteAccount", null, e);
         }

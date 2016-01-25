@@ -10,7 +10,7 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.QueryAuthUrlResult;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
-import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
@@ -20,11 +20,11 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.security.InvalidKeyException;
@@ -69,27 +69,24 @@ public class PermissionsResource extends BaseResource {
     @ApiOperation(value = "Generate auth url")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response generateAuthUrl(
-            @QueryParam("accountName") AccountName accountName,
-            @QueryParam("keyName") KeyName keyName,
-            @QueryParam("shortForm") String shortForm) throws NoSuchAlgorithmException, InvalidKeyException {
-        final Optional<AccountDefinition> accountDefinition = dataContextFactory.getAccountRepository().getAccount(accountName);
+    public Response generateAuthUrl(@NotNull GetAuthQueryParamsRequest request) throws NoSuchAlgorithmException, InvalidKeyException {
+        final Optional<AccountDefinition> accountDefinition = dataContextFactory.getAccountRepository().getAccount(request.getAccountName());
 
         if (!accountDefinition.isPresent()) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        final EnumSet<AuthorizationLevel> authorizationLevels = AuthorizationLevel.parse(shortForm);
+        final EnumSet<AuthorizationLevel> authorizationLevels = EnumSet.copyOf(request.getLevels());
 
         final ImmutableMap<KeyName, AccountKey> keys = accountDefinition.get().getKeys();
 
-        if (!keys.containsKey(keyName)) {
+        if (!keys.containsKey(request.getKeyName())) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        final SignedUrlParameterGenerator signedUrlParameterGenerator = new SignedUrlParameterGenerator(accountName, authorizationLevels);
+        final SignedUrlParameterGenerator signedUrlParameterGenerator = new SignedUrlParameterGenerator(request.getAccountName(), authorizationLevels);
 
-        final String computedSignature = signedUrlParameterGenerator.computeSignature(keys.get(keyName));
+        final String computedSignature = signedUrlParameterGenerator.computeSignature(keys.get(request.getKeyName()));
 
         final String queryParam = SignedUrlParameterNames.builder()
                                                          .auth(authorizationLevels)
