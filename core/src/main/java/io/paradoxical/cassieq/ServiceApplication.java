@@ -49,7 +49,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     @Getter
     private final GuiceBundleProvider guiceBundleProvider;
 
-    private Environment env;
+    protected Environment env;
 
     public ServiceApplication(final GuiceBundleProvider guiceBundleProvider) {
         this.guiceBundleProvider = guiceBundleProvider;
@@ -114,19 +114,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         run.add(this::configureAdmin);
 
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
-    }
-
-    public void stop() {
-        try {
-            logger.info("Stopping!");
-
-            env.getApplicationContext().getServer().stop();
-
-            logger.info("Stopped");
-        }
-        catch (Exception ex) {
-            logger.error(ex, "Unclean stop occurred!");
-        }
     }
 
     private void configureAdmin(final ServiceConfiguration serviceConfiguration, final Environment environment) {
