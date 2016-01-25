@@ -38,7 +38,7 @@ public interface CassieqApi {
         OkHttpClient client = new OkHttpClient();
         client.interceptors().add(chain -> {
             final Request request = chain.request();
-            
+
             return chain.proceed(cassieqCredentials.authorize(request));
         });
 
