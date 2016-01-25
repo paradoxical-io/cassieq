@@ -72,7 +72,7 @@
         <java.version>1.8</java.version>
 
         <!-- Library Versions -->
-        <io.paradoxical.common.test>1.0-SNAPSHOT</io.paradoxical.common.test>
+        <io.paradoxical.common.test>1.1-SNAPSHOT</io.paradoxical.common.test>
         <io.paradoxical.common>1.2-SNAPSHOT</io.paradoxical.common>
         <io.paradoxical.common.web>1.1-SNAPSHOT</io.paradoxical.common.web>
         <io.paradoxical.cassandra-loader>1.2-SNAPSHOT</io.paradoxical.cassandra-loader>
