@@ -122,10 +122,10 @@ permission based url params for them. This may look of the form:
 Which can be appended to any API url.  The auth is of a simple form (concatenation of single character based permissions) which in this scenario indicates
 
 ```
-Put (p)
-Update (u)
-Add (a)
-Get (g)
+PutMessage (p)
+UpdateMessage (u)
+AckMessage (a)
+GetQueueInformation (g)
 ```
 
 For a full list of granular permissions go to the admin panel permissions api.  
