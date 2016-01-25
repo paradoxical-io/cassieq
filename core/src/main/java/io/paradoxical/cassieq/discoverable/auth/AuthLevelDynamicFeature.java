@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
 import io.dropwizard.auth.Authenticator;

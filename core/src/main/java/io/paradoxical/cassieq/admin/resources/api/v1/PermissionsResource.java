@@ -5,7 +5,7 @@ import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
-import io.paradoxical.cassieq.auth.SignedUrlParameterNames;
+import io.paradoxical.cassieq.discoverable.auth.SignedUrlParameterNames;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.QueryAuthUrlResult;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;

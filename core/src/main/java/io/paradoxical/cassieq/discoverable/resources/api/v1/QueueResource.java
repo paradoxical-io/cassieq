@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
-import io.paradoxical.cassieq.auth.AccountAuth;
+import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -37,7 +37,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 

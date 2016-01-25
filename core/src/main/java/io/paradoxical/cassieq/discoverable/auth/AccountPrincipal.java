@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;

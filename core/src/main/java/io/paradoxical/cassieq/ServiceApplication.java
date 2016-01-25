@@ -20,7 +20,7 @@ import io.paradoxical.cassieq.admin.AdminRoot;
 import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
-import io.paradoxical.cassieq.auth.AuthLevelDynamicFeature;
+import io.paradoxical.cassieq.discoverable.auth.AuthLevelDynamicFeature;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;

@@ -4,9 +4,9 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.governator.guice.lazy.LazySingleton;
 import io.dropwizard.auth.Authenticator;
-import io.paradoxical.cassieq.auth.AccountPrincipal;
+import io.paradoxical.cassieq.discoverable.auth.AccountPrincipal;
 import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
-import io.paradoxical.cassieq.auth.SignedRequestAuthenticator;
+import io.paradoxical.cassieq.discoverable.auth.SignedRequestAuthenticator;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 
 public class AuthModule extends AbstractModule {

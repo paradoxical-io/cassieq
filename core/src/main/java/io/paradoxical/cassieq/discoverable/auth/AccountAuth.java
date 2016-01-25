@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import javax.ws.rs.NameBinding;
 import java.lang.annotation.Retention;
