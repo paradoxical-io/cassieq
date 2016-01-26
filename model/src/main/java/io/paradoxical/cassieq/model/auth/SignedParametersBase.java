@@ -18,7 +18,7 @@ public abstract class SignedParametersBase implements RequestParameters, Signatu
             return false;
         }
 
-        return verifySignature(MacProviders.Hmac256(key));
+        return verifySignature(MacProviders.HmacSha256(key));
     }
 
     private boolean verifySignature(Mac hmac) {

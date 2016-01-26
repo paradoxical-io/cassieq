@@ -9,7 +9,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class MacProviders {
 
-    public static Mac Hmac256(AccountKey key) {
+    public static Mac HmacSha256(AccountKey key) {
         final String hmacSHA2561Algo = HMAC.SHA256;
 
         try {

@@ -89,7 +89,7 @@ public class PermissionsResource extends BaseResource {
 
         final AccountKey key = keys.get(request.getKeyName());
 
-        final String computedSignature = signedUrlParameterGenerator.computeSignature(MacProviders.Hmac256(key));
+        final String computedSignature = signedUrlParameterGenerator.computeSignature(MacProviders.HmacSha256(key));
 
         final String queryParam = SignedUrlParameterNames.builder()
                                                          .auth(authorizationLevels)

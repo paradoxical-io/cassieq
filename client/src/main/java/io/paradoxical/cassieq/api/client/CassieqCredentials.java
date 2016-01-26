@@ -37,7 +37,7 @@ public interface CassieqCredentials {
                                            .build();
 
 
-            final String signature = requestParameters.computeSignature(MacProviders.Hmac256(accountKey));
+            final String signature = requestParameters.computeSignature(MacProviders.HmacSha256(accountKey));
 
             return request.newBuilder()
                           .header("Authorization", "Signed " + signature)
