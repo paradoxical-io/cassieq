@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
+import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.factories.DataContextFactory;
@@ -14,9 +15,9 @@ import io.paradoxical.cassieq.factories.ReaderFactory;
 import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
-import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -39,13 +40,13 @@ import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.Optional;
 
+@AccountAuth
 @Path("/api/v1/accounts/{accountName}/queues")
 @Api(value = "/api/v1/accounts/{accountName}/queues", description = "Queue api", tags = "cassieq")
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
-    private final RepairWorkerManager repairWorkerManager;
     private final QueueDeleter queueDeleter;
 
     @Inject
@@ -54,16 +55,15 @@ public class QueueResource extends BaseQueueResource {
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
             DataContextFactory dataContextFactory,
-            RepairWorkerManager repairWorkerManager,
             QueueDeleter.Factory queueDeleterFactory,
             @PathParam("accountName") AccountName accountName) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
-        this.repairWorkerManager = repairWorkerManager;
         this.queueDeleter = queueDeleterFactory.create(accountName);
     }
 
     @GET
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get all account queue definitions")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -77,6 +77,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get a queue definition")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -98,6 +99,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/statistics")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.GetQueueInformation)
     @ApiOperation(value = "Get queue statistics")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
@@ -129,6 +131,7 @@ public class QueueResource extends BaseQueueResource {
 
     @POST
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.CreateQueue)
     @ApiOperation(value = "Create Queue")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
@@ -172,6 +175,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.DeleteQueue)
     @QueueTimer(actionName = "delete")
     @ApiOperation(value = "Delete queue")
     @ApiResponses(value = {
@@ -195,6 +199,7 @@ public class QueueResource extends BaseQueueResource {
     @GET
     @Path("/{queueName}/messages/next")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.ReadMessage)
     @QueueTimer(actionName = "read")
     @ApiOperation(value = "Get Message")
     @ApiResponses(value = {
@@ -250,6 +255,7 @@ public class QueueResource extends BaseQueueResource {
     @PUT
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.UpdateMessage)
     @QueueTimer(actionName = "update-message")
     @ApiOperation(value = "Update Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK", response = UpdateMessageResponse.class),
@@ -284,6 +290,7 @@ public class QueueResource extends BaseQueueResource {
     @POST
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.PutMessage)
     @QueueTimer(actionName = "publish")
     @ApiOperation(value = "Put Message")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Message Added"),
@@ -329,6 +336,7 @@ public class QueueResource extends BaseQueueResource {
     @DELETE
     @Path("/{queueName}/messages")
     @Timed
+    @AuthLevelRequired(level = AuthorizationLevel.AckMessage)
     @QueueTimer(actionName = "ack")
     @ApiOperation(value = "Ack Message")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),

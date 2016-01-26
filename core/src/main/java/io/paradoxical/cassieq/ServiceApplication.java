@@ -3,14 +3,9 @@ package io.paradoxical.cassieq;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.godaddy.logging.Logger;
 import com.google.common.base.Charsets;
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
 import de.thomaskrille.dropwizard_template_config.TemplateConfigBundle;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
-import io.dropwizard.auth.Authenticator;
-import io.dropwizard.auth.chained.ChainedAuthFilter;
 import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
 import io.dropwizard.jersey.setup.JerseyContainerHolder;
@@ -24,9 +19,8 @@ import io.dropwizard.views.mustache.MustacheViewRenderer;
 import io.paradoxical.cassieq.admin.AdminRoot;
 import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
-import io.paradoxical.cassieq.auth.AccountPrincipal;
-import io.paradoxical.cassieq.auth.SignedRequestAuthFilter;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
+import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
+import io.paradoxical.cassieq.discoverable.auth.AuthLevelDynamicFeature;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
@@ -41,9 +35,7 @@ import lombok.Getter;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.joda.time.DateTimeZone;
 
-import javax.ws.rs.core.Response;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -57,7 +49,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     @Getter
     private final GuiceBundleProvider guiceBundleProvider;
 
-    private Environment env;
+    protected Environment env;
 
     public ServiceApplication(final GuiceBundleProvider guiceBundleProvider) {
         this.guiceBundleProvider = guiceBundleProvider;
@@ -89,19 +81,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         initializeDepedencyInjection(bootstrap);
     }
 
-    public void stop() {
-        try {
-            logger.info("Stopping!");
-
-            env.getApplicationContext().getServer().stop();
-
-            logger.info("Stopped");
-        }
-        catch (Exception ex) {
-            logger.error(ex, "Unclean stop occurred!");
-        }
-    }
-
     private void initializeViews(final Bootstrap<ServiceConfiguration> bootstrap) {
         List<ViewRenderer> viewRenders = new ArrayList<>();
 
@@ -111,7 +90,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         bootstrap.addBundle(new AssetsBundle("/assets", "/assets"));
     }
-
 
     private void initializeDepedencyInjection(final Bootstrap<ServiceConfiguration> bootstrap) {
         bootstrap.addBundle(guiceBundleProvider.getBundle());
@@ -131,8 +109,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         run.add(this::configureLogging);
 
-        run.add(this::configureAuth);
-
         run.add(this::configureAdmin);
 
         run.stream().forEach(configFunction -> configFunction.accept(config, env));
@@ -145,6 +121,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         JerseyContainerHolder adminContainerHolder = new JerseyContainerHolder(new ServletContainer(adminResourceConfig));
 
         adminResourceConfig.register(AdminPagesResource.class);
+        adminResourceConfig.register(PermissionsResource.class);
         adminResourceConfig.register(AccountResource.class);
 
         adminResourceConfig.register(new SwaggerSerializers());
@@ -175,29 +152,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         swagConfig.setBasePath("/admin");
 
         resourceConfig.register(new SwaggerApiResource(swagConfig));
-    }
-
-    private void configureAuth(final ServiceConfiguration serviceConfiguration, final Environment environment) {
-
-        final Injector injector = getGuiceBundleProvider().getBundle().getInjector();
-
-        final Key<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>> authenticatorKey = Key.get(new TypeLiteral<Authenticator<AuthorizedRequestCredentials, AccountPrincipal>>() {});
-
-        final SignedRequestAuthFilter<AccountPrincipal> authFilter =
-                SignedRequestAuthFilter.<AccountPrincipal>builder()
-                        .accountNamePathParameter("accountName")
-                        .setAuthenticator(injector.getInstance(authenticatorKey))
-                        .setPrefix("Signed")
-                        .setAuthorizer((principal, role) -> true)
-                        .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
-                        .buildAuthFilter();
-
-
-        final ChainedAuthFilter<AuthorizedRequestCredentials, AccountPrincipal> authFilterChain = new ChainedAuthFilter<>(Arrays.asList(
-                authFilter));
-
-
-        environment.jersey().register(authFilter);
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {

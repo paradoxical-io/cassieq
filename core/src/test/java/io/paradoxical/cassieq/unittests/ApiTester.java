@@ -3,25 +3,35 @@ package io.paradoxical.cassieq.unittests;
 import categories.BuildVerification;
 import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
+import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
+import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
+import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
 import io.paradoxical.cassieq.api.client.CassieqApi;
+import io.paradoxical.cassieq.api.client.CassieqCredentials;
 import io.paradoxical.cassieq.model.GetMessageResponse;
+import io.paradoxical.cassieq.model.QueryAuthUrlResult;
 import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.UpdateMessageRequest;
 import io.paradoxical.cassieq.model.UpdateMessageResponse;
+import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
+import io.paradoxical.cassieq.model.accounts.KeyName;
+import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
 import retrofit.Response;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,7 +48,6 @@ public class ApiTester extends DbTestBase {
     public ApiTester() throws NoSuchAlgorithmException, InvalidKeyException {
 
     }
-
 
     @BeforeClass
     public static void setup() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
@@ -94,6 +103,159 @@ public class ApiTester extends DbTestBase {
 
         assertThat(ackResponse.isSuccess()).isTrue();
     }
+
+    /**
+     * Correct permissions and correct authorization level
+     *
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws IOException
+     */
+    @Test
+    public void test_query_auth_authorizes() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
+        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
+
+        final AccountResource accountResource = injector.getInstance(AccountResource.class);
+
+        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_authorizes");
+
+        accountResource.createAccount(accountName);
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest)
+                                                                                  .getEntity();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName, new QueueCreateOptions(QueueName.valueOf("test_query_auth_authorizes")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isTrue();
+    }
+
+    /**
+     * Valid signature, but not correct permissions
+     *
+     * @throws IOException
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     */
+    @Test
+    public void test_query_auth_authenticates() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
+
+        final AccountResource accountResource = injector.getInstance(AccountResource.class);
+
+        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
+
+        accountResource.createAccount(accountName);
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.ReadMessage));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName, new QueueCreateOptions(QueueName.valueOf("test_query_auth_authenticates")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isFalse();
+
+        // unauthorized
+        assertThat(authAuthorizes.code()).isEqualTo(403);
+    }
+
+    /**
+     * Invalid signature
+     *
+     * @throws InvalidKeyException
+     * @throws NoSuchAlgorithmException
+     * @throws IOException
+     */
+    @Test
+    public void test_query_auth_prevents_invalid_authentiation() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
+        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
+
+        final AccountResource accountResource = injector.getInstance(AccountResource.class);
+
+        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_prevents_invalid_authentiation");
+
+        accountResource.createAccount(accountName);
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam + "fail"));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName,
+                                                                         new QueueCreateOptions(QueueName.valueOf("test_query_auth_prevents_invalid_authentiation")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isFalse();
+
+        // unauthenticated
+        assertThat(authAuthorizes.code()).isEqualTo(401);
+    }
+
+    @Test
+    public void test_revoked_key_prevents_authentiation() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
+        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
+
+        final AccountResource accountResource = injector.getInstance(AccountResource.class);
+
+        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+
+        final AccountName accountName = AccountName.valueOf("test_revoked_key_prevents_authentiation");
+
+        accountResource.createAccount(accountName);
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
+                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+
+        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName,
+                                                                         new QueueCreateOptions(QueueName.valueOf("test_revoked_key_prevents_authentiation")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isTrue();
+
+        accountResource.deleteAccountKey(accountName, WellKnownKeyNames.Primary.getKeyName());
+
+
+        final Response<ResponseBody> usingOldCreds = client.createQueue(accountName,
+                                                                        new QueueCreateOptions(QueueName.valueOf("test_revoked_key_prevents_authentiation_failure")))
+                                                           .execute();
+
+        // unauthenticated since key was revoked
+        assertThat(usingOldCreds.code()).isEqualTo(401);
+    }
+
 
     @Test
     public void demo_invis_client() throws Exception {

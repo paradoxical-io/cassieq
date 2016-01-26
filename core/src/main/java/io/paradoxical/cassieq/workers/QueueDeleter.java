@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.workers;
 
+import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
@@ -14,7 +15,11 @@ import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
 
 import java.util.Optional;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
+
 public class QueueDeleter {
+    private static final Logger logger = getLogger(QueueDeleter.class);
+
     private final DataContextFactory dataContextFactory;
     private final MessageDeleterJobProcessorFactory messageDeleterJobProcessorFactory;
     private final RepairWorkerManager repairWorkerManager;
@@ -41,7 +46,10 @@ public class QueueDeleter {
             return;
         }
 
+
         final QueueDefinition queueDefinition = optionalDefinition.get();
+
+        logger.with(queueDefinition).debug("Attempting to delete queue");
 
         // This should be the first thing. this way the pointers below can't be modified further.
         final Optional<DeletionJob> deletionJob = queueRepository.tryMarkForDeletion(queueDefinition);

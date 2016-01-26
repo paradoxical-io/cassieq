@@ -1,8 +1,7 @@
 package io.paradoxical.cassieq.unittests.server;
 
-import com.google.inject.Injector;
+import com.godaddy.logging.Logger;
 import com.google.inject.Module;
-import com.hubspot.dropwizard.guice.InjectorFactory;
 import io.dropwizard.setup.Environment;
 import io.paradoxical.cassieq.ServiceApplication;
 import io.paradoxical.cassieq.ServiceConfiguration;
@@ -15,7 +14,11 @@ import lombok.Getter;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import static com.godaddy.logging.LoggerFactory.getLogger;
+
 public class TestService extends ServiceApplication implements ModuleOverrider {
+    private static final Logger logger = getLogger(TestService.class);
+
 
     private final CountDownLatch runLatch = new CountDownLatch(1);
 
@@ -31,6 +34,20 @@ public class TestService extends ServiceApplication implements ModuleOverrider {
 
     public TestService(final List<OverridableModule> modules) {
         super(new TestGuiceBundleProvier(modules));
+    }
+
+
+    public void stop() {
+        try {
+            logger.info("Stopping!");
+
+            env.getApplicationContext().getServer().stop();
+
+            logger.info("Stopped");
+        }
+        catch (Exception ex) {
+            logger.error(ex, "Unclean stop occurred!");
+        }
     }
 
     @Override

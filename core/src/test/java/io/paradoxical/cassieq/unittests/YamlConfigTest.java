@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.unittests;
 
-import io.paradoxical.cassieq.ServiceApplication;
-import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
+import io.paradoxical.cassieq.unittests.server.TestService;
 import io.paradoxical.common.test.junit.RetryRule;
 import io.paradoxical.common.test.logging.TestLoggingInitializer;
 import org.junit.Ignore;
@@ -11,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @RunWith(Parameterized.class)
@@ -40,7 +40,7 @@ public class YamlConfigTest {
 
     @Test
     public void test_yaml_files() throws Exception {
-        final ServiceApplication serviceApplication = new ServiceApplication(new GuiceBundleProvider());
+        final TestService serviceApplication = new TestService(Collections.emptyList());
 
         serviceApplication.run("server", configPath);
 

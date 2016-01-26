@@ -8,6 +8,9 @@ server:
     - type: http
       port: 8081
 
+allocation:
+  strategy: ${env.ALLOCATION_STRATEGY!'CLUSTER'}
+
 cassandra:
   clusterName: ${env.CLUSTER_NAME!'cassieq'}
   keyspace: ${env.KEYSPACE!'cassieq'}

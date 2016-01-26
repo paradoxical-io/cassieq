@@ -15,4 +15,6 @@ public interface AccountRepository {
     List<AccountDefinition> getAllAccounts();
 
     void deleteAccount(AccountName accountName);
+
+    void updateAccount(AccountDefinition accountDefinition);
 }
