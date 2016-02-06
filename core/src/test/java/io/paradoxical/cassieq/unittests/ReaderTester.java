@@ -275,6 +275,34 @@ public class ReaderTester extends DbTestBase {
     }
 
     @Test
+    public void update_message_to_zero_time_should_nack_with_defer() throws Exception {
+        final TestQueueContext testContext = setupTestContext("update_message_to_zero_time_should_nack_with_defer", 3);
+
+        testContext.putMessage("init");
+
+        final Message message = testContext.readNextMessage(10).get();
+
+        final MessageUpdateRequest messageUpdateRequest =
+                new MessageUpdateRequest(Duration.standardSeconds(0),
+                                         message.getTag(),
+                                         message.getVersion(),
+                                         message.getIndex(),
+                                         "init2");
+
+        final Optional<Message> updatedMessage = testContext.getContext().getMessageRepository().updateMessage(messageUpdateRequest);
+
+        // try and ack the original message that we deferred, we should not be allowed to act on it
+        assertThat(testContext.getReader().ackMessage(message.getPopReceipt())).isFalse();
+
+        assertThat(updatedMessage).isPresent();
+
+        // make sure that setting the message back to time zero lets another consumer have it
+        final Optional<Message> nackedMessage = testContext.readNextMessage(10);
+
+        assertThat(nackedMessage).isPresent();
+    }
+
+    @Test
     public void update_message_should_extend_invisibility_time_and_still_expire() throws Exception {
         final TestQueueContext testContext = setupTestContext("update_message_should_extend_invisibility_time_and_still_expire", 3);
 
