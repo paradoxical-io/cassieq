@@ -10,6 +10,7 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.UpdateMessageRequest;
 import io.paradoxical.cassieq.model.UpdateMessageResponse;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.mappers.Mappers;
 import retrofit.Call;
 import retrofit.JacksonConverterFactory;
 import retrofit.Retrofit;
@@ -44,7 +45,7 @@ public interface CassieqApi {
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUri)
-                .addConverterFactory(JacksonConverterFactory.create())
+                .addConverterFactory(JacksonConverterFactory.create(Mappers.getJson()))
                 .client(client)
                 .build();
 

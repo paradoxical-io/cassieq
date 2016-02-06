@@ -17,6 +17,7 @@ import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.resources.api.BaseQueueResource;
+import io.paradoxical.cassieq.workers.MessagePublisher;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -48,6 +49,7 @@ public class QueueResource extends BaseQueueResource {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueResource.class);
     private final QueueDeleter queueDeleter;
+    private final MessagePublisher messagePublisher;
 
     @Inject
     public QueueResource(
@@ -55,9 +57,11 @@ public class QueueResource extends BaseQueueResource {
             MessageRepoFactory messageRepoFactory,
             MonotonicRepoFactory monotonicRepoFactory,
             DataContextFactory dataContextFactory,
+            MessagePublisher messagePublisher,
             QueueDeleter.Factory queueDeleterFactory,
             @PathParam("accountName") AccountName accountName) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
+        this.messagePublisher = messagePublisher;
         this.queueDeleter = queueDeleterFactory.create(accountName);
     }
 
@@ -308,21 +312,7 @@ public class QueueResource extends BaseQueueResource {
         }
 
         try {
-            final Message messageToInsert = Message.builder()
-                                                   .blob(message)
-                                                   .index(getMonotonicRepoFactory().forQueue(queueDefinition.get().getId())
-                                                                                   .nextMonotonic())
-                                                   .build();
-
-            final Duration initialInvisibility = Duration.standardSeconds(initialInvisibilityTime);
-
-            getMessageRepoFactory().forQueue(queueDefinition.get())
-                                   .putMessage(messageToInsert,
-                                               initialInvisibility);
-
-            logger.with("index", messageToInsert.getIndex())
-                  .with("tag", messageToInsert.getTag())
-                  .debug("Adding message");
+            messagePublisher.put(queueDefinition.get(), message, initialInvisibilityTime);
         }
         catch (ExistingMonotonFoundException e) {
             logger.error(e, "Error");

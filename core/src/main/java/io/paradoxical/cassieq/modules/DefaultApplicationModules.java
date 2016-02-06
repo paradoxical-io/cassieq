@@ -9,6 +9,7 @@ import java.util.List;
 public class DefaultApplicationModules {
     public static List<Module> getModules() {
         return Arrays.asList(
+                new MessagePublisherModule(),
                 new LeadershipModule(),
                 new ClusteringModule(),
                 new MessageDeletionModule(),

@@ -72,10 +72,12 @@
         <java.version>1.8</java.version>
 
         <!-- Library Versions -->
-        <io.paradoxical.common.test>1.1-SNAPSHOT</io.paradoxical.common.test>
-        <io.paradoxical.common>1.2-SNAPSHOT</io.paradoxical.common>
-        <io.paradoxical.common.web>1.1-SNAPSHOT</io.paradoxical.common.web>
-        <io.paradoxical.cassandra-loader>1.2-SNAPSHOT</io.paradoxical.cassandra-loader>
+        <jackson.version>[2.6.0,2.6.999]</jackson.version>
+        <io.paradoxical.common.test>1.0</io.paradoxical.common.test>
+        <io.paradoxical.common>1.1</io.paradoxical.common>
+        <io.paradoxical.common.web>1.0</io.paradoxical.common.web>
+        <io.paradoxical.cassandra-loader>1.1</io.paradoxical.cassandra-loader>
+        <io.paradoxical.jackson-lombok.version>1.0</io.paradoxical.jackson-lombok.version>
         <guice.version>4.0</guice.version>
         <apache.collections4.version>4.0</apache.collections4.version>
         <godaddy.logging.version>1.0</godaddy.logging.version>
@@ -96,7 +98,7 @@
         <javaslang.version>2.0.0-RC2</javaslang.version>
         <hibernate.validator.version>5.2.2.Final</hibernate.validator.version>
         <assertj.version>3.2.0</assertj.version>
-        <lombok.version>1.16.2</lombok.version>
+        <lombok.version>1.16.6</lombok.version>
         <swagger.version>1.5.6</swagger.version>
         <apache.commons.io.version>2.4</apache.commons.io.version>
         <hazelcast.version>3.5.4</hazelcast.version>
@@ -127,6 +129,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.paradoxical</groupId>
+                <artifactId>jackson-lombok</artifactId>
+                <version>${io.paradoxical.jackson-lombok.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.github.rholder</groupId>
                 <artifactId>guava-retrying</artifactId>
@@ -418,6 +426,30 @@
                         <artifactId>jersey-container-servlet-core</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jdk8</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jdk7</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-guava</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-joda</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
 
             <dependency>

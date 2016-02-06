@@ -7,8 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
 
+import java.util.Optional;
+
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class QueueDefinition {
     private AccountName accountName;
     private QueueName queueName;
@@ -20,6 +22,7 @@ public class QueueDefinition {
     private final Integer repairWorkerTombstonedBucketTimeoutSeconds;
     private final Boolean deleteBucketsAfterFinalization;
     private final QueueStatsId queueStatsId;
+    private final Optional<QueueName> dlqName;
 
     public QueueId getId() {
         return QueueId.valueOf(accountName, queueName, version);
@@ -35,10 +38,12 @@ public class QueueDefinition {
             final Integer repairWorkerPollFrequencySeconds,
             final Integer repairWorkerTombstonedBucketTimeoutSeconds,
             final Boolean deleteBucketsAfterFinalization,
-            final QueueStatsId queueStatsId) {
+            final QueueStatsId queueStatsId,
+            final Optional<QueueName> dlqName) {
         this.accountName = accountName;
         this.queueName = queueName;
         this.queueStatsId = queueStatsId;
+        this.dlqName = dlqName == null ? Optional.empty() : dlqName;
         this.deleteBucketsAfterFinalization = deleteBucketsAfterFinalization == null ? true : deleteBucketsAfterFinalization;
         this.version = version == null ? 0 : version;
         this.bucketSize = bucketSize == null ? BucketSize.valueOf(20) : bucketSize;
@@ -60,25 +65,17 @@ public class QueueDefinition {
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
                               .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
+                              .dlqName(getDlqName(row))
                               .build();
     }
 
-    public QueueDefinition withVersion(Integer version){
-        return new QueueDefinition(
-                accountName,
-                queueName,
-                bucketSize,
-                maxDeliveryCount,
-                status,
-                version,
-                repairWorkerPollFrequencySeconds,
-                repairWorkerTombstonedBucketTimeoutSeconds,
-                deleteBucketsAfterFinalization,
-                queueStatsId
-        );
-    }
+    private static Optional<QueueName> getDlqName(final Row row) {
+        final String string = row.getString(Tables.Queue.DLQ_NAME);
 
-    public QueueDefinition withNextVersion(){
-        return withVersion(version + 1);
+        if (string == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(QueueName.valueOf(string));
     }
 }

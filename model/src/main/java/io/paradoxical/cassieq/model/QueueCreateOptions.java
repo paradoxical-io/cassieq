@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import javax.validation.constraints.NotNull;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -46,13 +47,21 @@ public class QueueCreateOptions {
      */
     private final Boolean deleteBucketsAfterFinalize;
 
+    /**
+     * An optional DLQ linked to this queue. When messages reach their max delivery
+     * count, they will be re-published to this queue. If no DLQ is specified, the messages
+     * are discarded after max delivery.
+     */
+    private final Optional<QueueName> dlqName;
+
     public QueueCreateOptions(QueueName queueName) {
         this(queueName,
              DEFAULT_BUCKET_SIZE,
              DEFAULT_MAX_DELIVERY_COUNT,
              DEFAULT_REPAIR_POLL_SECONDS,
              DEFAULT_REPAIR_POLL_BUCKET_FINALIZE_SECONDS,
-             DEFAULT_DELETE_BUCKETS_ON_FINALIZE);
+             DEFAULT_DELETE_BUCKETS_ON_FINALIZE,
+             Optional.empty());
     }
 
     @JsonCreator
@@ -62,7 +71,8 @@ public class QueueCreateOptions {
             @JsonProperty("maxDeliveryCount") Integer maxDeliveryCount,
             @JsonProperty("repairWorkerPollSeconds") Integer repairWorkerPollSeconds,
             @JsonProperty("repairWorkerBucketFinalizeTimeSeconds") Integer repairWorkerBucketFinalizeTimeSeconds,
-            @JsonProperty("deleteBucketsAfterFinalize") Boolean deleteBucketsAfterFinalize) {
+            @JsonProperty("deleteBucketsAfterFinalize") Boolean deleteBucketsAfterFinalize,
+            @JsonProperty("dlqName") Optional<QueueName> dlqName) {
 
         this.queueName = queueName;
 
@@ -74,5 +84,7 @@ public class QueueCreateOptions {
                 repairWorkerBucketFinalizeTimeSeconds == null ? DEFAULT_REPAIR_POLL_BUCKET_FINALIZE_SECONDS : repairWorkerBucketFinalizeTimeSeconds;
 
         this.deleteBucketsAfterFinalize = deleteBucketsAfterFinalize == null ? DEFAULT_DELETE_BUCKETS_ON_FINALIZE : deleteBucketsAfterFinalize;
+
+        this.dlqName = dlqName;
     }
 }

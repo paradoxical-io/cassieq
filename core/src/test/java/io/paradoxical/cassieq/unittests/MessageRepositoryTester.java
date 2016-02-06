@@ -4,7 +4,6 @@ import categories.BuildVerification;
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.interfaces.MessageDeleterJobProcessor;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
@@ -59,6 +58,38 @@ public class MessageRepositoryTester extends DbTestBase {
 
         context.putMessage("1");
 
+        readTillMessagePoisoned(context);
+
+        assertThat(context.readNextMessage(1).isPresent()).isFalse();
+    }
+
+    @Test
+    public void dead_letter_messages_should_be_republished_to_dlq() throws Exception {
+        final QueueName queueName = QueueName.valueOf("dead_letter_messages_should_be_republished_to_dlq");
+
+        final QueueDefinition dlqDefinition = QueueDefinition.builder().accountName(testAccountName).queueName(QueueName.valueOf(queueName.get() + "_dlq")).build();
+
+        final TestQueueContext dlqContext = setupTestContext(dlqDefinition);
+
+        final QueueDefinition queueDefinition = QueueDefinition.builder()
+                                                               .accountName(testAccountName)
+                                                               .maxDeliveryCount(3)
+                                                               .queueName(queueName)
+                                                               .dlqName(Optional.of(dlqDefinition.getQueueName()))
+                                                               .build();
+
+        final TestQueueContext context = setupTestContext(queueDefinition);
+
+        context.putMessage("1");
+
+        readTillMessagePoisoned(context);
+
+        assertThat(context.readNextMessage(1).isPresent()).isFalse();
+
+        assertThat(dlqContext.readNextMessage(1)).isPresent();
+    }
+
+    private void readTillMessagePoisoned(final TestQueueContext context) {
         long workerProcessTime = 1L;
 
         for (int i = 0; i < context.getQueueDefinition().getMaxDeliveryCount(); i++) {
@@ -72,8 +103,6 @@ public class MessageRepositoryTester extends DbTestBase {
             // it should come back `max delivery count` number of times
             getTestClock().tickSeconds(2 * workerProcessTime);
         }
-
-        assertThat(context.readNextMessage(1).isPresent()).isFalse();
     }
 
     @Test
