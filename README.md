@@ -29,7 +29,7 @@ CassieQ provides:
 
 ## Get started
 
-To get started go see our [wiki](wiki)
+To get started go see our [wiki](https://github.com/paradoxical-io/cassieq/wiki)
 
 Execute cassieq local
 ====
