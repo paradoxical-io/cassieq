@@ -48,7 +48,7 @@ public class AccountResourceTests extends DbTestBase {
 
         assertThat(entity).isNotNull();
 
-        assertThat(resource.deleteAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.OK);
+        assertThat(resource.deleteAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.NO_CONTENT);
 
         assertThat(resource.getAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.NOT_FOUND);
     }

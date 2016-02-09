@@ -8,12 +8,24 @@ but CassieQ leverages lightweight transactions and message bucketizing to avoid 
 
 CassieQ provides:
 
-- at least once delivery
-- invisiblity of messages
-- simple API of get/ack
-- highly scaleable
-- authentication
-- queue statistics (via graphite)
+- At least once delivery
+    - You may get a message more than once. It is important for the client consumer to be able to handle this scenario
+- Invisiblity of messages
+    - When a message is consumed, you can say how long it should not be re-visible for. When it becomes revisible (after that time)
+   it can be redelivered to another consumer. You can also specify initial invisibility when putting messages in, so they won't be available
+   for a consumer until that time.
+- Simple API 
+    - A simple REST api. Java client available
+- Highly scaleable due to backing of cassandra
+- Durable
+    - If the API accepts a message, it is persisted and will not be lost.  
+- Secured with granularty by account and specific actions 
+- Queue statistics (via graphite)
+    - The only native stat is queue size, however granular metrics regarding consume/ack/publish rates are all published as graphite metrics
+- DLQ support
+    - DLQ's can be chained for more complex topologies
+- Max message delivery
+    - Avoid poison messages with max delivery counts
 
 ## To run
 
@@ -88,7 +100,8 @@ the tracking tables for queues.
 
 ## Admin panel
 
-The admin API is available at `host:8081/admin`
+The admin API is available at `host:8081/admin`. You will need to access the admin panel to administer accounts 
+and get account access URLs for actions on endpoints.
 
 ## API
 
@@ -112,7 +125,7 @@ CassieQ has three forms of authentication
  
 ### Claims
 
-Claims by account is the preferred method. To generate a claim for a user, you can create a named account key for that group (such as "ui-members") and create
+Claims by account is the *preferred* method. To generate a claim for a user, you can create a named account key for that group (such as "ui-members") and create
 permission based url params for them. This may look of the form:
 
 ```
@@ -143,11 +156,14 @@ Global account access is via header parameters. Add your account key as the auth
 Key: <your key>
 ```
 
+This is not the recommended authentication case but is supported and is currently the only way to experiment with the 
+swagger API.  Put your access key into the swagger api key section for access.
+
 ### Endpoint singing by key
 
-This also provides global access by account.
+This also provides global access by account but doesn't expose your access key publicly.  
 
-Generate auth tokens by signing using Hmac256 the following:
+Generate auth tokens by signing using Hmac256 the following (newlines using `\n`)
 
 ```
 AccountName

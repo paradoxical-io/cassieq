@@ -8,6 +8,7 @@ CREATE TABLE queue (
   repair_worker_poll_freq_seconds int,
   repair_worker_tombstone_bucket_timeout_seconds int,
   delete_buckets_after_finalization boolean,
+  dlq_queue_name text,
   version int,
 
   PRIMARY KEY (account_name, queuename)

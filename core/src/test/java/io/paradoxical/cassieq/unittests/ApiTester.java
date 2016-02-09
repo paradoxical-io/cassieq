@@ -20,6 +20,7 @@ import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import org.junit.AfterClass;
@@ -51,7 +52,7 @@ public class ApiTester extends DbTestBase {
 
     @BeforeClass
     public static void setup() throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
-        server = new SelfHostServer(new InMemorySessionProvider(session));
+        server = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule("api-tester"));
 
         server.start();
 

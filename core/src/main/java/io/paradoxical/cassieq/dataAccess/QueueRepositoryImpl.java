@@ -8,8 +8,8 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
-import io.paradoxical.cassieq.clustering.eventing.EventBus;
 import com.google.inject.assistedinject.Assisted;
+import io.paradoxical.cassieq.clustering.eventing.EventBus;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.PointerType;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -17,9 +17,9 @@ import io.paradoxical.cassieq.model.QueueId;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatsId;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.events.QueueAddedEvent;
 import io.paradoxical.cassieq.model.events.QueueDeletingEvent;
-import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.NonNull;
 
 import java.util.List;
@@ -113,7 +113,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     @Override
     public Optional<QueueDefinition> createQueue(@NonNull final QueueDefinition definition) {
-        if (upsertQueueDefinition(definition)) {
+        if (tryUpsertQueueDefinition(definition)) {
             eventBus.publish(new QueueAddedEvent());
 
             return getActiveQueue(definition.getQueueName());
@@ -165,7 +165,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
     private boolean insertQueueIfNotExist(final QueueDefinition queueDefinition) {
 
-        final QueueDefinition initDefinition = queueDefinition.withVersion(0);
+        final QueueDefinition initDefinition = queueDefinition.toBuilder().version(0).build();
 
         final Insert insertQueue =
                 QueryBuilder.insertInto(Tables.Queue.TABLE_NAME)
@@ -179,6 +179,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .value(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS, initDefinition.getRepairWorkerTombstonedBucketTimeoutSeconds())
                             .value(Tables.Queue.QUEUE_STATS_ID, getUniqueQueueCounterId(initDefinition.getId()).get())
                             .value(Tables.Queue.MAX_DELIVERY_COUNT, initDefinition.getMaxDeliveryCount())
+                            .value(Tables.Queue.DLQ_NAME, initDefinition.getDlqName().map(QueueName::get).orElse(null))
                             .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
 
         final boolean queueInserted = session.execute(insertQueue).wasApplied();
@@ -192,7 +193,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         return false;
     }
 
-    private boolean upsertQueueDefinition(@NonNull final QueueDefinition queueDefinition) {
+    private boolean tryUpsertQueueDefinition(@NonNull final QueueDefinition queueDefinition) {
         final Logger upsertLogger = logger.with("queue-name", queueDefinition.getQueueName());
 
         queueDefinition.setAccountName(accountName);
@@ -212,7 +213,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
             upsertLogger.warn("The queue was deleted after being in an inactive state");
 
-            return upsertQueueDefinition(queueDefinition);
+            return tryUpsertQueueDefinition(queueDefinition);
         }
 
         final QueueDefinition currentQueueDefinition = currentQueueDefinitionOption.get();
@@ -229,6 +230,12 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
         // make sure the pointers exist
         ensurePointers(currentQueueDefinition);
 
+        return tryUpdateQueueDefinition(queueDefinition);
+    }
+
+    private boolean tryUpdateQueueDefinition(final QueueDefinition currentQueueDefinition) {
+        final Logger upsertLogger = logger.with("queue-name", currentQueueDefinition.getQueueName());
+
         // if however, an inactve queue exists, make sure only one person can
         // create the next active queue (prevent race conditions of multiple queues being created
         // of the same name that are active
@@ -236,7 +243,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
 
         final int currentVersion = currentQueueDefinition.getVersion();
 
-        final QueueDefinition nextQueueDefinition = currentQueueDefinition.withNextVersion();
+        final QueueDefinition nextQueueDefinition = currentQueueDefinition.toBuilder().version(currentVersion + 1).build();
 
         final QueueStatsId newQueueCounterId = getUniqueQueueCounterId(nextQueueDefinition.getId());
 
@@ -252,6 +259,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .and(set(Tables.Queue.BUCKET_SIZE, nextQueueDefinition.getBucketSize().get()))
                             .and(set(Tables.Queue.MAX_DELIVERY_COUNT, nextQueueDefinition.getMaxDeliveryCount()))
                             .and(set(Tables.Queue.QUEUE_STATS_ID, newQueueCounterId.get()))
+                            .and(set(Tables.Queue.DLQ_NAME, nextQueueDefinition.getDlqName().map(QueueName::get).orElse(null)))
                             .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
                             .and(gte(Tables.Queue.STATUS, QueueStatus.Deleting.ordinal()));
 

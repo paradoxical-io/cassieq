@@ -2,14 +2,10 @@ package io.paradoxical.cassieq.unittests;
 
 import categories.BuildVerification;
 import com.google.inject.Injector;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessageUpdateRequest;
-import io.paradoxical.cassieq.model.QueueDefinition;
-import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import org.joda.time.Duration;
 import org.junit.Before;
