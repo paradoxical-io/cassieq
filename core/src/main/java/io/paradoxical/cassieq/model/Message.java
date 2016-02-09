@@ -97,8 +97,8 @@ public class Message {
                       .isAcked(row.getBool(Tables.Message.ACKED))
                       .version(row.getInt(Tables.Message.VERSION))
                       .deliveryCount(row.getInt(Tables.Message.DELIVERY_COUNT))
-                      .nextVisiblityAt(new DateTime(row.getDate(Tables.Message.NEXT_VISIBLE_ON)))
-                      .createdDate(new DateTime(row.getDate(Tables.Message.CREATED_DATE)))
+                      .nextVisiblityAt(new DateTime(row.getTimestamp(Tables.Message.NEXT_VISIBLE_ON)))
+                      .createdDate(new DateTime(row.getTimestamp(Tables.Message.CREATED_DATE)))
                       .tag(MessageTag.valueOf(row.getString(Tables.Message.TAG)))
                       .build();
     }

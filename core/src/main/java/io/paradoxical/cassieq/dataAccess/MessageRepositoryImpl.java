@@ -169,7 +169,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     public Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer) {
         Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndex.Tombstone.getIndex().get()));
 
-        return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getDate(Tables.Message.CREATED_DATE))));
+        return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getTimestamp(Tables.Message.CREATED_DATE))));
     }
 
     @Override

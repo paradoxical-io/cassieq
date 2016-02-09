@@ -76,7 +76,8 @@
         <io.paradoxical.common.test>1.0</io.paradoxical.common.test>
         <io.paradoxical.common>1.1</io.paradoxical.common>
         <io.paradoxical.common.web>1.0</io.paradoxical.common.web>
-        <io.paradoxical.cassandra-loader>1.1</io.paradoxical.cassandra-loader>
+        <datastax.driver>3.0.0</datastax.driver>
+        <io.paradoxical.cassandra-loader>1.2</io.paradoxical.cassandra-loader>
         <io.paradoxical.jackson-lombok.version>1.0</io.paradoxical.jackson-lombok.version>
         <guice.version>4.0</guice.version>
         <apache.collections4.version>4.0</apache.collections4.version>
@@ -130,6 +131,18 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>com.datastax.cassandra</groupId>
+                <artifactId>cassandra-driver-core</artifactId>
+                <version>${datastax.driver}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.datastax.cassandra</groupId>
+                <artifactId>cassandra-driver-extras</artifactId>
+                <version>${datastax.driver}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>io.paradoxical</groupId>
                 <artifactId>jackson-lombok</artifactId>
                 <version>${io.paradoxical.jackson-lombok.version}</version>
@@ -167,6 +180,10 @@
                     <exclusion>
                         <groupId>com.codahale.metrics</groupId>
                         <artifactId>metrics-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.datastax.cassandra</groupId>
+                        <artifactId>cassandra-driver-core</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
