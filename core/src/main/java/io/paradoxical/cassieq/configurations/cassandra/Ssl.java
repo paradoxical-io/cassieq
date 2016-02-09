@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.configurations.cassandra;
 
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.SSLOptions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -22,11 +23,15 @@ public class Ssl {
 
     public SSLOptions build() throws NoSuchAlgorithmException {
         initSSLContext();
-        return new SSLOptions(SSLContext.getDefault(), SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites());
+
+        return JdkSSLOptions.builder()
+                            .withSSLContext(SSLContext.getDefault())
+                            .withCipherSuites(SSLContext.getDefault().getSocketFactory().getSupportedCipherSuites())
+                            .build();
     }
 
     private void initSSLContext() {
-        TrustManager[] certs = new TrustManager[] { new X509TrustManager() {
+        TrustManager[] certs = new TrustManager[]{ new X509TrustManager() {
 
             public X509Certificate[] getAcceptedIssuers() {
                 return null;
@@ -45,7 +50,8 @@ public class Ssl {
             SSLContext context = SSLContext.getInstance("TLS");
             context.init(null, certs, new SecureRandom());
             SSLContext.setDefault(context);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

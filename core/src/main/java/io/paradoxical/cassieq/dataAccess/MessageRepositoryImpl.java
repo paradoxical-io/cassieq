@@ -169,7 +169,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
     public Optional<DateTime> tombstoneExists(final BucketPointer bucketPointer) {
         Statement query = getReadMessageQuery(bucketPointer).and(eq(Tables.Message.MONOTON, SpecialIndex.Tombstone.getIndex().get()));
 
-        return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getDate(Tables.Message.CREATED_DATE))));
+        return Optional.ofNullable(getOne(session.execute(query), row -> new DateTime(row.getTimestamp(Tables.Message.CREATED_DATE))));
     }
 
     @Override
@@ -203,7 +203,8 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                             .where(eq(Tables.Message.QUEUE_ID, queueDefinition.getId().get()))
                             .and(eq(Tables.Message.BUCKET_NUM, message.getIndex().toBucketPointer(queueDefinition.getBucketSize()).get()))
                             .and(eq(Tables.Message.MONOTON, message.getIndex().get()))
-                            .with(set(Tables.Message.NEXT_VISIBLE_ON, nextVisibleOn));
+                            .with(set(Tables.Message.VERSION, message.getVersion() + 1))
+                            .and(set(Tables.Message.NEXT_VISIBLE_ON, nextVisibleOn));
 
         if (message.getNewBlob() != null) {
             updater.and(set(Tables.Message.MESSAGE, message.getNewBlob()));

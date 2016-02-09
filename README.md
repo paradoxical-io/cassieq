@@ -108,12 +108,34 @@ and get account access URLs for actions on endpoints.
 We have bundled a java client to talk to a simple rest api. The api supports
 
 - Queue create
+- Delete queue
 - Put a message
 - Get a message
 - Ack a message
+- Update a message
+- Create account
+- Delete account
+- Create permissions
 
 Getting a message gives you a pop reciept that encodes the message index AND its version. This means that you can prevent multiple ackers of a message
 and do conditional atomic actions based on that message version.
+
+## Recipes
+
+### Requeuing messages to defer to another consumer
+
+In general CassieQ is very similiar to normal queues with `put`, and `ack` semantics of messages. However, CassieQ is slightly different
+ in the semantics of a `nack` with requeue, i.e. a `defer` to another consumer.
+ 
+In CassieQ terms a `nack` with `requeue` (i.e. *send this message to someone else*) is done by updating the message invisibility time to 0.
+
+The original pop reciept is now invalid, and only the person who claims the new one will be able to work on it, effectively asking for it to be safely requeued.
+
+### Heartbeat long processing messages
+
+If you however, have claimed a message for X time, and want to continually work on the message and extend the message lease, you can also update the message with 
+an invisiblity time in the future. This gives you the concept of a message heartbeat.  Each time you do an update, you'll be given a new pop reciept, which represents 
+that version of the message. You must use the new reciept to ack the message since the previous message version is now invalid.
 
 ## Authentication
 
