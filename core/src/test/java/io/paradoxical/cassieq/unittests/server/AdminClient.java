@@ -13,11 +13,8 @@ import retrofit.JacksonConverterFactory;
 import retrofit.Retrofit;
 import retrofit.http.Body;
 import retrofit.http.DELETE;
-import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Path;
-
-import java.util.List;
 
 public interface AdminClient {
     static AdminClient createClient(String baseUri) {
@@ -33,15 +30,12 @@ public interface AdminClient {
         return retrofit.create(AdminClient.class);
     }
 
-    @GET("admin/api/v1/accounts")
-    Call<List<AccountDefinition>> listAccounts();
-
     @POST("admin/api/v1/accounts")
     Call<AccountDefinition> createAccount(@Body AccountName accountName);
 
     @POST("admin/api/v1/permissions")
     Call<QueryAuthUrlResult> createPermissions(@Body GetAuthQueryParamsRequest request);
 
-    @DELETE("admin/api/v1/{accountName}/keys/{keyName}")
+    @DELETE("admin/api/v1/accounts/{accountName}/keys/{keyName}")
     Call<ResponseBody> deleteAccountKey(@Path("accountName") AccountName accountName, @Path("keyName") KeyName keyName);
 }
