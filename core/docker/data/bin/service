@@ -37,7 +37,7 @@ function run_app(){
     exec ${cmd}
 }
 
-function boostrap(){
+function bootstrap(){
     java -jar /data/tools/cassandra-loader.jar \
         -k ${KEYSPACE} \
         -ip ${CONTACT_POINTS} \
