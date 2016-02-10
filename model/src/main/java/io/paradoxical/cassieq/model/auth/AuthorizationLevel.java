@@ -63,7 +63,7 @@ public enum AuthorizationLevel {
     private static AuthorizationLevel parseLevel(final String levelString) {
 
         for (final AuthorizationLevel authorizationLevel : values()) {
-            if (authorizationLevel.getShortForm().equals(levelString)) {
+            if (authorizationLevel.getShortForm().equals(levelString) || authorizationLevel.toString().equals(levelString)) {
                 return authorizationLevel;
             }
         }

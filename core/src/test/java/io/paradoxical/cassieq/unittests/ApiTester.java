@@ -3,10 +3,7 @@ package io.paradoxical.cassieq.unittests;
 import categories.BuildVerification;
 import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
-import com.google.inject.Injector;
 import com.squareup.okhttp.ResponseBody;
-import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
-import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
 import io.paradoxical.cassieq.api.client.CassieqApi;
 import io.paradoxical.cassieq.api.client.CassieqCredentials;
 import io.paradoxical.cassieq.model.GetMessageResponse;
@@ -15,6 +12,7 @@ import io.paradoxical.cassieq.model.QueueCreateOptions;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.UpdateMessageRequest;
 import io.paradoxical.cassieq.model.UpdateMessageResponse;
+import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
@@ -22,6 +20,7 @@ import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
+import io.paradoxical.cassieq.unittests.server.AdminClient;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -114,22 +113,19 @@ public class ApiTester extends DbTestBase {
      */
     @Test
     public void test_query_auth_authorizes() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
-        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
-
-        final AccountResource accountResource = injector.getInstance(AccountResource.class);
-
-        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_query_auth_authorizes");
 
-        accountResource.createAccount(accountName);
+        final Response<AccountDefinition> createAccountResponse = adminClient.createAccount(accountName).execute();
+
+        assertThat(createAccountResponse.isSuccess()).isTrue();
 
         final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
                                                                                                   Collections.singletonList(AuthorizationLevel.CreateQueue));
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest)
-                                                                                  .getEntity();
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
         final String queryParam = result.getQueryParam();
 
@@ -150,21 +146,17 @@ public class ApiTester extends DbTestBase {
      */
     @Test
     public void test_query_auth_authenticates() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
-        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
-
-        final AccountResource accountResource = injector.getInstance(AccountResource.class);
-
-        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
 
-        accountResource.createAccount(accountName);
+        adminClient.createAccount(accountName).execute();
 
         final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
                                                                                                   Collections.singletonList(AuthorizationLevel.ReadMessage));
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
         final String queryParam = result.getQueryParam();
 
@@ -188,21 +180,17 @@ public class ApiTester extends DbTestBase {
      */
     @Test
     public void test_query_auth_prevents_invalid_authentiation() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
-        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
-
-        final AccountResource accountResource = injector.getInstance(AccountResource.class);
-
-        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_query_auth_prevents_invalid_authentiation");
 
-        accountResource.createAccount(accountName);
+        adminClient.createAccount(accountName).execute();
 
         final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
                                                                                                   Collections.singletonList(AuthorizationLevel.CreateQueue));
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
         final String queryParam = result.getQueryParam();
 
@@ -220,21 +208,17 @@ public class ApiTester extends DbTestBase {
 
     @Test
     public void test_revoked_key_prevents_authentiation() throws InvalidKeyException, NoSuchAlgorithmException, IOException {
-        final Injector injector = server.getService().getGuiceBundleProvider().getInjector();
-
-        final AccountResource accountResource = injector.getInstance(AccountResource.class);
-
-        final PermissionsResource permissionsResource = injector.getInstance(PermissionsResource.class);
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_revoked_key_prevents_authentiation");
 
-        accountResource.createAccount(accountName);
+        adminClient.createAccount(accountName).execute();
 
         final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
                                                                                                   KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
                                                                                                   Collections.singletonList(AuthorizationLevel.CreateQueue));
 
-        final QueryAuthUrlResult result = (QueryAuthUrlResult) permissionsResource.generateAuthUrl(getAuthQueryParamsRequest).getEntity();
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
         final String queryParam = result.getQueryParam();
 
@@ -246,8 +230,7 @@ public class ApiTester extends DbTestBase {
 
         assertThat(authAuthorizes.isSuccess()).isTrue();
 
-        accountResource.deleteAccountKey(accountName, WellKnownKeyNames.Primary.getKeyName());
-
+        adminClient.deleteAccountKey(accountName, WellKnownKeyNames.Primary.getKeyName()).execute();
 
         final Response<ResponseBody> usingOldCreds = client.createQueue(accountName,
                                                                         new QueueCreateOptions(QueueName.valueOf("test_revoked_key_prevents_authentiation_failure")))
