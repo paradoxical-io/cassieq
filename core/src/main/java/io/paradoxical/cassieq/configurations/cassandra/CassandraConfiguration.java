@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import org.stuartgunter.dropwizard.cassandra.CassandraFactory;
 import org.stuartgunter.dropwizard.cassandra.CassandraHealthCheck;
 import org.stuartgunter.dropwizard.cassandra.CassandraMetricSet;
+import org.stuartgunter.dropwizard.cassandra.pooling.PoolingOptionsFactory;
 
 import javax.validation.Valid;
 import java.security.NoSuchAlgorithmException;
@@ -117,4 +118,8 @@ public class CassandraConfiguration extends CassandraFactory {
     }
 
 
+    @Override
+    public PoolingOptionsFactory getPoolingOptions() {
+        return new PoolingOptionsV3();
+    }
 }

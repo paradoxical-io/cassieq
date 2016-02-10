@@ -20,7 +20,6 @@ import io.paradoxical.cassieq.admin.AdminRoot;
 import io.paradoxical.cassieq.admin.resources.AdminPagesResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
-import io.paradoxical.cassieq.discoverable.auth.AuthLevelDynamicFeature;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
@@ -136,7 +135,15 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         adminResourceConfig.register(viewMessageBodyWriter);
 
+        adminResourceConfig.register(getJacksonSerializer(environment);
+
         environment.admin().addServlet("admin-resources", adminContainerHolder.getContainer()).addMapping("/admin/*");
+    }
+
+    private JacksonMessageBodyProvider getJacksonSerializer(final Environment environment) {
+        ObjectMapper mapper = new JacksonJsonMapper().getMapper();
+
+        return new JacksonMessageBodyProvider(mapper, environment.getValidator());
     }
 
     private void configureAdminSwagger(DropwizardResourceConfig resourceConfig) {
@@ -186,10 +193,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     }
 
     protected void configureJson(ServiceConfiguration config, final Environment environment) {
-        ObjectMapper mapper = new JacksonJsonMapper().getMapper();
-
-        JacksonMessageBodyProvider jacksonBodyProvider = new JacksonMessageBodyProvider(mapper, environment.getValidator());
-
-        environment.jersey().register(jacksonBodyProvider);
+        environment.jersey().register(getJacksonSerializer(environment));
     }
 }
