@@ -135,7 +135,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         adminResourceConfig.register(viewMessageBodyWriter);
 
-        adminResourceConfig.register(getJacksonSerializer(environment);
+        adminResourceConfig.register(getJacksonSerializer(environment));
 
         environment.admin().addServlet("admin-resources", adminContainerHolder.getContainer()).addMapping("/admin/*");
     }
