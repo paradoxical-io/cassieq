@@ -91,6 +91,12 @@ public class SelfHostServer implements AutoCloseable {
         return URI.create(uri);
     }
 
+    public URI getAdminuri() {
+        final String uri = String.format("http://localhost:%s/", serviceConfigurationTestServiceServiceTestRunner.getAdminPort());
+
+        return URI.create(uri);
+    }
+
     private ServiceConfiguration getDefaultConfig() {
         return new ServiceConfiguration();
     }

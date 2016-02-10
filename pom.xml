@@ -80,7 +80,7 @@
         <io.paradoxical.common.web>1.0</io.paradoxical.common.web>
         <datastax.driver>3.0.0</datastax.driver>
         <io.paradoxical.cassandra-loader>1.2</io.paradoxical.cassandra-loader>
-        <io.paradoxical.jackson-lombok.version>1.0</io.paradoxical.jackson-lombok.version>
+        <io.paradoxical.jackson-lombok.version>1.1</io.paradoxical.jackson-lombok.version>
         <guice.version>4.0</guice.version>
         <apache.collections4.version>4.0</apache.collections4.version>
         <godaddy.logging.version>1.0</godaddy.logging.version>
