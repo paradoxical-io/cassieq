@@ -1,1 +1,1 @@
-mvn release:perform -P sign -P shade -s settings.xml
+mvn release:perform -P sign -s settings.xml

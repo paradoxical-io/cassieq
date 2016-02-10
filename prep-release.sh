@@ -1,1 +1,1 @@
-mvn release:prepare -P sign -P shade -s settings.xml
+mvn release:prepare -P sign -s settings.xml
