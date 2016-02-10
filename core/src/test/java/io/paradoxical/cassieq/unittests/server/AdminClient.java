@@ -1,6 +1,5 @@
 package io.paradoxical.cassieq.unittests.server;
 
-import com.hazelcast.transaction.TransactionalTask;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.model.QueryAuthUrlResult;
@@ -16,8 +15,8 @@ import retrofit.http.Body;
 import retrofit.http.DELETE;
 import retrofit.http.GET;
 import retrofit.http.POST;
+import retrofit.http.Path;
 
-import javax.ws.rs.PathParam;
 import java.util.List;
 
 public interface AdminClient {
@@ -44,5 +43,5 @@ public interface AdminClient {
     Call<QueryAuthUrlResult> createPermissions(@Body GetAuthQueryParamsRequest request);
 
     @DELETE("admin/api/v1/{accountName}/keys/{keyName}")
-    Call<ResponseBody> deleteAccountKey(@PathParam("accountName") AccountName accountName, @PathParam("keyName") KeyName keyName);
+    Call<ResponseBody> deleteAccountKey(@Path("accountName") AccountName accountName, @Path("keyName") KeyName keyName);
 }
