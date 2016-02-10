@@ -1,5 +1,6 @@
 package io.paradoxical.cassieq.model.auth;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -35,6 +36,11 @@ public enum AuthorizationLevel {
 
     public static EnumSet<AuthorizationLevel> emptyPermissions() {
         return EnumSet.noneOf(AuthorizationLevel.class);
+    }
+
+    @JsonCreator
+    public static AuthorizationLevel fromJson(String value) {
+        return parseLevel(value);
     }
 
     public static EnumSet<AuthorizationLevel> parse(final String authLevels) {
