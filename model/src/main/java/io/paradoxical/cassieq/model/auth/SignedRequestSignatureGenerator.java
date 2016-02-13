@@ -2,13 +2,15 @@ package io.paradoxical.cassieq.model.auth;
 
 import com.google.common.base.CharMatcher;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 
 import javax.validation.constraints.NotNull;
 
+@EqualsAndHashCode(callSuper = false)
 @Value
-public class SignedRequestSignatureGenerator implements SignatureGenerator {
+public class SignedRequestSignatureGenerator extends SignatureGenerator {
     private static final CharMatcher slashMatcher = CharMatcher.is('/');
 
     @NonNull
@@ -25,7 +27,6 @@ public class SignedRequestSignatureGenerator implements SignatureGenerator {
 
     @Override
     public String getStringToSign() {
-
 
         return SignatureJoiner
                 .componentJoiner

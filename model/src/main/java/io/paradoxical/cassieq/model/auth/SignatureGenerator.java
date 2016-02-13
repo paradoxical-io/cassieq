@@ -10,9 +10,9 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 /**
  * Signs paramters
  */
-public interface SignatureGenerator {
+public abstract class SignatureGenerator {
 
-    default String computeSignature(final Mac hmac) {
+    public String computeSignature(final Mac hmac) {
         final Logger logger = getLogger(SignatureGenerator.class);
 
         final String stringToSign = getStringToSign();
@@ -26,5 +26,5 @@ public interface SignatureGenerator {
         return signatureEncoder.encodeToString(bytes);
     }
 
-    String getStringToSign();
+    public abstract String getStringToSign();
 }

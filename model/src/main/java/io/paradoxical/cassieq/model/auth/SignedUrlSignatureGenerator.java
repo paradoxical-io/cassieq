@@ -21,8 +21,9 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 /**
  * Generates a signed query param set for use for clients
  */
+@EqualsAndHashCode(callSuper = false)
 @Value
-public class SignedUrlSignatureGenerator implements SignatureGenerator {
+public class SignedUrlSignatureGenerator extends SignatureGenerator {
 
     private static final DateTimeFormatter IsoDateTimeFormatter = ISODateTimeFormat.dateTimeNoMillis();
 
