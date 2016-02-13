@@ -33,7 +33,7 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
 
         if (account.isPresent()) {
             try {
-                if (credentials.verify(account.get().getKeys().values(), clock)) {
+                if (credentials.verify(account.get().getKeys().values(), clock, credentials.getQueueName())) {
                     return Optional.of(new AccountPrincipal(requestParameters.getAccountName(), requestParameters.getAuthorizationLevels()));
                 }
             }

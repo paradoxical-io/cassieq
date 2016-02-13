@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignatureGenerator;
@@ -10,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Instant;
 
 import javax.validation.constraints.NotNull;
@@ -49,22 +49,35 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
     @NotNull
     private final Optional<DateTime> endDateTime;
 
+    @NonNull
+    @NotNull
+    private final Optional<QueueName> queueName;
+
     @Override
     public boolean verify(final VerificationContext context) {
         final boolean verified = super.verify(context);
 
-        if (verified) {
-            final Instant now = context.getClock().now();
-            return startDateTime.map(now::isAfter).orElse(true) &&
-                   endDateTime.map(now::isBefore).orElse(true);
-        }
+        return verified &&
+               requestInAllowedTimeFrame(context) &&
+               queueAllowed(context);
 
-        return false;
+    }
+
+    private boolean queueAllowed(final VerificationContext context) {
+        return !queueName.isPresent() || // no queue restriction
+    context.getQueueName().equals(queueName);
+    }
+
+    private boolean requestInAllowedTimeFrame(final VerificationContext context) {
+        final Instant now = context.getClock().now();
+
+        return startDateTime.map(now::isAfter).orElse(true) &&
+               endDateTime.map(now::isBefore).orElse(true);
     }
 
     @Override
     protected SignatureGenerator getSignatureGenerator() {
-        return new SignedUrlSignatureGenerator(accountName, authorizationLevels, startDateTime, endDateTime);
+        return new SignedUrlSignatureGenerator(accountName, authorizationLevels, startDateTime, endDateTime, queueName);
     }
 
     @Override

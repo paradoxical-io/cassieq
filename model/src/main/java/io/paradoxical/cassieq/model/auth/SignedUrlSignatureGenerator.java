@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.model.auth;
 
 import com.godaddy.logging.Logger;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -43,6 +44,10 @@ public class SignedUrlSignatureGenerator extends SignatureGenerator {
     @NotNull
     private final Optional<DateTime> endDateTime;
 
+    @NonNull
+    @NotNull
+    private final Optional<QueueName> queueName;
+
     @Override
     public String getStringToSign() {
 
@@ -50,7 +55,12 @@ public class SignedUrlSignatureGenerator extends SignatureGenerator {
                 .join(accountName.get(),
                       AuthorizationLevel.stringify(authorizationLevels),
                       formatDateTimeForSignature(startDateTime, "startTime:"),
-                      formatDateTimeForSignature(endDateTime, "endTime:"));
+                      formatDateTimeForSignature(endDateTime, "endTime:"),
+                      formatQueueName(queueName));
+    }
+
+    private String formatQueueName(final Optional<QueueName> queueName) {
+        return queueName.map(name -> "q:" + name.get()).orElse(null);
     }
 
     public static DateTime parseDateTime(final String dateTimeString) {
