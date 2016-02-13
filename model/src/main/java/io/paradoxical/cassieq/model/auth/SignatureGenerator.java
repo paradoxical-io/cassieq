@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.model.auth;
 
 import com.godaddy.logging.Logger;
+import com.google.common.base.Joiner;
 import com.google.common.io.BaseEncoding;
 
 import javax.crypto.Mac;
@@ -14,6 +15,8 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public abstract class SignatureGenerator {
 
     private static final BaseEncoding signatureEncoding = BaseEncoding.base64Url().omitPadding();
+
+    protected static final Joiner SignedStringComponentJoiner = Joiner.on('\n').skipNulls();
 
     public String computeSignature(final Mac hmac) {
         final Logger logger = getLogger(SignatureGenerator.class);

@@ -1,12 +1,9 @@
 package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Joiner;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignatureGenerator;
-import io.paradoxical.cassieq.model.auth.SignatureJoiner;
 import io.paradoxical.cassieq.model.auth.SignedRequestSignatureGenerator;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

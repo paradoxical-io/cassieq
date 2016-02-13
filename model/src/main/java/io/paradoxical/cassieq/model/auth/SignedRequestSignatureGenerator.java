@@ -28,10 +28,11 @@ public class SignedRequestSignatureGenerator extends SignatureGenerator {
     @Override
     public String getStringToSign() {
 
-        return SignatureJoiner
-                .componentJoiner
-                     .join(accountName.get(),
-                           requestMethod,
-                           "/" + slashMatcher.trimFrom(requestPath));
+        return SignedStringComponentJoiner
+                .join(accountName.get(), requestMethod, canonicalizeRequestPath(requestPath));
+    }
+
+    private static String canonicalizeRequestPath(final String requestPath) {
+        return "/" + slashMatcher.trimFrom(requestPath);
     }
 }

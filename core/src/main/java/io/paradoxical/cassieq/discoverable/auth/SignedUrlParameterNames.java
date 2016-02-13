@@ -28,13 +28,14 @@ public enum SignedUrlParameterNames {
         this.parameterName = parameterName;
     }
 
-    public static SignedUrlParameterBuilder builder() {
+    public static SignedUrlParameterBuilder queryBuilder() {
         return new SignedUrlParameterBuilder();
     }
 
     public static class SignedUrlParameterBuilder {
         private final Joiner.MapJoiner mapJoiner = Joiner.on('&')
                                                          .withKeyValueSeparator("=");
+
         private final LinkedHashMap<String, String> queryParamBuilder = Maps.newLinkedHashMap();
 
         public SignedUrlParameterBuilder sig(@NotNull @NonNull @Nonnull String signature) {

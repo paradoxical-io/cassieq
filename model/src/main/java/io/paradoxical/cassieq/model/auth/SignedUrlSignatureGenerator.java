@@ -1,8 +1,6 @@
 package io.paradoxical.cassieq.model.auth;
 
 import com.godaddy.logging.Logger;
-import com.google.common.base.CharMatcher;
-import com.google.common.base.Joiner;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -48,8 +46,7 @@ public class SignedUrlSignatureGenerator extends SignatureGenerator {
     @Override
     public String getStringToSign() {
 
-        return SignatureJoiner
-                .componentJoiner
+        return SignedStringComponentJoiner
                 .join(accountName.get(),
                       AuthorizationLevel.stringify(authorizationLevels),
                       formatDateTimeForSignature(startDateTime, "startTime:"),
