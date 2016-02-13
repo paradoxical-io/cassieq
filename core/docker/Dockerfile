@@ -8,5 +8,7 @@ RUN curl -O -s http://central.maven.org/maven2/io/paradoxical/cassandra.loader/1
 # add the new jar/configs
 ADD data /data
 
+VOLUME ["/data/logs", "/data/conf", "/data/https"]
+
 # set the service to run
 ENTRYPOINT ["/data/bin/service"]

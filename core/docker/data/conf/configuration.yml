@@ -1,12 +1,29 @@
 server:
   adminMinThreads: 1
   adminMaxThreads: 64
+<#if env.HTTPS?has_content && env.HTTPS == "true">
+  applicationConnectors:
+    - type: https
+      keyStoreType: ${env.HTTPS_KEY_STORE_TYPE!'PKCS12'}
+      keyStorePath: ${env.HTTPS_KEY_STORE_PATH!'/data/https/serverKeys.p12'}
+      keyStorePassword: ${env.HTTPS_KEY_STORE_PASSWORD}
+      validateCerts: ${env.HTTPS_VALIDATE_CERTS!'true'}
+      port: 8080
+  adminConnectors:
+    - type: https
+      keyStoreType: ${env.HTTPS_KEY_STORE_TYPE!'PKCS12'}
+      keyStorePath: ${env.HTTPS_KEY_STORE_PATH!'/data/https/serverKeys.p12'}
+      keyStorePassword: ${env.HTTPS_KEY_STORE_PASSWORD}
+      validateCerts: ${env.HTTPS_VALIDATE_CERTS!'true'}
+      port: 8081
+<#else>
   applicationConnectors:
     - type: http
       port: 8080
   adminConnectors:
     - type: http
       port: 8081
+</#if>
 
 allocation:
   strategy: ${env.ALLOCATION_STRATEGY!'CLUSTER'}
