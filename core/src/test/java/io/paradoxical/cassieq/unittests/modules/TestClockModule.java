@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.unittests.modules;
 
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.model.time.SleepableClock;
 import io.paradoxical.cassieq.modules.ClockModule;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.common.test.guice.OverridableModule;
@@ -22,5 +23,6 @@ public class TestClockModule extends OverridableModule {
     @Override
     protected void configure() {
         bind(Clock.class).toInstance(clock);
+        bind(SleepableClock.class).toInstance(clock);
     }
 }

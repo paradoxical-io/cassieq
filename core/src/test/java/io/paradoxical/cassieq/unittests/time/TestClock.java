@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.unittests.time;
 
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.model.time.SleepableClock;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.apache.commons.lang3.time.DateUtils;
@@ -12,7 +13,7 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 
 
-public class TestClock implements Clock {
+public class TestClock implements Clock, SleepableClock {
 
     public static TestClock create() {
         return new TestClock();
@@ -91,28 +92,21 @@ public class TestClock implements Clock {
 
     @Override
     public void sleepFor(final Duration duration) throws InterruptedException {
-        final Object sleepObject = new Object();
-
-        synchronized (this) {
-            sleepItems.add(new SleepItem(now().plus(duration), sleepObject));
-        }
-
-        synchronized (sleepObject) {
-            sleepObject.wait();
-        }
+        sleepTill(now().plus(duration));
     }
 
     @Override
     public void sleepTill(final Instant instant) throws InterruptedException {
         final Object sleepObject = new Object();
 
+        final Instant truncatedInstant = truncate(instant);
 
-        if (Instant.now().isAfter(truncate(instant))) {
+        if (Instant.now().isAfter(truncatedInstant)) {
             return;
         }
 
         synchronized (this) {
-            sleepItems.add(new SleepItem(truncate(instant), sleepObject));
+            sleepItems.add(new SleepItem(truncatedInstant, sleepObject));
         }
 
         synchronized (sleepObject) {
@@ -125,7 +119,7 @@ public class TestClock implements Clock {
     }
 
     @Override
-    public long jitter(final int i) {
+    public long jitter(final int maximumJitter) {
         return 0;
     }
 }

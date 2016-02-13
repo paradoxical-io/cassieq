@@ -5,11 +5,5 @@ import org.joda.time.Instant;
 
 public interface Clock {
     Instant now();
-
-    void sleepFor(Duration duration) throws InterruptedException;
-
-    void sleepTill(Instant instant) throws InterruptedException;
-
-    long jitter(int i);
 }
 
