@@ -92,5 +92,5 @@ case "$1" in
         run_app "gen-https" "$@";;
 
     *)
-        run_app "server $configFile";;
+        run_app "server" "$configFile";;
 esac
