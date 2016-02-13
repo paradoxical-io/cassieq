@@ -214,7 +214,7 @@ public class ApiTester extends DbTestBase {
     public void test_query_auth_authenticates_with_end_time() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
         final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
-        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
+        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates_with_end_time");
 
         adminClient.createAccount(accountName).execute();
 
@@ -238,10 +238,30 @@ public class ApiTester extends DbTestBase {
     }
 
     @Test
+    public void test_invalid_key_name_fails() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final AccountName accountName = AccountName.valueOf("test_invalid_key_name_fails");
+
+        adminClient.createAccount(accountName).execute();
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf("invalid!"),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.of(DateTime.now(DateTimeZone.UTC).plus(Period.days(5))));
+
+        final Boolean result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().isSuccess();
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
     public void test_query_auth_expires_with_end_time() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
         final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
-        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
+        final AccountName accountName = AccountName.valueOf("test_query_auth_expires_with_end_time");
 
         adminClient.createAccount(accountName).execute();
 
