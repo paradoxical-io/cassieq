@@ -14,7 +14,7 @@ import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.MacProviders;
-import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
+import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -52,15 +52,18 @@ public class PermissionsResource extends BaseResource {
     }
 
     @GET
+    @Path("/supportedAuthorizationLevels")
     @Timed
-    @ApiOperation(value = "List available permissions")
+    @ApiOperation(value = "List available authorization levels")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response listPermissions() {
-        final List<Object> permissions = Arrays.stream(AuthorizationLevel.values()).map(a -> new Object() {
-            public String level = a.name();
-            public String shortForm = a.getShortForm();
-        }).collect(toList());
+    public Response listAuthorizationLevels() {
+        final List<Object> permissions =
+                Arrays.stream(AuthorizationLevel.values())
+                      .map(a -> new Object() {
+                          public final String level = a.name();
+                          public final String shortForm = a.getShortForm();
+                      }).collect(toList());
 
         return Response.ok(permissions).build();
     }
@@ -68,7 +71,7 @@ public class PermissionsResource extends BaseResource {
     @POST
     @Timed
     @ApiOperation(value = "Generate auth url")
-    @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
+    @ApiResponses(value = { @ApiResponse(code = 201, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response generateAuthUrl(@NotNull GetAuthQueryParamsRequest request) throws NoSuchAlgorithmException, InvalidKeyException {
         final Optional<AccountDefinition> accountDefinition = dataContextFactory.getAccountRepository().getAccount(request.getAccountName());
@@ -85,17 +88,26 @@ public class PermissionsResource extends BaseResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        final SignedUrlParameterGenerator signedUrlParameterGenerator = new SignedUrlParameterGenerator(request.getAccountName(), authorizationLevels);
+        final SignedUrlSignatureGenerator signedUrlParameterGenerator =
+                new SignedUrlSignatureGenerator(
+                        request.getAccountName(),
+                        authorizationLevels,
+                        request.getStartTime(),
+                        request.getEndTime());
 
         final AccountKey key = keys.get(request.getKeyName());
 
         final String computedSignature = signedUrlParameterGenerator.computeSignature(MacProviders.HmacSha256(key));
 
-        final String queryParam = SignedUrlParameterNames.builder()
+        final String queryParam = SignedUrlParameterNames.queryBuilder()
                                                          .auth(authorizationLevels)
-                                                         .sig(computedSignature)
+                                                         .startTime(request.getStartTime())
+                                                         .endTime(request.getEndTime())
+                                                         .sig(computedSignature) // always make this last (for prettiness)
                                                          .build();
 
-        return Response.ok(new QueryAuthUrlResult(queryParam)).build();
+        return Response.status(Response.Status.CREATED)
+                       .entity(new QueryAuthUrlResult(queryParam))
+                       .build();
     }
 }

@@ -8,8 +8,7 @@ import io.dropwizard.auth.Authenticator;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
-import io.paradoxical.cassieq.model.auth.RequestParameters;
+import io.paradoxical.cassieq.model.time.Clock;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
@@ -17,11 +16,12 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
 
     private static final Logger logger = getLogger(SignedRequestAuthenticator.class);
 
-
     private final AccountRepository accountRepository;
+    private final Clock clock;
 
     @Inject
-    public SignedRequestAuthenticator(DataContextFactory dataContextFactory) {
+    public SignedRequestAuthenticator(DataContextFactory dataContextFactory, Clock clock) {
+        this.clock = clock;
         accountRepository = dataContextFactory.getAccountRepository();
     }
 
@@ -33,7 +33,7 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
 
         if (account.isPresent()) {
             try {
-                if (credentials.verify(account.get().getKeys().values())) {
+                if (credentials.verify(account.get().getKeys().values(), clock)) {
                     return Optional.of(new AccountPrincipal(requestParameters.getAccountName(), requestParameters.getAuthorizationLevels()));
                 }
             }

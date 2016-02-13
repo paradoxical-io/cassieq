@@ -14,6 +14,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.model.time.SleepableClock;
 import io.paradoxical.cassieq.modules.annotations.RepairPool;
 import org.joda.time.DateTime;
 import org.joda.time.Instant;
@@ -30,7 +31,7 @@ import static com.codahale.metrics.MetricRegistry.name;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 public class RepairWorkerImpl implements RepairWorker {
-    private final Clock clock;
+    private final SleepableClock clock;
     private final ScheduledExecutorService scheduledExecutorService;
     private final MetricRegistry metricRegistry;
     private final QueueDefinition queueDefinition;
@@ -52,7 +53,7 @@ public class RepairWorkerImpl implements RepairWorker {
     @Inject
     public RepairWorkerImpl(
             DataContextFactory factory,
-            Clock clock,
+            SleepableClock clock,
             @RepairPool ScheduledExecutorService executorService,
             MetricRegistry metricRegistry,
             @Assisted QueueDefinition definition) {

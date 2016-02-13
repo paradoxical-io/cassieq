@@ -1,7 +1,8 @@
-package io.paradoxical.cassieq.model.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -27,7 +28,7 @@ public class AccountKeyParameters implements RequestParameters {
     }
 
     @Override
-    public boolean verify(final AccountKey key) {
-        return authKey.equals(key.get());
+    public boolean verify(final VerificationContext context) {
+        return authKey.equals(context.getAccountKey().get());
     }
 }

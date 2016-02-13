@@ -12,6 +12,8 @@ function run_app(){
 
     command=$1
 
+    shift
+
     for jar in ${libs_dir}/*.jar; do
         classpath=$classpath:$jar
     done
@@ -32,7 +34,9 @@ function run_app(){
         echo "USING JAVA DEBUG $properties"
     fi
 
-    cmd="java $properties -cp $classpath $classname $command"
+    cmd="java $properties -cp $classpath $classname $command $@"
+
+    echo running ... ${cmd}
 
     exec ${cmd}
 }
@@ -83,6 +87,10 @@ case "$1" in
     "help")
         printHelp;;
 
+    "gen-https")
+        shift
+        run_app "gen-https" "$@";;
+
     *)
-        run_app "server $configFile";;
+        run_app "server" "$configFile";;
 esac

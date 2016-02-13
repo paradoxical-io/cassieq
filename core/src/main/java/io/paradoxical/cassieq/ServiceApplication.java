@@ -22,6 +22,7 @@ import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
 import io.paradoxical.cassieq.admin.resources.api.v1.PermissionsResource;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
+import io.paradoxical.cassieq.commands.GenerateHttpsCertsCommand;
 import io.paradoxical.cassieq.configurations.LogMapping;
 import io.paradoxical.cassieq.discoverable.ApiDiscoverableRoot;
 import io.paradoxical.cassieq.serialization.JacksonJsonMapper;
@@ -72,6 +73,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     @Override
     public void initialize(Bootstrap<ServiceConfiguration> bootstrap) {
         bootstrap.addCommand(new ConfigDumpCommand());
+        bootstrap.addCommand(new GenerateHttpsCertsCommand());
 
         bootstrap.addBundle(new TemplateConfigBundle());
 
