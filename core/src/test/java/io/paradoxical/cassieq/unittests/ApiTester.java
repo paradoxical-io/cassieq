@@ -84,6 +84,35 @@ public class ApiTester extends DbTestBase {
     }
 
     @Test
+    public void create_queue_with_invalid_name_fails() throws IOException {
+        final QueueName queueName = QueueName.valueOf("invalid!");
+
+        final Response<ResponseBody> execute = client.createQueue(testAccountName, new QueueCreateOptions(queueName)).execute();
+
+        assertThat(execute.isSuccess()).isFalse();
+    }
+
+    @Test
+    public void create_queue_with_dots_works() throws IOException {
+        final QueueName queueName = QueueName.valueOf("create.queue.with.dots.works");
+
+        final Response<ResponseBody> execute = client.createQueue(testAccountName, new QueueCreateOptions(queueName)).execute();
+
+        assertThat(execute.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void create_account_with_dots_works() throws IOException {
+        final AccountName accountName = AccountName.valueOf("create.account.with.dots.works");
+
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final Response<AccountDefinition> execute = adminClient.createAccount(accountName).execute();
+
+        assertThat(execute.isSuccess()).isTrue();
+    }
+
+    @Test
     public void test_client_can_create_put_and_ack() throws Exception {
         final QueueName queueName = QueueName.valueOf("test_client_can_create_put_and_ack");
 

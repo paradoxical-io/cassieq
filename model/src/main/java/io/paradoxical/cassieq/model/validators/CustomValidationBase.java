@@ -1,10 +1,11 @@
-package io.paradoxical.cassieq.validators;
+package io.paradoxical.cassieq.model.validators;
 
 import javax.validation.ConstraintValidatorContext;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class CustomValidationBase {
     protected static final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
@@ -26,7 +27,7 @@ public class CustomValidationBase {
                                           .map(i -> String.format("%s: %s",
                                                                   i.getPropertyPath(),
                                                                   i.getMessage()))
-                                          .collect(toList()));
+                                          .collect(Collectors.toList()));
     }
 
     protected static void withError(ConstraintValidatorContext context, String message) {

@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.validators;
+package io.paradoxical.cassieq.model.validators;
 
 import javax.validation.Constraint;
 import javax.validation.Payload;
@@ -9,18 +9,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Constraint(validatedBy = { StringValueValidator.class })
-@Target({ ElementType.TYPE_USE, ElementType.ANNOTATION_TYPE, ElementType.TYPE_PARAMETER, ElementType.FIELD })
+@Target({ ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface StringTypeValid {
 
-    String message() default "Invalid format";
+    String message() default " [ Error in string format ] ";
 
     Class<?>[] groups() default {};
 
     Class<? extends Payload>[] payload() default {};
 
-    String regex();
+    String regex() default "[(a-zA-Z_)-0-9\\.]+";
 
     boolean isNullAllowed() default false;
 

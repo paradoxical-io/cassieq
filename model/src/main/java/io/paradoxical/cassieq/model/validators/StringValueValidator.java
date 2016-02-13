@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.validators;
+package io.paradoxical.cassieq.model.validators;
 
 import io.paradoxical.common.valuetypes.StringValue;
 
@@ -6,21 +6,23 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.regex.Pattern;
 
-
 public class StringValueValidator extends CustomValidationBase implements ConstraintValidator<StringTypeValid, StringValue> {
 
-    private ValidStringValue constraintAnnotation;
+    private StringTypeValid constraintAnnotation;
 
     private Pattern validPattern;
 
-    @Override public void initialize(final ValidStringValue constraintAnnotation) {
+    @Override
+    public void initialize(final StringTypeValid constraintAnnotation) {
         this.constraintAnnotation = constraintAnnotation;
+
         validPattern = Pattern.compile(constraintAnnotation.regex());
     }
 
-    @Override public boolean isValid(final StringValue value, final ConstraintValidatorContext context) {
+    @Override
+    public boolean isValid(final StringValue value, final ConstraintValidatorContext context) {
         if (validPattern.pattern() == null || validPattern.pattern().isEmpty()) {
-            withError(context, "Pattern can not be null or empty!!");
+            withError(context, "Pattern can not be null or empty");
 
             return false;
         }
@@ -43,5 +45,6 @@ public class StringValueValidator extends CustomValidationBase implements Constr
     }
 
     private String errorMessage(String value) {
-        return "Input (" + value + ") doesn't match regex! {" + validPattern.pattern() + "}";
+        return " value \"" + value + "\" doesn't match the expected pattern. \"" + validPattern.pattern() + "\"";
     }
+}
