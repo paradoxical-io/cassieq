@@ -8,6 +8,7 @@ import com.google.inject.Inject;
 import io.paradoxical.cassieq.discoverable.auth.SignedUrlParameterNames;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.QueryAuthUrlResult;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
@@ -93,7 +94,8 @@ public class PermissionsResource extends BaseResource {
                         request.getAccountName(),
                         authorizationLevels,
                         request.getStartTime(),
-                        request.getEndTime());
+                        request.getEndTime(),
+                        request.getQueueName());
 
         final AccountKey key = keys.get(request.getKeyName());
 
@@ -103,6 +105,7 @@ public class PermissionsResource extends BaseResource {
                                                          .auth(authorizationLevels)
                                                          .startTime(request.getStartTime())
                                                          .endTime(request.getEndTime())
+                                                         .queueName(request.getQueueName())
                                                          .sig(computedSignature) // always make this last (for prettiness)
                                                          .build();
 

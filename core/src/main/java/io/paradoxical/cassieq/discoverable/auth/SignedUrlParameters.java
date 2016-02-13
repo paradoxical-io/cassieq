@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignatureGenerator;
@@ -49,6 +50,10 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
     @NotNull
     private final Optional<DateTime> endDateTime;
 
+    @NonNull
+    @NotNull
+    private final Optional<QueueName> queueName;
+
     @Override
     public boolean verify(final VerificationContext context) {
         final boolean verified = super.verify(context);
@@ -56,7 +61,9 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
         if (verified) {
             final Instant now = context.getClock().now();
             return startDateTime.map(now::isAfter).orElse(true) &&
-                   endDateTime.map(now::isBefore).orElse(true);
+                   endDateTime.map(now::isBefore).orElse(true) &&
+                   (!queueName.isPresent() || // no queue restriction
+                    context.getQueueName().equals(queueName));
         }
 
         return false;
@@ -64,7 +71,7 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
 
     @Override
     protected SignatureGenerator getSignatureGenerator() {
-        return new SignedUrlSignatureGenerator(accountName, authorizationLevels, startDateTime, endDateTime);
+        return new SignedUrlSignatureGenerator(accountName, authorizationLevels, startDateTime, endDateTime, queueName);
     }
 
     @Override

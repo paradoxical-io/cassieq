@@ -7,6 +7,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import io.dropwizard.auth.AuthFilter;
 import io.dropwizard.auth.AuthenticationException;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
@@ -34,12 +35,17 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
     private static final Logger logger = getLogger(SignedRequestAuthenticationFilter.class);
 
     private final String accountNamePathParameter;
+
+    private final String queueNamePathParameter;
+
     private final String keyAuthPrefix;
 
     public SignedRequestAuthenticationFilter(
-            String accountNamePathParameter,
+            final String accountNamePathParameter,
+            final String queueNamePathParameter,
             final String keyAuthPrefix) {
         this.accountNamePathParameter = accountNamePathParameter;
+        this.queueNamePathParameter = queueNamePathParameter;
         this.keyAuthPrefix = keyAuthPrefix;
     }
 
@@ -52,9 +58,11 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
 
                 final AccountName accountName = AccountName.valueOf(pathParameters.getFirst(accountNamePathParameter));
 
+                final java.util.Optional<QueueName> queueName = tryGetQueueName(pathParameters, queueNamePathParameter);
+
                 final RequestParameters headerRequestParameters = parseHeaderRequestParameters(requestContext, accountName);
 
-                final SignedUrlParameters signedUrlParameters = parseSignedUrlParameters(requestContext, accountName);
+                final SignedUrlParameters signedUrlParameters = parseSignedUrlParameters(requestContext, accountName, queueName);
 
                 if (headerRequestParameters == null && signedUrlParameters == null) {
                     throw new WebApplicationException(unauthorizedHandler.buildResponse(prefix, realm));
@@ -66,6 +74,8 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
                 final AuthorizedRequestCredentials credentials =
                         AuthorizedRequestCredentials.builder()
                                                     .requestParameters(requestParameters)
+                                                    .queueName(queueName)
+                                                    .accountName(accountName)
                                                     .build();
 
                 if (setPrincipal(requestContext, credentials)) {
@@ -81,6 +91,23 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
         }
 
         throw new WebApplicationException(unauthorizedHandler.buildResponse(prefix, realm));
+    }
+
+    private java.util.Optional<QueueName> tryGetQueueName(
+            final MultivaluedMap<String, String> pathParameters,
+            final String queueNamePathParameter) {
+
+        if(!pathParameters.containsKey(queueNamePathParameter)) {
+            return java.util.Optional.empty();
+        }
+
+        final String pathQueueName = pathParameters.getFirst(queueNamePathParameter);
+
+        if(Strings.isNullOrEmpty(pathQueueName)) {
+            return java.util.Optional.empty();
+        }
+
+        return java.util.Optional.of(QueueName.valueOf(pathQueueName));
     }
 
     private RequestParameters parseHeaderRequestParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
@@ -116,7 +143,11 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
         return null;
     }
 
-    private SignedUrlParameters parseSignedUrlParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
+    private SignedUrlParameters parseSignedUrlParameters(
+            final ContainerRequestContext requestContext,
+            final AccountName accountName,
+            final java.util.Optional<QueueName> queueName) {
+
         final MultivaluedMap<String, String> queryParameters = requestContext.getUriInfo().getQueryParameters();
 
         final String sig = queryParameters.getFirst(SignedUrlParameterNames.Signature.getParameterName());
@@ -136,6 +167,7 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
                                   .querySignature(sig)
                                   .endDateTime(endTime)
                                   .startDateTime(startTime)
+                                  .queueName(queueName)
                                   .build();
 
     }
@@ -189,6 +221,7 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
         protected SignedRequestAuthenticationFilter<TPrincipal> newInstance() {
             final SignedRequestAuthenticationFilter<TPrincipal> filter = new SignedRequestAuthenticationFilter<>(
                     Strings.isNullOrEmpty(accountNamePathParameter) ? "accountName" : accountNamePathParameter,
+                    Strings.isNullOrEmpty(queueNamePathParameter) ? "queueName" : queueNamePathParameter,
                     Strings.isNullOrEmpty(keyAuthPrefix) ? "Key" : keyAuthPrefix);
 
             return filter;

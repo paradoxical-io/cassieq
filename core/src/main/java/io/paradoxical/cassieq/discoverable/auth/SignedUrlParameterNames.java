@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.discoverable.auth;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
+import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Getter;
@@ -19,7 +20,8 @@ public enum SignedUrlParameterNames {
     AuthorizationLevels("auth"),
     Signature("sig"),
     StartTime("st"),
-    EndTime("et");
+    EndTime("et"),
+    Queue("q");
 
     @Getter
     private final String parameterName;
@@ -75,6 +77,15 @@ public enum SignedUrlParameterNames {
             return this;
         }
 
+        public SignedUrlParameterBuilder queueName(@NotNull @NonNull @Nonnull QueueName queueName) {
+            queryParamBuilder.put(Queue.getParameterName(), queueName.get());
+            return this;
+        }
+
+        public SignedUrlParameterBuilder queueName(@NotNull @NonNull @Nonnull Optional<QueueName> startTimeOption) {
+            startTimeOption.ifPresent(this::queueName);
+            return this;
+        }
         public String build() {
             return mapJoiner.join(queryParamBuilder);
         }
