@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Instant;
 
 import javax.validation.constraints.NotNull;
@@ -58,15 +57,22 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
     public boolean verify(final VerificationContext context) {
         final boolean verified = super.verify(context);
 
-        if (verified) {
-            final Instant now = context.getClock().now();
-            return startDateTime.map(now::isAfter).orElse(true) &&
-                   endDateTime.map(now::isBefore).orElse(true) &&
-                   (!queueName.isPresent() || // no queue restriction
-                    context.getQueueName().equals(queueName));
-        }
+        return verified &&
+               requestInAllowedTimeFrame(context) &&
+               queueAllowed(context);
 
-        return false;
+    }
+
+    private boolean queueAllowed(final VerificationContext context) {
+        return !queueName.isPresent() || // no queue restriction
+    context.getQueueName().equals(queueName);
+    }
+
+    private boolean requestInAllowedTimeFrame(final VerificationContext context) {
+        final Instant now = context.getClock().now();
+
+        return startDateTime.map(now::isAfter).orElse(true) &&
+               endDateTime.map(now::isBefore).orElse(true);
     }
 
     @Override
