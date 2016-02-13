@@ -13,7 +13,7 @@ public abstract class SignedParametersBase implements RequestParameters, Signatu
     private static final Logger logger = getLogger(SignedParametersBase.class);
 
     @Override
-    public boolean verify(final AccountKey key) throws Exception {
+    public boolean verify(final AccountKey key)  {
         if (Strings.isNullOrEmpty(getProvidedSignature())) {
             return false;
         }

@@ -10,5 +10,5 @@ public interface RequestParameters {
 
     EnumSet<AuthorizationLevel> getAuthorizationLevels();
 
-    boolean verify(AccountKey key) throws Exception;
+    boolean verify(AccountKey key);
 }

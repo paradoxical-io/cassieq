@@ -13,8 +13,11 @@ import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.model.auth.RequestParameters;
 import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
+import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
 import io.paradoxical.cassieq.model.auth.SignedUrlParameters;
 import lombok.Builder;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import javax.annotation.Priority;
 import javax.ws.rs.InternalServerErrorException;
@@ -120,28 +123,44 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
     }
 
     private SignedUrlParameters parseSignedUrlParameters(final ContainerRequestContext requestContext, final AccountName accountName) {
-        final String sig = requestContext.getUriInfo().getQueryParameters().getFirst(SignedUrlParameterNames.Signature.getParameterName());
+        final MultivaluedMap<String, String> queryParameters = requestContext.getUriInfo().getQueryParameters();
+
+        final String sig = queryParameters.getFirst(SignedUrlParameterNames.Signature.getParameterName());
 
         if (Strings.isNullOrEmpty(sig)) {
             return null;
         }
 
-        final EnumSet<AuthorizationLevel> authorizationLevels = parseAuthorizationLevel(requestContext);
+        final EnumSet<AuthorizationLevel> authorizationLevels = parseAuthorizationLevel(queryParameters);
+
+        final java.util.Optional<DateTime> startTime = parseTimeParam(queryParameters, SignedUrlParameterNames.StartTime);
+        final java.util.Optional<DateTime> endTime = parseTimeParam(queryParameters, SignedUrlParameterNames.EndTime);
 
         return SignedUrlParameters.builder()
                                   .accountName(accountName)
                                   .authorizationLevels(authorizationLevels)
                                   .querySignature(sig)
+                                  .endDateTime(endTime)
+                                  .startDateTime(startTime)
                                   .build();
 
     }
 
-    private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final ContainerRequestContext requestContext) {
-        String authParam = requestContext.getUriInfo().getQueryParameters().getFirst(SignedUrlParameterNames.AuthorizationLevels.getParameterName());
+    private java.util.Optional<DateTime> parseTimeParam(final MultivaluedMap<String, String> queryParameters, final SignedUrlParameterNames parameter) {
+        final String timeParam = queryParameters.getFirst(parameter.getParameterName());
+
+        if (Strings.isNullOrEmpty(timeParam)) {
+            return java.util.Optional.empty();
+        }
+
+        return java.util.Optional.of(SignedUrlParameterGenerator.parseDateTime(timeParam));
+    }
+
+    private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final MultivaluedMap<String, String> queryParameters) {
+        String authParam = queryParameters.getFirst(SignedUrlParameterNames.AuthorizationLevels.getParameterName());
 
         return AuthorizationLevel.parse(authParam);
     }
-
 
     private boolean setPrincipal(final ContainerRequestContext requestContext, final AuthorizedRequestCredentials credentials) {
         try {
@@ -164,7 +183,8 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
         return false;
     }
 
-    public static class Builder<TPrincipal extends Principal> extends AuthFilterBuilder<AuthorizedRequestCredentials, TPrincipal, SignedRequestAuthenticationFilter<TPrincipal>> {
+    public static class Builder<TPrincipal extends Principal>
+            extends AuthFilterBuilder<AuthorizedRequestCredentials, TPrincipal, SignedRequestAuthenticationFilter<TPrincipal>> {
 
         public Builder() {
             setPrefix("Signed");

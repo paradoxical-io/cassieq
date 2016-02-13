@@ -85,7 +85,12 @@ public class PermissionsResource extends BaseResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        final SignedUrlParameterGenerator signedUrlParameterGenerator = new SignedUrlParameterGenerator(request.getAccountName(), authorizationLevels);
+        final SignedUrlParameterGenerator signedUrlParameterGenerator =
+                new SignedUrlParameterGenerator(
+                        request.getAccountName(),
+                        authorizationLevels,
+                        request.getStartTime(),
+                        request.getEndTime());
 
         final AccountKey key = keys.get(request.getKeyName());
 
@@ -94,6 +99,8 @@ public class PermissionsResource extends BaseResource {
         final String queryParam = SignedUrlParameterNames.builder()
                                                          .auth(authorizationLevels)
                                                          .sig(computedSignature)
+                                                         .startTime(request.getStartTime())
+                                                         .endTime(request.getEndTime())
                                                          .build();
 
         return Response.ok(new QueryAuthUrlResult(queryParam)).build();
