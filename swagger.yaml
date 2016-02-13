@@ -72,6 +72,8 @@ paths:
       responses:
         '200':
           description: OK
+          schema:
+            $ref: '#/definitions/QueueCreateOptions'
         '404':
           description: "Queue doesn't exist"
         '500':
