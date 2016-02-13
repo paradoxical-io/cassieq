@@ -4,6 +4,7 @@ import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.model.time.Scheduler;
+import io.paradoxical.cassieq.model.time.SleepableClock;
 import org.joda.time.Instant;
 
 import java.util.concurrent.CompletableFuture;
@@ -18,15 +19,14 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 class ClosedClockExecutor implements Scheduler {
     private static final Logger logger = getLogger(ClosedClockExecutor.class);
 
-    private final Clock clock;
+    private final SleepableClock clock;
     private Instant start;
 
     @Inject
-    public ClosedClockExecutor(Clock clock, final Instant start) {
+    public ClosedClockExecutor(SleepableClock clock, final Instant start) {
         this.clock = clock;
         this.start = start;
     }
-
 
     @Override
     public ScheduledFuture<?> periodicWithDelay(final Runnable runnable, final long delay, final long duration, final TimeUnit unit) {
@@ -147,10 +147,10 @@ public class TestExecutorService implements Scheduler {
 
     private static final Logger logger = getLogger(TestExecutorService.class);
 
-    private final Clock clock;
+    private final SleepableClock clock;
 
     @Inject
-    public TestExecutorService(Clock clock) {
+    public TestExecutorService(SleepableClock clock) {
         this.clock = clock;
     }
 

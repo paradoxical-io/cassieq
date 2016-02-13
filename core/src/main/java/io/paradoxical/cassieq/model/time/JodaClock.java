@@ -5,7 +5,7 @@ import org.joda.time.Instant;
 
 import java.util.Random;
 
-public final class JodaClock implements Clock {
+public final class JodaClock implements Clock, SleepableClock {
 
     @Override
     public Instant now() {
@@ -23,7 +23,7 @@ public final class JodaClock implements Clock {
     }
 
     @Override
-    public long jitter(final int i) {
-        return new Random().nextInt(i);
+    public long jitter(final int maximumJitter) {
+        return new Random().nextInt(maximumJitter);
     }
 }

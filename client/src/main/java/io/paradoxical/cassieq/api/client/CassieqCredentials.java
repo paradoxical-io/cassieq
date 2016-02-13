@@ -7,7 +7,7 @@ import com.squareup.okhttp.Request;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.MacProviders;
-import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
+import io.paradoxical.cassieq.model.auth.SignedRequestSignatureGenerator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
@@ -29,12 +29,8 @@ public interface CassieqCredentials {
         return request -> {
             final DateTime utcNow = DateTime.now(DateTimeZone.UTC);
 
-            final SignedRequestParameters requestParameters =
-                    SignedRequestParameters.builder()
-                                           .accountName(accountName)
-                                           .requestPath(request.url().getPath())
-                                           .requestMethod(request.method())
-                                           .build();
+            final SignedRequestSignatureGenerator requestParameters =
+                    new SignedRequestSignatureGenerator(accountName, request.method(), request.url().getPath());
 
 
             final String signature = requestParameters.computeSignature(MacProviders.HmacSha256(accountKey));

@@ -22,6 +22,9 @@ import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.server.AdminClient;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Period;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -32,6 +35,7 @@ import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.Optional;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,9 +125,12 @@ public class ApiTester extends DbTestBase {
 
         assertThat(createAccountResponse.isSuccess()).isTrue();
 
-        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
-                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.empty());
 
         final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
@@ -152,9 +159,12 @@ public class ApiTester extends DbTestBase {
 
         adminClient.createAccount(accountName).execute();
 
-        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
-                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                  Collections.singletonList(AuthorizationLevel.ReadMessage));
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.ReadMessage),
+                                              Optional.empty(),
+                                              Optional.empty());
 
         final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
@@ -169,6 +179,61 @@ public class ApiTester extends DbTestBase {
 
         // unauthorized
         assertThat(authAuthorizes.code()).isEqualTo(403);
+    }
+
+    @Test
+    public void test_query_auth_authenticates_with_end_time() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
+
+        adminClient.createAccount(accountName).execute();
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.of(DateTime.now(DateTimeZone.UTC).plus(Period.days(5))));
+
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName, new QueueCreateOptions(QueueName.valueOf("test_query_auth_authenticates")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void test_query_auth_expires_with_end_time() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates");
+
+        adminClient.createAccount(accountName).execute();
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.of(DateTime.now(DateTimeZone.UTC).minus(Period.seconds(3))));
+
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi client = CassieqApi.createClient(server.getBaseUri().toString(), CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> authAuthorizes = client.createQueue(accountName, new QueueCreateOptions(QueueName.valueOf("test_query_auth_authenticates")))
+                                                            .execute();
+
+        assertThat(authAuthorizes.isSuccess()).isFalse();
+        assertThat(authAuthorizes.code()).isEqualTo(401);
     }
 
     /**
@@ -186,9 +251,12 @@ public class ApiTester extends DbTestBase {
 
         adminClient.createAccount(accountName).execute();
 
-        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
-                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.empty());
 
         final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
@@ -214,9 +282,12 @@ public class ApiTester extends DbTestBase {
 
         adminClient.createAccount(accountName).execute();
 
-        final GetAuthQueryParamsRequest getAuthQueryParamsRequest = new GetAuthQueryParamsRequest(accountName,
-                                                                                                  KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
-                                                                                                  Collections.singletonList(AuthorizationLevel.CreateQueue));
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                new GetAuthQueryParamsRequest(accountName,
+                                              KeyName.valueOf(WellKnownKeyNames.Primary.getKeyName()),
+                                              Collections.singletonList(AuthorizationLevel.CreateQueue),
+                                              Optional.empty(),
+                                              Optional.empty());
 
         final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
 
