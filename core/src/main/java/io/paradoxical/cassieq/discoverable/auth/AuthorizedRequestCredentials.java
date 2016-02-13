@@ -1,7 +1,8 @@
-package io.paradoxical.cassieq.model.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
+import io.paradoxical.cassieq.model.time.Clock;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -21,10 +22,10 @@ public class AuthorizedRequestCredentials {
     @NonNull
     private final RequestParameters requestParameters;
 
-    public boolean verify(Collection<AccountKey> keys) throws Exception {
+    public boolean verify(Collection<AccountKey> keys, Clock clock) throws Exception {
 
         for (AccountKey key : keys) {
-            if (requestParameters.verify(key)) {
+            if (requestParameters.verify(new VerificationContext(key, clock))) {
                 return true;
             }
         }

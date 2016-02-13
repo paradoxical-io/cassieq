@@ -3,20 +3,16 @@ package io.paradoxical.cassieq.discoverable.auth;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
-import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
+import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Getter;
 import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nonnull;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public enum SignedUrlParameterNames {
@@ -59,12 +55,12 @@ public enum SignedUrlParameterNames {
         }
 
         public SignedUrlParameterBuilder startTime(@NotNull @NonNull @Nonnull DateTime startTime) {
-            queryParamBuilder.put(StartTime.getParameterName(), SignedUrlParameterGenerator.formatDateTime(startTime));
+            queryParamBuilder.put(StartTime.getParameterName(), SignedUrlSignatureGenerator.formatDateTime(startTime));
             return this;
         }
 
         public SignedUrlParameterBuilder endTime(@NotNull @NonNull @Nonnull DateTime endTime) {
-            queryParamBuilder.put(EndTime.getParameterName(), SignedUrlParameterGenerator.formatDateTime(endTime));
+            queryParamBuilder.put(EndTime.getParameterName(), SignedUrlSignatureGenerator.formatDateTime(endTime));
             return this;
         }
 

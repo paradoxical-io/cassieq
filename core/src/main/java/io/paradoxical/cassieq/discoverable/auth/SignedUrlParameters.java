@@ -1,14 +1,17 @@
-package io.paradoxical.cassieq.model.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
-import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.SignatureGenerator;
+import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
 
 import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
@@ -47,26 +50,26 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
     private final Optional<DateTime> endDateTime;
 
     @Override
-    protected String getProvidedSignature() {
-        return querySignature;
-    }
-
-    @Override
-    public String getStringToSign() {
-        return new SignedUrlParameterGenerator(accountName, authorizationLevels, startDateTime, endDateTime).getStringToSign();
-    }
-
-    @Override
-    public boolean verify(final AccountKey key) {
-        final boolean verified = super.verify(key);
+    public boolean verify(final VerificationContext context) {
+        final boolean verified = super.verify(context);
 
         if (verified) {
-            final DateTime now = DateTime.now(DateTimeZone.UTC);
+            final Instant now = context.getClock().now();
             return startDateTime.map(now::isAfter).orElse(true) &&
                    endDateTime.map(now::isBefore).orElse(true);
         }
 
         return false;
+    }
+
+    @Override
+    protected SignatureGenerator getSignatureGenerator() {
+        return new SignedUrlSignatureGenerator(accountName, authorizationLevels, startDateTime, endDateTime);
+    }
+
+    @Override
+    protected String getProvidedSignature() {
+        return querySignature;
     }
 }
 

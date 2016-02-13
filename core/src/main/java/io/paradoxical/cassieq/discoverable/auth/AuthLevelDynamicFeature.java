@@ -4,7 +4,6 @@ import com.godaddy.logging.Logger;
 import io.dropwizard.auth.Authenticator;
 import io.paradoxical.cassieq.discoverable.resources.api.v1.AuthLevelRequired;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
 import org.glassfish.jersey.server.model.AnnotatedMethod;
 
 import javax.annotation.Priority;

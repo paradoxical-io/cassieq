@@ -1,9 +1,13 @@
-package io.paradoxical.cassieq.model.auth;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.SignatureGenerator;
+import io.paradoxical.cassieq.model.auth.SignatureJoiner;
+import io.paradoxical.cassieq.model.auth.SignedRequestSignatureGenerator;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -20,7 +24,6 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 public class SignedRequestParameters extends SignedParametersBase implements RequestParameters {
 
     private static final Logger logger = getLogger(SignedRequestParameters.class);
-    private static final CharMatcher slashMatcher = CharMatcher.is('/');
 
     @NonNull
     @NotNull
@@ -41,11 +44,8 @@ public class SignedRequestParameters extends SignedParametersBase implements Req
         return AuthorizationLevel.All;
     }
 
-    public String getStringToSign() {
-        return Joiner.on("\n")
-                     .skipNulls()
-                     .join(accountName.get(),
-                           requestMethod,
-                           "/" + slashMatcher.trimFrom(requestPath));
+    @Override
+    protected SignatureGenerator getSignatureGenerator() {
+        return new SignedRequestSignatureGenerator(accountName, requestMethod, requestPath);
     }
 }

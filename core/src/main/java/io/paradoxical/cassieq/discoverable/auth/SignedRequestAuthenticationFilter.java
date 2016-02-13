@@ -8,16 +8,10 @@ import com.google.common.base.Strings;
 import io.dropwizard.auth.AuthFilter;
 import io.dropwizard.auth.AuthenticationException;
 import io.paradoxical.cassieq.model.accounts.AccountName;
-import io.paradoxical.cassieq.model.auth.AccountKeyParameters;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
-import io.paradoxical.cassieq.model.auth.AuthorizedRequestCredentials;
-import io.paradoxical.cassieq.model.auth.RequestParameters;
-import io.paradoxical.cassieq.model.auth.SignedRequestParameters;
-import io.paradoxical.cassieq.model.auth.SignedUrlParameterGenerator;
-import io.paradoxical.cassieq.model.auth.SignedUrlParameters;
+import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Builder;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import javax.annotation.Priority;
 import javax.ws.rs.InternalServerErrorException;
@@ -153,7 +147,7 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
             return java.util.Optional.empty();
         }
 
-        return java.util.Optional.of(SignedUrlParameterGenerator.parseDateTime(timeParam));
+        return java.util.Optional.of(SignedUrlSignatureGenerator.parseDateTime(timeParam));
     }
 
     private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final MultivaluedMap<String, String> queryParameters) {
