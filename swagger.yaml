@@ -1,0 +1,318 @@
+swagger: '2.0'
+info: { title: "cassieq", version: "0.9" }
+basePath: /
+tags:
+  - name: cassieq
+paths:
+  '/api/v1/accounts/{accountName}/queues':
+    get:
+      tags:
+        - cassieq
+      summary: Get all account queue definitions
+      description: ''
+      operationId: getAllQueues
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '500':
+          description: Server Error
+    post:
+      tags:
+        - cassieq
+      summary: Create Queue
+      description: ''
+      operationId: createQueue
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: false
+          schema:
+            $ref: '#/definitions/QueueCreateOptions'
+        - name: errorIfExists
+          in: query
+          required: false
+          type: boolean
+          default: false
+      responses:
+        '201':
+          description: Created
+        '500':
+          description: Server Error
+  '/api/v1/accounts/{accountName}/queues/{queueName}':
+    get:
+      tags:
+        - cassieq
+      summary: Get a queue definition
+      description: ''
+      operationId: getQueueInfo
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: "Queue doesn't exist"
+        '500':
+          description: Server Error
+    delete:
+      tags:
+        - cassieq
+      summary: Delete queue
+      description: ''
+      operationId: deleteQueue
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '204':
+          description: No message
+        '404':
+          description: "Queue doesn't exist"
+        '500':
+          description: Server Error
+  '/api/v1/accounts/{accountName}/queues/{queueName}/messages':
+    post:
+      tags:
+        - cassieq
+      summary: Put Message
+      description: ''
+      operationId: putMessage
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+        - name: initialInvisibilityTime
+          in: query
+          required: false
+          type: integer
+          default: 0
+          format: int64
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Message Added
+        '404':
+          description: "Queue doesn't exist"
+        '500':
+          description: Server Error
+    put:
+      tags:
+        - cassieq
+      summary: Update Message
+      description: ''
+      operationId: updateMessage
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+        - name: popReceipt
+          in: query
+          required: false
+          type: string
+        - in: body
+          name: body
+          required: false
+          schema:
+            $ref: '#/definitions/UpdateMessageRequest'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UpdateMessageResponse'
+        '404':
+          description: "Queue doesn't exist"
+        '409':
+          description: 'CONFLICT: PopReceipt is stale'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+        - cassieq
+      summary: Ack Message
+      description: ''
+      operationId: ackMessage
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+        - name: popReceipt
+          in: query
+          required: false
+          type: string
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: "Queue doesn't exist"
+        '409':
+          description: 'CONFLICT: PopReceipt is stale'
+        '500':
+          description: Server Error
+  '/api/v1/accounts/{accountName}/queues/{queueName}/messages/next':
+    get:
+      tags:
+        - cassieq
+      summary: Get Message
+      description: ''
+      operationId: getMessage
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+        - name: invisibilityTimeSeconds
+          in: query
+          required: false
+          type: integer
+          default: 30
+          format: int64
+      responses:
+        '200':
+          description: OK
+        '204':
+          description: No message
+        '404':
+          description: "Queue doesn't exist"
+        '500':
+          description: Server Error
+  '/api/v1/accounts/{accountName}/queues/{queueName}/statistics':
+    get:
+      tags:
+        - cassieq
+      summary: Get queue statistics
+      description: ''
+      operationId: getQueueStatistics
+      produces:
+        - application/json
+      parameters:
+        - name: accountName
+          in: path
+          required: true
+          type: string
+        - name: queueName
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: "Queue doesn't exist"
+        '500':
+          description: Server Error
+definitions:
+  UpdateMessageResponse:
+    type: object
+    properties:
+      popReceipt:
+        type: string
+        readOnly: true
+      messageTag:
+        type: string
+        readOnly: true
+  UpdateMessageRequest:
+    type: object
+    properties:
+      message:
+        type: string
+        readOnly: true
+      newInvisibilitySeconds:
+        type: integer
+        format: int64
+        readOnly: true
+  QueueCreateOptions:
+    type: object
+    required:
+      - queueName
+    properties:
+      queueName:
+        readOnly: true
+        type: string
+      bucketSize:
+        type: integer
+        format: int32
+        readOnly: true
+        default: 1000
+      maxDeliveryCount:
+        type: integer
+        format: int32
+        readOnly: true
+        default: 5
+      repairWorkerPollSeconds:
+        type: integer
+        format: int32
+        readOnly: true
+      repairWorkerBucketFinalizeTimeSeconds:
+        type: integer
+        format: int32
+        readOnly: true
+      deleteBucketsAfterFinalize:
+        type: boolean
+        readOnly: true
+        default: false
+      dlqName:
+        type: string
+        readOnly: true
