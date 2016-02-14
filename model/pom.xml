@@ -13,6 +13,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <description>CassieQ data models</description>
     <artifactId>cassieq-model</artifactId>
     <packaging>jar</packaging>
     <name>Service Model</name>

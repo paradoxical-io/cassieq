@@ -13,6 +13,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <description>The CassieQ Java client</description>
     <artifactId>cassieq-client</artifactId>
     <packaging>jar</packaging>
     <name>Service Client</name>

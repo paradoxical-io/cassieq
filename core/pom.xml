@@ -13,6 +13,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <description>The core CassieQ server</description>
+
     <repositories>
         <repository>
             <id>oss.sonatype.org</id>
