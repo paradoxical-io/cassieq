@@ -21,7 +21,7 @@ public @interface StringTypeValid {
     Class<? extends Payload>[] payload() default {};
 
     // alphaNumeric characters, dash, or dot
-    String regex() default "[(a-zA-Z_)(\\-)(0-9)(\\.)]+";
+    String regex() default "[a-zA-Z_\\-0-9\\.]+";
 
     boolean isNullAllowed() default false;
 
