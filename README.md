@@ -9,13 +9,4 @@ CassieQ is a distributed queue built on cassandra. CassieQ leverages bucketing o
 
 # Getting Started
 
-To get started and find more information, please see our [wiki](https://github.com/paradoxical-io/cassieq/wiki)
-
-### Running cassieq locally
-
-
-```
-./scripts/run-core.sh
-``` 
-
-
+To find out about features, how to get started and more, please see our [wiki](https://github.com/paradoxical-io/cassieq/wiki).
