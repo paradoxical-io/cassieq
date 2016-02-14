@@ -8,6 +8,9 @@ import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
+import io.paradoxical.cassieq.discoverable.auth.AuthLevelRequired;
+import io.paradoxical.cassieq.exceptions.ConflictException;
+import io.paradoxical.cassieq.exceptions.QueueInternalServerError;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -29,15 +32,7 @@ import org.joda.time.Duration;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
@@ -73,7 +68,7 @@ public class QueueResource extends BaseQueueResource {
     @ApiOperation(value = "Get all account queue definitions")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueInfo() {
+    public Response getAccountQueues() {
 
         final List<QueueDefinition> activeQueues = getQueueRepository().getActiveQueues();
 
@@ -88,17 +83,11 @@ public class QueueResource extends BaseQueueResource {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueInfo(@StringTypeValid @PathParam("queueName") QueueName queueName) {
+    public Response getQueueDefinition(@StringTypeValid @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
+        final QueueDefinition queueDefinition = lookupQueueDefinition(queueName);
 
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
-        final QueueDefinition definition = queueDefinition.get();
-
-        return Response.ok().entity(definition).build();
+        return Response.ok().entity(queueDefinition).build();
     }
 
     @GET
@@ -112,13 +101,7 @@ public class QueueResource extends BaseQueueResource {
     public Response getQueueStatistics(
             @StringTypeValid @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
-        final QueueDefinition definition = queueDefinition.get();
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         final Optional<Long> queueSize = getQueueRepository().getQueueSize(definition);
 
@@ -128,10 +111,6 @@ public class QueueResource extends BaseQueueResource {
         };
 
         return Response.ok().entity(returnEntity).build();
-    }
-
-    private boolean active(final Optional<QueueDefinition> queueDefinition) {
-        return queueDefinition.isPresent() && queueDefinition.get().getStatus() == QueueStatus.Active;
     }
 
     @POST
@@ -159,22 +138,24 @@ public class QueueResource extends BaseQueueResource {
 
             final boolean wasInserted = getQueueRepository().createQueue(newQueueDefinition).isPresent();
 
-            if (!wasInserted && errorIfExists) {
-                return Response.status(Response.Status.CONFLICT).build();
-            }
-
             if (wasInserted) {
                 return Response.status(Response.Status.CREATED).build();
             }
-            else {
-                return Response.ok().build();
-            }
+
         }
+        catch (WebApplicationException e) { throw e; }
         catch (Exception e) {
             logger.error(e, "Error");
-            return buildErrorResponse("CreateQueue", queueName, e);
+            throw new QueueInternalServerError("CreateQueue", queueName, e);
         }
 
+
+        if (errorIfExists) {
+            throw new ConflictException("CreateQueue",
+                                        "A queue named '%s' already exists.", queueName);
+        }
+
+        return Response.ok().build();
     }
 
     @DELETE
@@ -195,7 +176,7 @@ public class QueueResource extends BaseQueueResource {
         }
         catch (QueueAlreadyDeletingException e) {
             logger.error(e, "Error");
-            return buildErrorResponse("DeleteQueue", queueName, e);
+            throw new QueueInternalServerError("DeleteQueue", queueName, e);
         }
 
         return Response.ok().build();
@@ -217,21 +198,17 @@ public class QueueResource extends BaseQueueResource {
             @StringTypeValid @PathParam("queueName") QueueName queueName,
             @NotNull @Min(0) @QueryParam("invisibilityTimeSeconds") @DefaultValue("30") Long invisibilityTimeSeconds) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!active(queueDefinition)) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         final Optional<Message> messageOptional;
 
         try {
-            messageOptional = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
+            messageOptional = getReaderFactory().forQueue(getAccountName(), definition)
                                                 .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
             logger.error(e, "Error");
-            return buildErrorResponse("GetMessage", queueName, e);
+            throw new QueueInternalServerError("GetMessage", queueName, e);
         }
 
         if (!messageOptional.isPresent()) {
@@ -272,15 +249,11 @@ public class QueueResource extends BaseQueueResource {
             @NotNull @QueryParam("popReceipt") String popReceiptRaw,
             UpdateMessageRequest clientUpdateRequest) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!active(queueDefinition)) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         final MessageUpdateRequest updateRequest = MessageUpdateRequest.from(clientUpdateRequest, PopReceipt.valueOf(popReceiptRaw));
 
-        final Optional<Message> message = getMessageRepoFactory().forQueue(queueDefinition.get()).updateMessage(updateRequest);
+        final Optional<Message> message = getMessageRepoFactory().forQueue(definition).updateMessage(updateRequest);
 
         if (message.isPresent()) {
             final UpdateMessageResponse updateMessageResponse =
@@ -289,7 +262,8 @@ public class QueueResource extends BaseQueueResource {
             return Response.ok().entity(updateMessageResponse).build();
         }
 
-        return buildConflictResponse("Pop reciept is stale");
+        throw new ConflictException("UpdateMessage", "Pop receipt is stale.");
+
     }
 
     @POST
@@ -306,19 +280,15 @@ public class QueueResource extends BaseQueueResource {
             @QueryParam("initialInvisibilityTime") @DefaultValue("0") Long initialInvisibilityTime,
             String message) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!active(queueDefinition)) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         try {
-            messagePublisher.put(queueDefinition.get(), message, initialInvisibilityTime);
+            messagePublisher.put(definition, message, initialInvisibilityTime);
         }
         catch (ExistingMonotonFoundException e) {
             logger.error(e, "Error");
 
-            return buildErrorResponse("PutMessage", queueName, e);
+            throw new QueueInternalServerError("PutMessage", queueName, e);
         }
 
         return Response.status(Response.Status.CREATED).build();
@@ -338,28 +308,25 @@ public class QueueResource extends BaseQueueResource {
             @StringTypeValid @PathParam("queueName") QueueName queueName,
             @NotNull @QueryParam("popReceipt") String popReceiptRaw) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         final PopReceipt popReceipt = PopReceipt.valueOf(popReceiptRaw);
 
         boolean messageAcked;
 
         try {
-            messageAcked = getReaderFactory().forQueue(getAccountName(), queueDefinition.get())
+            messageAcked = getReaderFactory().forQueue(getAccountName(), definition)
                                              .ackMessage(popReceipt);
         }
         catch (Exception e) {
             logger.error(e, "Error");
-            return buildErrorResponse("AckMessage", queueName, e);
+            throw new QueueInternalServerError("AckMessage", queueName, e);
         }
 
         if (messageAcked) {
             return Response.noContent().build();
         }
 
-        return buildConflictResponse("The message is already being reprocessed");
+        throw new ConflictException("AckMessage", "The message is already being reprocessed.");
     }
 }

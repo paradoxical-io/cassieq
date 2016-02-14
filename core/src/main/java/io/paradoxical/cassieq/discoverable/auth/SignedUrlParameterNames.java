@@ -51,8 +51,7 @@ public enum SignedUrlParameterNames {
                     .queueName(signedUrlSignatureGenerator.getQueueName())
                     .startTime(signedUrlSignatureGenerator.getStartDateTime())
                     .endTime(signedUrlSignatureGenerator.getEndDateTime())
-                    .queueName(signedUrlSignatureGenerator.getQueueName())
-                    .sig(signedUrlSignatureGenerator.computeSignature(hmac))
+                    .sig(signedUrlSignatureGenerator.computeSignature(hmac)) // order matters, put this last to keep it pretty
                     .build();
         }
 

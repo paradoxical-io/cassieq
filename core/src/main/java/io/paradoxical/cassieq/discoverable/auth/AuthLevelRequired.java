@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.discoverable.resources.api.v1;
+package io.paradoxical.cassieq.discoverable.auth;
 
 import com.google.inject.BindingAnnotation;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;

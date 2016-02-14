@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.resources.api;
 
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.exceptions.QueueNotFoundException;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
 import io.paradoxical.cassieq.factories.ReaderFactory;
@@ -12,6 +13,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 
 import javax.ws.rs.PathParam;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ResourceContext;
+import javax.ws.rs.container.ResourceInfo;
+import javax.ws.rs.core.Context;
 import java.util.Optional;
 
 public abstract class BaseQueueResource extends BaseAccountResource {
@@ -28,6 +33,9 @@ public abstract class BaseQueueResource extends BaseAccountResource {
     @Getter(AccessLevel.PROTECTED)
     private final QueueRepository queueRepository;
 
+    @Context
+    private ResourceInfo resourceContext;
+
     protected BaseQueueResource(
             ReaderFactory readerFactory,
             MessageRepoFactory messageRepoFactory,
@@ -42,8 +50,13 @@ public abstract class BaseQueueResource extends BaseAccountResource {
         this.queueRepository = queueRepository;
     }
 
-    protected Optional<QueueDefinition> getQueueDefinition(final QueueName queueName) {
-        return queueRepository.getActiveQueue(queueName);
+    protected QueueDefinition lookupQueueDefinition(final QueueName queueName) {
+
+        final Optional<QueueDefinition> queueDefinitionOption = queueRepository.getActiveQueue(queueName);
+
+        return queueDefinitionOption.orElseThrow(() -> new QueueNotFoundException(
+                resourceContext.getResourceMethod().getName(),
+                queueName));
     }
 
 

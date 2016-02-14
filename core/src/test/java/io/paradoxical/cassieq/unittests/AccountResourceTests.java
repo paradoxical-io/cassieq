@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import categories.BuildVerification;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
+import io.paradoxical.cassieq.exceptions.AccountNotFoundException;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
@@ -13,6 +14,7 @@ import org.junit.experimental.categories.Category;
 import javax.ws.rs.core.Response;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 @Category(BuildVerification.class)
 public class AccountResourceTests extends DbTestBase {
@@ -50,7 +52,14 @@ public class AccountResourceTests extends DbTestBase {
 
         assertThat(resource.deleteAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.NO_CONTENT);
 
-        assertThat(resource.getAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.NOT_FOUND);
+        try {
+            assertThat(resource.getAccount(accountName).getStatusInfo()).isEqualTo(Response.Status.NOT_FOUND);
+        }
+        catch(AccountNotFoundException ignored) {
+            return;
+        }
+
+        fail("should have thrown a not found exception");
     }
 
     @Test
