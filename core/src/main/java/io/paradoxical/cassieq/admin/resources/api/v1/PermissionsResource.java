@@ -6,9 +6,10 @@ import com.godaddy.logging.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.discoverable.auth.SignedUrlParameterNames;
+import io.paradoxical.cassieq.exceptions.AccountKeyNotFoundException;
+import io.paradoxical.cassieq.exceptions.AccountNotFoundException;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.QueryAuthUrlResult;
-import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.GetAuthQueryParamsRequest;
@@ -16,7 +17,6 @@ import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.MacProviders;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
-import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -41,7 +41,7 @@ import static java.util.stream.Collectors.toList;
 @Path("/api/v1/permissions/")
 @Api(value = "/api/v1/permissions/", description = "Permissions api", tags = "permissions")
 @Produces(MediaType.APPLICATION_JSON)
-public class PermissionsResource extends BaseResource {
+public class PermissionsResource {
 
     private static final Logger logger = LoggerFactory.getLogger(PermissionsResource.class);
     private final DataContextFactory dataContextFactory;
@@ -78,7 +78,7 @@ public class PermissionsResource extends BaseResource {
         final Optional<AccountDefinition> accountDefinition = dataContextFactory.getAccountRepository().getAccount(request.getAccountName());
 
         if (!accountDefinition.isPresent()) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            throw new AccountNotFoundException("CreateSignedAuthQuery", request.getAccountName());
         }
 
         final EnumSet<AuthorizationLevel> authorizationLevels = EnumSet.copyOf(request.getLevels());
@@ -86,7 +86,7 @@ public class PermissionsResource extends BaseResource {
         final ImmutableMap<KeyName, AccountKey> keys = accountDefinition.get().getKeys();
 
         if (!keys.containsKey(request.getKeyName())) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            throw new AccountKeyNotFoundException("GenerateQueryAuth", request.getKeyName());
         }
 
         final SignedUrlSignatureGenerator signedUrlParameterGenerator =
@@ -99,15 +99,9 @@ public class PermissionsResource extends BaseResource {
 
         final AccountKey key = keys.get(request.getKeyName());
 
-        final String computedSignature = signedUrlParameterGenerator.computeSignature(MacProviders.HmacSha256(key));
-
         final String queryParam = SignedUrlParameterNames.queryBuilder()
-                                                         .auth(authorizationLevels)
-                                                         .startTime(request.getStartTime())
-                                                         .endTime(request.getEndTime())
-                                                         .queueName(request.getQueueName())
-                                                         .sig(computedSignature) // always make this last (for prettiness)
-                                                         .build();
+                                                         .fromSignatureGenerator(signedUrlParameterGenerator)
+                                                         .build(MacProviders.HmacSha256(key));
 
         return Response.status(Response.Status.CREATED)
                        .entity(new QueryAuthUrlResult(queryParam))
