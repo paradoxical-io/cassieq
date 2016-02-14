@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.inject.Inject;
-import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
 import io.paradoxical.cassieq.dataAccess.exceptions.ExistingMonotonFoundException;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
+import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -16,6 +16,7 @@ import io.paradoxical.cassieq.metrics.QueueTimer;
 import io.paradoxical.cassieq.model.*;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.validators.StringTypeValid;
 import io.paradoxical.cassieq.resources.api.BaseQueueResource;
 import io.paradoxical.cassieq.workers.MessagePublisher;
 import io.paradoxical.cassieq.workers.QueueDeleter;
@@ -26,6 +27,7 @@ import io.swagger.annotations.ApiResponses;
 import org.joda.time.Duration;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -59,7 +61,7 @@ public class QueueResource extends BaseQueueResource {
             DataContextFactory dataContextFactory,
             MessagePublisher messagePublisher,
             QueueDeleter.Factory queueDeleterFactory,
-            @PathParam("accountName") AccountName accountName) {
+            @StringTypeValid @PathParam("accountName") AccountName accountName) {
         super(readerFactory, messageRepoFactory, monotonicRepoFactory, dataContextFactory.forAccount(accountName), accountName);
         this.messagePublisher = messagePublisher;
         this.queueDeleter = queueDeleterFactory.create(accountName);
@@ -86,8 +88,7 @@ public class QueueResource extends BaseQueueResource {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "OK"),
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getQueueInfo(
-            @NotNull @PathParam("queueName") QueueName queueName) {
+    public Response getQueueInfo(@StringTypeValid @PathParam("queueName") QueueName queueName) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
 
@@ -109,7 +110,7 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response getQueueStatistics(
-            @NotNull @PathParam("queueName") QueueName queueName) {
+            @StringTypeValid @PathParam("queueName") QueueName queueName) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
 
@@ -188,7 +189,7 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 404, message = "Queue doesn't exist"),
             @ApiResponse(code = 500, message = "Server Error")
     })
-    public Response deleteQueue(@PathParam("queueName") QueueName queueName) {
+    public Response deleteQueue(@StringTypeValid @PathParam("queueName") QueueName queueName) {
         try {
             queueDeleter.delete(queueName);
         }
@@ -213,8 +214,8 @@ public class QueueResource extends BaseQueueResource {
             @ApiResponse(code = 500, message = "Server Error")
     })
     public Response getMessage(
-            @NotNull @PathParam("queueName") QueueName queueName,
-            @NotNull @QueryParam("invisibilityTimeSeconds") @DefaultValue("30") Long invisibilityTimeSeconds) {
+            @StringTypeValid @PathParam("queueName") QueueName queueName,
+            @NotNull @Min(0) @QueryParam("invisibilityTimeSeconds") @DefaultValue("30") Long invisibilityTimeSeconds) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
 
@@ -267,7 +268,7 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 409, message = "CONFLICT: PopReceipt is stale"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response updateMessage(
-            @NotNull @PathParam("queueName") QueueName queueName,
+            @StringTypeValid @PathParam("queueName") QueueName queueName,
             @NotNull @QueryParam("popReceipt") String popReceiptRaw,
             UpdateMessageRequest clientUpdateRequest) {
 
@@ -301,7 +302,7 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response putMessage(
-            @NotNull @PathParam("queueName") QueueName queueName,
+            @StringTypeValid @PathParam("queueName") QueueName queueName,
             @QueryParam("initialInvisibilityTime") @DefaultValue("0") Long initialInvisibilityTime,
             String message) {
 
@@ -334,7 +335,7 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 409, message = "CONFLICT: PopReceipt is stale"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response ackMessage(
-            @NotNull @PathParam("queueName") QueueName queueName,
+            @StringTypeValid @PathParam("queueName") QueueName queueName,
             @NotNull @QueryParam("popReceipt") String popReceiptRaw) {
 
         final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
@@ -361,6 +362,4 @@ public class QueueResource extends BaseQueueResource {
 
         return buildConflictResponse("The message is already being reprocessed");
     }
-
-
 }

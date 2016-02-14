@@ -8,7 +8,9 @@ import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
 import io.dropwizard.jersey.DropwizardResourceConfig;
 import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
+import io.dropwizard.jersey.jackson.JsonProcessingExceptionMapper;
 import io.dropwizard.jersey.setup.JerseyContainerHolder;
+import io.dropwizard.jersey.validation.ConstraintViolationExceptionMapper;
 import io.dropwizard.servlets.assets.AssetServlet;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -73,6 +75,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     @Override
     public void initialize(Bootstrap<ServiceConfiguration> bootstrap) {
         bootstrap.addCommand(new ConfigDumpCommand());
+
         bootstrap.addCommand(new GenerateHttpsCertsCommand());
 
         bootstrap.addBundle(new TemplateConfigBundle());
@@ -138,6 +141,10 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         adminResourceConfig.register(viewMessageBodyWriter);
 
         adminResourceConfig.register(getJacksonSerializer(environment));
+
+        adminResourceConfig.register(ConstraintViolationExceptionMapper.class);
+
+        adminResourceConfig.register(JsonProcessingExceptionMapper.class);
 
         environment.admin().addServlet("admin-resources", adminContainerHolder.getContainer()).addMapping("/admin/*");
     }

@@ -7,8 +7,11 @@ import lombok.Value;
 @Value
 public class GetMessageResponse {
     String popReceipt;
+
     String message;
+
     int deliveryCount;
+
     MessageTag messageTag;
 
     @JsonCreator

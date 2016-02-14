@@ -2,10 +2,10 @@ package io.paradoxical.cassieq.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.paradoxical.cassieq.model.validators.StringTypeValid;
 import lombok.Builder;
 import lombok.Data;
 
-import javax.validation.constraints.NotNull;
 import java.util.Optional;
 
 @Data
@@ -18,7 +18,7 @@ public class QueueCreateOptions {
     private static final Integer DEFAULT_MAX_DELIVERY = 5;
     private static final Boolean DEFAULT_DELETE_BUCKETS_ON_FINALIZE = true;
 
-    @NotNull
+    @StringTypeValid
     private final QueueName queueName;
 
     /**

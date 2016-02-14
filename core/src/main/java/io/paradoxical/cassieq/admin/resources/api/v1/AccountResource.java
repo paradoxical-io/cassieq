@@ -13,6 +13,7 @@ import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
+import io.paradoxical.cassieq.model.validators.StringTypeValid;
 import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
@@ -20,6 +21,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 
+import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -63,7 +65,7 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Create Account")
     @ApiResponses(value = { @ApiResponse(code = 201, message = "Created"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response createAccount(AccountName accountName) {
+    public Response createAccount(@Valid @StringTypeValid AccountName accountName) {
 
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
@@ -110,8 +112,7 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Get Account")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response getAccount(
-            @PathParam("accountName") AccountName accountName) {
+    public Response getAccount(@StringTypeValid @PathParam("accountName") AccountName accountName) {
 
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
@@ -137,7 +138,9 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Delete an account key")
     @ApiResponses(value = { @ApiResponse(code = 204, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response deleteAccountKey(@PathParam("accountName") AccountName accountName, @PathParam("keyName") KeyName keyName) {
+    public Response deleteAccountKey(
+            @StringTypeValid @PathParam("accountName") AccountName accountName,
+            @StringTypeValid @PathParam("keyName") KeyName keyName) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -177,8 +180,8 @@ public class AccountResource extends BaseResource {
                             @ApiResponse(code = 500, message = "Server Error") })
     @Consumes(MediaType.TEXT_PLAIN)
     public Response addNewKey(
-            @PathParam("accountName") AccountName accountName,
-            KeyCreateRequest keyCreateRequest) {
+            @StringTypeValid @PathParam("accountName") AccountName accountName,
+            @Valid KeyCreateRequest keyCreateRequest) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -222,7 +225,7 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Delete Account", notes = "Deleting an account will also kick off jobs to delete all related queues. BE CAREFUL")
     @ApiResponses(value = { @ApiResponse(code = 204, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    public Response deleteAccount(@PathParam("accountName") final AccountName accountName) {
+    public Response deleteAccount(@StringTypeValid @PathParam("accountName") final AccountName accountName) {
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 

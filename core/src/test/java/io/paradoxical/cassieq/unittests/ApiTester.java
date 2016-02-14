@@ -35,8 +35,6 @@ import retrofit.Response;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.Optional;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,6 +80,35 @@ public class ApiTester extends DbTestBase {
         final Response<ResponseBody> result = client.addMessage(testAccountName, queueName, "foo").execute();
 
         assertThat(result.isSuccess()).isFalse();
+    }
+
+    @Test
+    public void create_queue_with_invalid_name_fails() throws IOException {
+        final QueueName queueName = QueueName.valueOf("invalid!");
+
+        final Response<ResponseBody> execute = client.createQueue(testAccountName, new QueueCreateOptions(queueName)).execute();
+
+        assertThat(execute.isSuccess()).isFalse();
+    }
+
+    @Test
+    public void create_queue_with_dots_works() throws IOException {
+        final QueueName queueName = QueueName.valueOf("create.queue.with.dots.works");
+
+        final Response<ResponseBody> execute = client.createQueue(testAccountName, new QueueCreateOptions(queueName)).execute();
+
+        assertThat(execute.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void create_account_with_dots_works() throws IOException {
+        final AccountName accountName = AccountName.valueOf("create.account.with.dots.works");
+
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final Response<AccountDefinition> execute = adminClient.createAccount(accountName).execute();
+
+        assertThat(execute.isSuccess()).isTrue();
     }
 
     @Test
@@ -232,8 +259,8 @@ public class ApiTester extends DbTestBase {
         final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_query_auth_authenticates_with_end_time");
-        final QueueName queueName = QueueName.valueOf("test_query_auth_authenticates_with_end_time");
 
+        final QueueName queueName = QueueName.valueOf("test_query_auth_authenticates_with_end_time");
 
         adminClient.createAccount(accountName).execute();
 
@@ -258,12 +285,33 @@ public class ApiTester extends DbTestBase {
     }
 
     @Test
+    public void test_invalid_key_name_fails() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final AccountName accountName = AccountName.valueOf("test_invalid_key_name_fails");
+
+        adminClient.createAccount(accountName).execute();
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                GetAuthQueryParamsRequest.builder()
+                                         .accountName(accountName)
+                                         .keyName(KeyName.valueOf("invalid!"))
+                                         .level(AuthorizationLevel.CreateQueue)
+                                         .endTime(DateTime.now(DateTimeZone.UTC).minus(Period.seconds(3)))
+                                         .build();
+
+        final Boolean result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().isSuccess();
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
     public void test_query_auth_expires_with_end_time() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
         final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
 
         final AccountName accountName = AccountName.valueOf("test_query_auth_expires_with_end_time");
-        final QueueName queueName = QueueName.valueOf("test_query_auth_expires_with_end_time");
 
+        final QueueName queueName = QueueName.valueOf("test_query_auth_expires_with_end_time");
 
         adminClient.createAccount(accountName).execute();
 
