@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nonnull;
+import javax.crypto.Mac;
 import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -34,11 +35,27 @@ public enum SignedUrlParameterNames {
         return new SignedUrlParameterBuilder();
     }
 
+    @FunctionalInterface
+    public interface SignedUrlGeneratorBuilder {
+        String build(Mac hmac);
+    }
+
     public static class SignedUrlParameterBuilder {
         private final Joiner.MapJoiner mapJoiner = Joiner.on('&')
                                                          .withKeyValueSeparator("=");
 
         private final LinkedHashMap<String, String> queryParamBuilder = Maps.newLinkedHashMap();
+
+        public SignedUrlGeneratorBuilder fromSignatureGenerator(SignedUrlSignatureGenerator signedUrlSignatureGenerator) {
+            return hmac -> auth(signedUrlSignatureGenerator.getAuthorizationLevels())
+                    .queueName(signedUrlSignatureGenerator.getQueueName())
+                    .startTime(signedUrlSignatureGenerator.getStartDateTime())
+                    .endTime(signedUrlSignatureGenerator.getEndDateTime())
+                    .queueName(signedUrlSignatureGenerator.getQueueName())
+                    .sig(signedUrlSignatureGenerator.computeSignature(hmac))
+                    .build();
+        }
+
 
         public SignedUrlParameterBuilder sig(@NotNull @NonNull @Nonnull String signature) {
             queryParamBuilder.put(Signature.getParameterName(), signature);
@@ -86,6 +103,7 @@ public enum SignedUrlParameterNames {
             startTimeOption.ifPresent(this::queueName);
             return this;
         }
+
         public String build() {
             return mapJoiner.join(queryParamBuilder);
         }
