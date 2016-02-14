@@ -9,16 +9,16 @@ import java.security.Principal;
 public class AccountSecurityContext<P extends Principal>  implements SecurityContext {
     private final P principal;
     private final Authorizer<P> authorizer;
-    private final ContainerRequestContext requestContext;
+    private final SecurityContext previousContext;
 
     public AccountSecurityContext(
             final P principal,
-            Authorizer<P> authorizer,
-            ContainerRequestContext requestContext) {
+            final Authorizer<P> authorizer,
+            final SecurityContext previousContext) {
 
         this.principal = principal;
         this.authorizer = authorizer;
-        this.requestContext = requestContext;
+        this.previousContext = previousContext;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class AccountSecurityContext<P extends Principal>  implements SecurityCon
 
     @Override
     public boolean isSecure() {
-        return true;
+        return previousContext.isSecure();
     }
 
     @Override

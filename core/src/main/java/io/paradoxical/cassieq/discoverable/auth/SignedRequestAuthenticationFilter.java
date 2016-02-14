@@ -21,6 +21,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.EnumSet;
@@ -192,11 +193,17 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
         try {
 
             final Optional<TPrincipal> optionalPrincipal = authenticator.authenticate(credentials);
+
             if (optionalPrincipal.isPresent()) {
 
                 final TPrincipal principal = optionalPrincipal.get();
 
-                requestContext.setSecurityContext(new AccountSecurityContext<>(principal, authorizer, requestContext));
+                final SecurityContext previousSecurityContext = requestContext.getSecurityContext();
+
+                final AccountSecurityContext<TPrincipal> newAccountSecurityContext =
+                        new AccountSecurityContext<>(principal, authorizer, previousSecurityContext);
+
+                requestContext.setSecurityContext(newAccountSecurityContext);
 
                 return true;
             }
