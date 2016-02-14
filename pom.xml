@@ -7,7 +7,7 @@
     <groupId>io.paradoxical</groupId>
     <artifactId>cassieq</artifactId>
     <packaging>pom</packaging>
-    <version>0.10</version>
+    <version>0.11-SNAPSHOT</version>
     <name>cassieq</name>
     <modules>
         <module>model</module>
@@ -20,7 +20,7 @@
         <connection>scm:git:git@github.com:paradoxical-io/cassieq.git</connection>
         <developerConnection>scm:git:git@github.com:paradoxical-io/cassieq.git
         </developerConnection>
-        <tag>cassieq-0.10</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <licenses>
