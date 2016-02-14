@@ -8,7 +8,6 @@
     <artifactId>cassieq</artifactId>
     <packaging>pom</packaging>
     <version>0.11-SNAPSHOT</version>
-    <version>0.10</version>
     <url>http://github.com/paradoxical-io/cassieq</url>
     <description>A distributed queue based on cassandra</description>
     <name>cassieq</name>
