@@ -1,6 +1,7 @@
 package io.paradoxical.cassieq.resources.api;
 
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.exceptions.QueueInternalServerError;
 import io.paradoxical.cassieq.exceptions.QueueNotFoundException;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.factories.MonotonicRepoFactory;
@@ -9,6 +10,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.resources.api.BaseAccountResource;
+import javaslang.control.Try;
 import lombok.AccessLevel;
 import lombok.Getter;
 
@@ -42,6 +44,7 @@ public abstract class BaseQueueResource extends BaseAccountResource {
             MonotonicRepoFactory monotonicRepoFactory,
             QueueRepository queueRepository,
             @PathParam("accountName") final AccountName accountName) {
+
         super(accountName);
 
         this.readerFactory = readerFactory;
@@ -50,13 +53,16 @@ public abstract class BaseQueueResource extends BaseAccountResource {
         this.queueRepository = queueRepository;
     }
 
-    protected QueueDefinition lookupQueueDefinition(final QueueName queueName) {
+    protected QueueDefinition lookupQueueDefinition(final QueueName queueName)
+            throws QueueInternalServerError, QueueNotFoundException {
 
-        final Optional<QueueDefinition> queueDefinitionOption = queueRepository.getActiveQueue(queueName);
+        final String resourceMethodName = resourceContext.getResourceMethod().getName();
 
-        return queueDefinitionOption.orElseThrow(() -> new QueueNotFoundException(
-                resourceContext.getResourceMethod().getName(),
-                queueName));
+        final Optional<QueueDefinition> queueDefinitionOption =
+                Try.of(() -> queueRepository.getActiveQueue(queueName))
+                   .orElseThrow(error -> new QueueInternalServerError(resourceMethodName, queueName, error));
+
+        return queueDefinitionOption.orElseThrow(() -> new QueueNotFoundException(resourceMethodName, queueName));
     }
 
 

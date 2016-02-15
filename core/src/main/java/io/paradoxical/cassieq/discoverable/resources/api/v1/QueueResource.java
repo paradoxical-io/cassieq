@@ -207,7 +207,7 @@ public class QueueResource extends BaseQueueResource {
                                                 .nextMessage(Duration.standardSeconds(invisibilityTimeSeconds));
         }
         catch (Exception e) {
-            logger.error(e, "Error");
+            logger.error(e, "Error reading next message");
             throw new QueueInternalServerError("GetMessage", queueName, e);
         }
 

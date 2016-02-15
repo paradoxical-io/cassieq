@@ -96,7 +96,6 @@ public class QueueDebugResource extends BaseQueueResource {
         }
 
         return Response.ok(messages)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -126,7 +125,6 @@ public class QueueDebugResource extends BaseQueueResource {
         }
 
         return Response.ok(messages)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -144,9 +142,10 @@ public class QueueDebugResource extends BaseQueueResource {
 
         final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final Optional<DateTime> tombstoneTime = getMessageRepoFactory()
-                .forQueue(definition)
-                .tombstoneExists(ReaderBucketPointer.valueOf(bucketPointer));
+        final Optional<DateTime> tombstoneTime =
+                getMessageRepoFactory()
+                        .forQueue(definition)
+                        .tombstoneExists(ReaderBucketPointer.valueOf(bucketPointer));
 
         return Response.ok(tombstoneTime)
                        .build();
@@ -189,7 +188,6 @@ public class QueueDebugResource extends BaseQueueResource {
         final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(definition.getId());
 
         return Response.ok(monotonicRepository.getCurrent())
-                       .status(Response.Status.OK)
                        .build();
     }
 
