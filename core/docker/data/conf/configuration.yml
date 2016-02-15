@@ -28,6 +28,9 @@ server:
 allocation:
   strategy: ${env.ALLOCATION_STRATEGY!'CLUSTER'}
 
+auth:
+  allowedClockSkew: 1 minute
+
 cassandra:
   clusterName: ${env.CLUSTER_NAME!'cassieq'}
   keyspace: ${env.KEYSPACE!'cassieq'}

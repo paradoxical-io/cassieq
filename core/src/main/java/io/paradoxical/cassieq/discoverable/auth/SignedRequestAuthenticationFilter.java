@@ -10,7 +10,9 @@ import io.dropwizard.auth.AuthenticationException;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.SignatureGenerator;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
+import io.paradoxical.cassieq.model.auth.StandardAuthHeaders;
 import lombok.Builder;
 import org.joda.time.DateTime;
 
@@ -24,6 +26,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
 import java.security.Principal;
+import java.security.Signature;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -131,17 +134,31 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
 
                 // then check if the request is using a "signed" (or what ever we're configured to expect via prefix) request scheme,
                 if (prefix.equalsIgnoreCase(authScheme)) {
+                    final DateTime requestTime = parseRequestTimeHeader(requestContext.getHeaders());
+
                     return SignedRequestParameters.builder()
                                                   .accountName(accountName)
                                                   .requestMethod(requestContext.getMethod())
                                                   .providedSignature(components.get(1))
                                                   .requestPath(requestContext.getUriInfo().getPath())
+                                                  .requestTime(requestTime)
                                                   .build();
                 }
             }
         }
 
         return null;
+    }
+
+    private DateTime parseRequestTimeHeader(final MultivaluedMap<String, String> headers) {
+
+        final String requestTimeHeaderValue = headers.getFirst(StandardAuthHeaders.RequestTime.getHeaderName());
+
+        if(Strings.isNullOrEmpty(requestTimeHeaderValue)) {
+            return new DateTime(0); // min value
+        }
+
+        return SignatureGenerator.parseDateTime(requestTimeHeaderValue);
     }
 
     private SignedUrlParameters parseSignedUrlParameters(
@@ -173,14 +190,16 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
 
     }
 
-    private java.util.Optional<DateTime> parseTimeParam(final MultivaluedMap<String, String> queryParameters, final SignedUrlParameterNames parameter) {
+    private java.util.Optional<DateTime> parseTimeParam(
+            final MultivaluedMap<String, String> queryParameters,
+            final SignedUrlParameterNames parameter) {
         final String timeParam = queryParameters.getFirst(parameter.getParameterName());
 
         if (Strings.isNullOrEmpty(timeParam)) {
             return java.util.Optional.empty();
         }
 
-        return java.util.Optional.of(SignedUrlSignatureGenerator.parseDateTime(timeParam));
+        return java.util.Optional.of(SignatureGenerator.parseDateTime(timeParam));
     }
 
     private EnumSet<AuthorizationLevel> parseAuthorizationLevel(final MultivaluedMap<String, String> queryParameters) {

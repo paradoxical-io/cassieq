@@ -2,8 +2,11 @@ package io.paradoxical.cassieq.discoverable.auth;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
+import com.google.common.escape.Escaper;
+import com.google.common.net.UrlEscapers;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
+import io.paradoxical.cassieq.model.auth.SignatureGenerator;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Getter;
 import lombok.NonNull;
@@ -46,6 +49,10 @@ public enum SignedUrlParameterNames {
 
         private final LinkedHashMap<String, String> queryParamBuilder = Maps.newLinkedHashMap();
 
+        private void addParam(SignedUrlParameterNames parameter, String value) {
+            queryParamBuilder.put(parameter.getParameterName(), value);
+        }
+
         public SignedUrlGeneratorBuilder fromSignatureGenerator(SignedUrlSignatureGenerator signedUrlSignatureGenerator) {
             return hmac -> auth(signedUrlSignatureGenerator.getAuthorizationLevels())
                     .queueName(signedUrlSignatureGenerator.getQueueName())
@@ -57,29 +64,26 @@ public enum SignedUrlParameterNames {
 
 
         public SignedUrlParameterBuilder sig(@NotNull @NonNull @Nonnull String signature) {
-            queryParamBuilder.put(Signature.getParameterName(), signature);
-
+            addParam(Signature, signature);
             return this;
         }
 
         public SignedUrlParameterBuilder auth(@NotNull @NonNull @Nonnull EnumSet<AuthorizationLevel> levels) {
-            final String shortForm = levels.stream()
-                                           .reduce(StringUtils.EMPTY,
-                                                   (acc, level) -> acc + level.getShortForm(),
-                                                   (acc1, acc2) -> acc1 + acc2);
-
-            queryParamBuilder.put(AuthorizationLevels.getParameterName(), shortForm);
-
+            addParam(AuthorizationLevels, AuthorizationLevel.stringify(levels));
             return this;
         }
 
         public SignedUrlParameterBuilder startTime(@NotNull @NonNull @Nonnull DateTime startTime) {
-            queryParamBuilder.put(StartTime.getParameterName(), SignedUrlSignatureGenerator.formatDateTime(startTime));
+            final String startTimeParam = SignatureGenerator.formatDateTime(startTime);
+
+            addParam(StartTime, startTimeParam);
             return this;
         }
 
         public SignedUrlParameterBuilder endTime(@NotNull @NonNull @Nonnull DateTime endTime) {
-            queryParamBuilder.put(EndTime.getParameterName(), SignedUrlSignatureGenerator.formatDateTime(endTime));
+            final String endTimeParam = SignatureGenerator.formatDateTime(endTime);
+
+            addParam(EndTime, endTimeParam);
             return this;
         }
 
@@ -94,7 +98,7 @@ public enum SignedUrlParameterNames {
         }
 
         public SignedUrlParameterBuilder queueName(@NotNull @NonNull @Nonnull QueueName queueName) {
-            queryParamBuilder.put(Queue.getParameterName(), queueName.get());
+            addParam(Queue, queueName.get());
             return this;
         }
 

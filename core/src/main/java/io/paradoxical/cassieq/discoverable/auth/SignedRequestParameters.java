@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
+import org.joda.time.DateTime;
 
 import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
@@ -34,6 +35,10 @@ public class SignedRequestParameters extends SignedParametersBase implements Req
     @NotNull
     private final String requestPath;
 
+    @NonNull
+    @NotNull
+    private final DateTime requestTime;
+
     private final String providedSignature;
 
     @Override
@@ -43,6 +48,14 @@ public class SignedRequestParameters extends SignedParametersBase implements Req
 
     @Override
     protected SignatureGenerator getSignatureGenerator() {
-        return new SignedRequestSignatureGenerator(accountName, requestMethod, requestPath);
+        return new SignedRequestSignatureGenerator(accountName, requestMethod, requestPath, requestTime);
+    }
+
+    @Override
+    public boolean verify(final VerificationContext context) {
+        final boolean verified = super.verify(context);
+
+        return verified &&
+                context.requestTimeWithinAllowances(requestTime);
     }
 }

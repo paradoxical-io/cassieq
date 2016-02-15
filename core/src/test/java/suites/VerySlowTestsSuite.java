@@ -10,7 +10,7 @@ import org.junit.runners.Suite;
 @Categories.IncludeCategory(VerySlowTests.class)
 @Suite.SuiteClasses({
     SlowTests.class,
-    ApiTester.class,
+    StandardApiTests.class,
     MessageRepositoryTester.class,
     PopReceiptTester.class,
     QueueDeleterTests.class,
