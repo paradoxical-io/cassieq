@@ -1,0 +1,19 @@
+
+Welcome to CassieQ!  This docker image contains several modes of execution to help you configure and run CassieQ.
+
+1. bootstrap.  This mode populates (and upgrades) a cassandra keyspace to be useable with cassieq. It takes the following environment variables:
+
+KEYSPACE='cassandra keyspace to use for cassieq'
+CONTACT_POINTS='contact point'
+USERNAME=''
+PASSWORD=''
+
+2. help. This menu
+
+3. debug.  Debug starts in an empty shell and lets you bypass normal startup mode
+
+4. config.  This prints out the CassieQ default config (with your normal CassieQ environemnt variables applied)
+in order for you to create a customized config file to place in a virtual mount at /data/conf
+
+For more information see our github at http://github.com/paradoxical-io/cassieq
+

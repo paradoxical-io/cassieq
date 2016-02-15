@@ -17,19 +17,19 @@ public class GenerateHttpsCertsCommand extends Command {
 
     @Override
     public void configure(final Subparser subparser) {
-        subparser.addArgument("password")
+        subparser.addArgument("-p", "--password")
                  .dest("password")
                  .type(String.class)
                  .help("the PKCS12 certificate store password")
                  .required(true);
 
-        subparser.addArgument("certName")
+        subparser.addArgument("-c", "--certName")
                  .dest("certName")
                  .type(String.class)
                  .help("the generated certificates common name (CN)")
                  .required(true);
 
-        subparser.addArgument("days")
+        subparser.addArgument("-d", "--days")
                  .dest("vaildDays")
                  .type(Integer.class)
                  .help("the number of days the certificate should be valid for (Default: 30)")
@@ -46,11 +46,10 @@ public class GenerateHttpsCertsCommand extends Command {
         buildCert(namespace, outputDirectory);
 
         buildP12(namespace, outputDirectory);
-
     }
 
     private void buildCert(final Namespace namespace, final File outputDirectory) throws InterruptedException, IOException {
-        final String certName = String.format("/O=Paradoxical.io/OU=Generated-Certificates/CN=%s", namespace.getString("certName"));
+        final String certName = String.format("/O=paradoxical.io/OU=Generated-Certificates/CN=%s", namespace.getString("certName"));
 
         final Integer vaildDays = namespace.getInt("vaildDays");
 
