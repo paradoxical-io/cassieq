@@ -3,6 +3,7 @@ package io.paradoxical.cassieq;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
 import io.paradoxical.cassieq.configurations.AllocationConfig;
+import io.paradoxical.cassieq.configurations.AuthConfig;
 import io.paradoxical.cassieq.configurations.ClusteringConfig;
 import io.paradoxical.cassieq.configurations.LogConfig;
 import io.paradoxical.cassieq.configurations.RepairConfig;
@@ -40,4 +41,9 @@ public class ServiceConfiguration extends Configuration {
     @NotNull
     @JsonProperty("allocation")
     private AllocationConfig allocationConfig = new AllocationConfig();
+
+    @Valid
+    @NotNull
+    @JsonProperty("auth")
+    private AuthConfig authConfig = new AuthConfig();
 }
