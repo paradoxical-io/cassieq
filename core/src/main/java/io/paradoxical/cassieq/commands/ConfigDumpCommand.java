@@ -36,9 +36,13 @@ public class ConfigDumpCommand extends ConfiguredCommand<ServiceConfiguration> {
 
     @Override
     public void run(final Bootstrap<?> wildcardBootstrap, final Namespace namespace) throws Exception {
-        wildcardBootstrap.setConfigurationFactoryFactory(
-                (klass, validator, objectMapper, propertyPrefix) ->
-                        new ConfigurationFactory<>(klass, null, objectMapper, propertyPrefix));
+
+        // skip validation if dumping full (because its not complete)
+        if (namespace.getBoolean("full")) {
+            wildcardBootstrap.setConfigurationFactoryFactory(
+                    (klass, validator, objectMapper, propertyPrefix) ->
+                            new ConfigurationFactory<>(klass, null, objectMapper, propertyPrefix));
+        }
 
         super.run(wildcardBootstrap, namespace);
     }
@@ -47,9 +51,9 @@ public class ConfigDumpCommand extends ConfiguredCommand<ServiceConfiguration> {
     public void configure(final Subparser subparser) {
         super.configure(subparser);
         subparser.addArgument("-f", "--full")
-                .action(Arguments.storeTrue())
-                .dest("full")
-                .help("Dumps the full configuration object as YAML");
+                 .action(Arguments.storeTrue())
+                 .dest("full")
+                 .help("Dumps the full configuration object as YAML");
     }
 
     @Override
