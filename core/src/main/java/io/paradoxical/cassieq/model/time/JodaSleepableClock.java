@@ -5,12 +5,7 @@ import org.joda.time.Instant;
 
 import java.util.Random;
 
-public final class JodaClock implements Clock, SleepableClock {
-
-    @Override
-    public Instant now() {
-        return Instant.now();
-    }
+public final class JodaSleepableClock extends JodaDefaultClock implements Clock, SleepableClock {
 
     @Override
     public void sleepFor(final Duration duration) throws InterruptedException {
