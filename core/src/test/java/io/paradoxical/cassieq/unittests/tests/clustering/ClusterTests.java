@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.clustering;
 
 import com.hazelcast.core.HazelcastInstance;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;

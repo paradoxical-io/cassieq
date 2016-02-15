@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.api;
 
 import categories.BuildVerification;
 import io.paradoxical.cassieq.admin.resources.api.v1.AccountResource;
@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
+import io.paradoxical.cassieq.unittests.DbTestBase;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

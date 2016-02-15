@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.queueSemantics;
 
 import categories.BuildVerification;
 import com.godaddy.logging.Logger;
@@ -21,6 +21,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
+import io.paradoxical.cassieq.unittests.DbTestBase;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.MessageDeletorJobModule;
 import io.paradoxical.cassieq.workers.QueueDeleter;

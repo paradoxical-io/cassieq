@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.unittests;
 
 import ch.qos.logback.classic.Level;
 import com.godaddy.logging.Logger;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import com.netflix.governator.Governator;
 import io.dropwizard.logging.BootstrapLogging;
@@ -14,7 +15,9 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.BucketSize;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
+import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.modules.DefaultApplicationModules;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.MockEnvironmentModule;
@@ -73,12 +76,14 @@ public class TestBase {
         });
     }
 
-    protected static CassieqCredentials getTestAccountCredentials(Injector injector) throws InvalidKeyException, NoSuchAlgorithmException {
+    protected CassieqCredentials getTestAccountCredentials(Injector injector) {
         final AccountRepository instance = injector.getInstance(AccountRepository.class);
 
         instance.createAccount(testAccountName);
 
-        return CassieqCredentials.key(testAccountName, instance.getAccount(testAccountName).get().getKeys().values().asList().get(0));
+        final ImmutableMap<KeyName, AccountKey> accountKeys = instance.getAccount(testAccountName).get().getKeys();
+
+        return CassieqCredentials.key(testAccountName, accountKeys.values().asList().get(0), getTestClock());
 
     }
 
@@ -130,10 +135,11 @@ public class TestBase {
     }
 
     protected Injector getDefaultInjector(final ServiceConfiguration serviceConfiguration, OverridableModule... modules) {
-        return getDefaultInjectorRaw(ListUtils.union(Arrays.asList(modules),
-                                                     Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
-                                                                   hazelCastModule,
-                                                                   new TestClockModule(testClock))));
+        return getDefaultInjectorRaw(
+                ListUtils.union(Arrays.asList(modules),
+                                Arrays.asList(new MockEnvironmentModule(serviceConfiguration),
+                                              hazelCastModule,
+                                              new TestClockModule(testClock))));
     }
 
 

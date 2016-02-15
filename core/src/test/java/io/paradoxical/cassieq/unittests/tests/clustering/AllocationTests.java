@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.clustering;
 
 import com.google.inject.Injector;
 import io.paradoxical.cassieq.ServiceConfiguration;
@@ -7,6 +7,7 @@ import io.paradoxical.cassieq.clustering.allocation.ResourceConfig;
 import io.paradoxical.cassieq.clustering.allocation.ResourceIdentity;
 import io.paradoxical.cassieq.configurations.AllocationConfig;
 import io.paradoxical.cassieq.configurations.AllocationStrategy;
+import io.paradoxical.cassieq.unittests.TestBase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

@@ -1,7 +1,7 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.stress;
 
+import categories.BuildVerification;
 import categories.StressTests;
-import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
@@ -19,6 +19,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.unittests.DbTestBase;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;
@@ -49,9 +50,9 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
-@Category({ StressTests.class, VerySlowTests.class })
-public class SlowTests extends DbTestBase {
-    private static final Logger logger = getLogger(SlowTests.class);
+@Category({ StressTests.class, BuildVerification.class })
+public class ParallelWorkerTests extends DbTestBase {
+    private static final Logger logger = getLogger(ParallelWorkerTests.class);
 
     @Rule
     public RetryRule retryRule = new RetryRule(3);
@@ -66,7 +67,7 @@ public class SlowTests extends DbTestBase {
     private void parallel_read_worker(int numMessages, int numGoodWorkers, int numBadWorkers)
             throws InterruptedException, IOException, NoSuchAlgorithmException, InvalidKeyException {
 
-        final TestClock testClock = new TestClock();
+        final TestClock testClock = getTestClock();
 
         @Cleanup("stop") SelfHostServer server = new SelfHostServer(
                 new InMemorySessionProvider(session),

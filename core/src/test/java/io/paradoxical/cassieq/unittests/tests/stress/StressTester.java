@@ -1,12 +1,16 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.stress;
 
+import categories.StressTests;
+import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.api.client.CassieqApi;
 import io.paradoxical.cassieq.model.GetMessageResponse;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.unittests.TestBase;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import retrofit.Response;
 
 import java.io.IOException;
@@ -18,6 +22,7 @@ import java.util.Random;
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
 @Ignore("Stress tests")
+@Category({ StressTests.class, VerySlowTests.class })
 public class StressTester extends TestBase {
     private static final Logger logger = getLogger(StressTester.class);
 

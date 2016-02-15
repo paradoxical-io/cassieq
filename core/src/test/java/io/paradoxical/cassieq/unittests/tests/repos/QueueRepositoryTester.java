@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.repos;
 
 import categories.BuildVerification;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
@@ -6,6 +6,8 @@ import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
+import io.paradoxical.cassieq.unittests.DbTestBase;
+import io.paradoxical.cassieq.unittests.TestQueueContext;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

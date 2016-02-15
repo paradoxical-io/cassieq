@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.repos;
 
 import categories.BuildVerification;
 import com.google.inject.Injector;
@@ -13,6 +13,8 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
+import io.paradoxical.cassieq.unittests.DbTestBase;
+import io.paradoxical.cassieq.unittests.TestQueueContext;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.junit.Test;

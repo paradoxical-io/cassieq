@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.api;
 
 import categories.BuildVerification;
 import com.squareup.okhttp.ResponseBody;
@@ -16,6 +16,7 @@ import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.unittests.server.AdminClient;
+import io.paradoxical.cassieq.unittests.tests.api.ApiTestsBase;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;

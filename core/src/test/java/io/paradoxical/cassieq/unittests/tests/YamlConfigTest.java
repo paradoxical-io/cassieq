@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests;
 
 import io.paradoxical.cassieq.unittests.server.TestService;
 import io.paradoxical.common.test.junit.RetryRule;
