@@ -5,8 +5,6 @@ import com.codahale.metrics.Timer;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
@@ -70,8 +68,8 @@ enum BucketScanResultAction {
     Stop
 }
 
-public class InvisLocatorImpl implements InvisLocator {
-    private Logger logger = getLogger(InvisLocatorImpl.class);
+public class PointerBasedInvisManager implements InvisStrategy {
+    private Logger logger = getLogger(PointerBasedInvisManager.class);
 
     private final Clock clock;
     private final MetricRegistry metricRegistry;
@@ -82,7 +80,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
 
     @Inject
-    public InvisLocatorImpl(
+    public PointerBasedInvisManager(
             DataContextFactory dataContextFactory,
             Clock clock,
             MetricRegistry metricRegistry,
@@ -100,12 +98,22 @@ public class InvisLocatorImpl implements InvisLocator {
     }
 
     @Override
-    public Optional<Message> tryConsumeNextVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
+    public Optional<Message> tryConsumeNextVisibleMessage(Duration invisiblity) {
         @Cleanup("close")
         @SuppressWarnings("unused")
+
         final Timer.Context timer = metricRegistry.timer(name("reader", "invisibility", "try-consume")).time();
 
-        return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
+        return findAndConsumeNextVisible(getCurrentInvisPointer(), currentReaderBucket, invisiblity);
+    }
+
+    @Override
+    public void onMessageConsumed(final Message message, final Duration invisiblity) {
+        // do nothing
+    }
+
+    private InvisibilityMessagePointer getCurrentInvisPointer() {
+        return dataContext.getPointerRepository().getCurrentInvisPointer();
     }
 
     /**
@@ -212,7 +220,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
             // a finalizer exists so this bucket is done but the messages are deleted
             // we can be safe to move on, since a delete can occur only if all were ack'd and its finalized
-            if(dataContext.getMessageRepository().finalizedExists(invisBucketPointer)) {
+            if (dataContext.getMessageRepository().finalizedExists(invisBucketPointer)) {
                 return InvisBucketProcessResult.nextBucket();
             }
 
