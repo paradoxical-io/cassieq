@@ -2,7 +2,6 @@ package io.paradoxical.cassieq.discoverable.auth;
 
 import com.godaddy.logging.Logger;
 import io.dropwizard.auth.Authenticator;
-import io.paradoxical.cassieq.discoverable.resources.api.v1.AuthLevelRequired;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import org.glassfish.jersey.server.model.AnnotatedMethod;
 

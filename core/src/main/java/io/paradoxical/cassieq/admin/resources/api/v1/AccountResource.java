@@ -4,9 +4,13 @@ import com.codahale.metrics.annotation.Timed;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.AccountRepository;
+import io.paradoxical.cassieq.exceptions.AccountNotFoundException;
+import io.paradoxical.cassieq.exceptions.ConflictException;
+import io.paradoxical.cassieq.exceptions.InternalSeverError;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
@@ -14,7 +18,6 @@ import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.KeyCreateRequest;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.validators.StringTypeValid;
-import io.paradoxical.cassieq.resources.api.BaseResource;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -41,7 +44,8 @@ import java.util.concurrent.Executors;
 @Path("/api/v1/accounts/")
 @Api(value = "/api/v1/accounts/", description = "Account api", tags = "accounts")
 @Produces(MediaType.APPLICATION_JSON)
-public class AccountResource extends BaseResource {
+@Consumes(MediaType.APPLICATION_JSON)
+public class AccountResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccountResource.class);
     private final DataContextFactory dataContextFactory;
@@ -73,16 +77,18 @@ public class AccountResource extends BaseResource {
             final Optional<AccountDefinition> accountCreated = accountRepository.createAccount(accountName);
 
             if (accountCreated.isPresent()) {
-                return Response.status(Response.Status.CREATED).entity(accountCreated.get()).build();
+                return Response.status(Response.Status.CREATED)
+                               .entity(accountCreated.get())
+                               .build();
             }
-
-            return Response.status(Response.Status.CONFLICT).build();
         }
         catch (Exception e) {
             logger.with(accountName).error(e, "Error creating account");
 
-            return buildErrorResponse("CreateAccount", null, e);
+            throw new InternalSeverError("CreateAccount", e);
         }
+
+        throw new ConflictException("CreateAccount", "An account named '%s' already exists", accountName);
     }
 
     @GET
@@ -91,7 +97,6 @@ public class AccountResource extends BaseResource {
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response getAccount() {
-
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
@@ -102,7 +107,7 @@ public class AccountResource extends BaseResource {
         catch (Exception e) {
             logger.error(e, "Error getting accounts");
 
-            return buildErrorResponse("ListAccount", null, e);
+            throw new InternalSeverError("ListAccount", e);
         }
     }
 
@@ -114,22 +119,9 @@ public class AccountResource extends BaseResource {
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response getAccount(@StringTypeValid @PathParam("accountName") AccountName accountName) {
 
-        try {
-            final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
+        final AccountDefinition accountDefinition = lookupAccount(accountName);
 
-            final Optional<AccountDefinition> account = accountRepository.getAccount(accountName);
-
-            if (!account.isPresent()) {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-
-            return Response.ok(account.get()).build();
-        }
-        catch (Exception e) {
-            logger.with("account-name", accountName).error(e, "Error getting account");
-
-            return buildErrorResponse("GetAccount", null, e);
-        }
+        return Response.ok(accountDefinition).build();
     }
 
     @DELETE
@@ -141,18 +133,12 @@ public class AccountResource extends BaseResource {
     public Response deleteAccountKey(
             @StringTypeValid @PathParam("accountName") AccountName accountName,
             @StringTypeValid @PathParam("keyName") KeyName keyName) {
+        final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
+
+        final AccountDefinition accountDefinition = lookupAccount(accountName);
+
         try {
-            final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
-
-            final Optional<AccountDefinition> account = accountRepository.getAccount(accountName);
-
-            if (!account.isPresent()) {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-
-            final AccountDefinition accountDefinition = account.get();
-
-            final HashMap<KeyName, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
+            final HashMap<KeyName, AccountKey> prunedKeys = Maps.newHashMap(accountDefinition.getKeys());
 
             prunedKeys.remove(keyName);
 
@@ -168,7 +154,7 @@ public class AccountResource extends BaseResource {
                   .with("key-name", keyName)
                   .error(e, "Error deleting account key");
 
-            return buildErrorResponse("RemoveAccountKey", null, e);
+            throw new InternalSeverError("RemoveAccountKey", e);
         }
     }
 
@@ -178,24 +164,19 @@ public class AccountResource extends BaseResource {
     @ApiOperation(value = "Add an account key")
     @ApiResponses(value = { @ApiResponse(code = 200, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
-    @Consumes(MediaType.TEXT_PLAIN)
     public Response addNewKey(
             @StringTypeValid @PathParam("accountName") AccountName accountName,
             @Valid KeyCreateRequest keyCreateRequest) {
+
+        final AccountDefinition accountDefinition = lookupAccount(accountName);
+
+        if (accountDefinition.getKeys().containsKey(keyCreateRequest.getKeyName())) {
+            throw new ConflictException("AddNewAccountKey",
+                                        "A key named '%s' already exists.", keyCreateRequest.getKeyName());
+        }
+
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
-
-            final Optional<AccountDefinition> account = accountRepository.getAccount(accountName);
-
-            if (!account.isPresent()) {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
-
-            final AccountDefinition accountDefinition = account.get();
-
-            if (accountDefinition.getKeys().containsKey(keyCreateRequest.getKeyName())) {
-                return buildConflictResponse("Key " + keyCreateRequest.getKeyName() + " already exists");
-            }
 
             final HashMap<KeyName, AccountKey> prunedKeys = new HashMap<>(accountDefinition.getKeys());
 
@@ -214,10 +195,9 @@ public class AccountResource extends BaseResource {
                   .with("key-request", keyCreateRequest)
                   .error(e, "Error creating account key");
 
-            return buildErrorResponse("AddAccountKey", null, e);
+            throw new InternalSeverError("AddAccountKey", e);
         }
     }
-
 
     @DELETE
     @Timed
@@ -226,14 +206,12 @@ public class AccountResource extends BaseResource {
     @ApiResponses(value = { @ApiResponse(code = 204, message = "Ok"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response deleteAccount(@StringTypeValid @PathParam("accountName") final AccountName accountName) {
+
+        lookupAccount(accountName);
+
         try {
             final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
 
-            final Optional<AccountDefinition> account = accountRepository.getAccount(accountName);
-
-            if (!account.isPresent()) {
-                return Response.status(Response.Status.NOT_FOUND).build();
-            }
 
             final QueueDeleter queueDeleter = queueDeletorFactory.create(accountName);
 
@@ -259,7 +237,21 @@ public class AccountResource extends BaseResource {
             logger.with("account-name", accountName)
                   .error(e, "Error deleting account");
 
-            return buildErrorResponse("DeleteAccount", null, e);
+            throw new InternalSeverError("DeleteAccount", e);
         }
+    }
+
+    private AccountDefinition lookupAccount(final @PathParam("accountName") AccountName accountName)
+            throws AccountNotFoundException {
+
+        final AccountRepository accountRepository = dataContextFactory.getAccountRepository();
+
+        final Optional<AccountDefinition> accountOption = accountRepository.getAccount(accountName);
+
+        if (!accountOption.isPresent()) {
+            throw new AccountNotFoundException("DeleteAccount", accountName);
+        }
+
+        return accountOption.get();
     }
 }

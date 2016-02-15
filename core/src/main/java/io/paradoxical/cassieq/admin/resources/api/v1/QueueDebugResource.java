@@ -40,7 +40,7 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 @Path("/api/v1/debug/accounts/{accountName}/queues")
-@Api(value = "/api/v1/debug/accounts/{accountName}/queues", description = "Queue diagnostic api", tags = {"cassieq", "debug"})
+@Api(value = "/api/v1/debug/accounts/{accountName}/queues", description = "Queue diagnostic api", tags = { "cassieq", "debug" })
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueDebugResource extends BaseQueueResource {
 
@@ -69,7 +69,6 @@ public class QueueDebugResource extends BaseQueueResource {
         final List<QueueDefinition> queues = getQueueRepository().getActiveQueues();
 
         return Response.ok(queues)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -86,23 +85,17 @@ public class QueueDebugResource extends BaseQueueResource {
             @PathParam("bucketPointer") Long bucketPointer,
             @QueryParam("onlyUnacked") @DefaultValue("false") Boolean onlyUnacked) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
-
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
         List<Message> messages = getMessageRepoFactory()
-                .forQueue(queueDefinition.get())
+                .forQueue(definition)
                 .getBucketContents(ReaderBucketPointer.valueOf(bucketPointer));
 
-        if(onlyUnacked){
+        if (onlyUnacked) {
             messages = messages.stream().filter(Message::isAcked).collect(toList());
         }
 
         return Response.ok(messages)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -118,16 +111,13 @@ public class QueueDebugResource extends BaseQueueResource {
             @PathParam("queueName") QueueName queueName,
             @QueryParam("onlyUnacked") @DefaultValue("false") Boolean onlyUnacked) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final QueueDataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
+        final QueueDataContext dataContext = dataContextFactory.forQueue(definition);
 
         List<Message> messages =
                 getMessageRepoFactory()
-                        .forQueue(queueDefinition.get())
+                        .forQueue(definition)
                         .getBucketContents(dataContext.getPointerRepository().getReaderCurrentBucket());
 
         if (onlyUnacked) {
@@ -135,7 +125,6 @@ public class QueueDebugResource extends BaseQueueResource {
         }
 
         return Response.ok(messages)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -151,15 +140,14 @@ public class QueueDebugResource extends BaseQueueResource {
             @PathParam("queueName") QueueName queueName,
             @PathParam("bucketPointer") Long bucketPointer) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final Optional<DateTime> tombstoneTime = getMessageRepoFactory().forQueue(queueDefinition.get()).tombstoneExists(ReaderBucketPointer.valueOf(bucketPointer));
+        final Optional<DateTime> tombstoneTime =
+                getMessageRepoFactory()
+                        .forQueue(definition)
+                        .tombstoneExists(ReaderBucketPointer.valueOf(bucketPointer));
 
         return Response.ok(tombstoneTime)
-                       .status(Response.Status.OK)
                        .build();
     }
 
@@ -175,19 +163,13 @@ public class QueueDebugResource extends BaseQueueResource {
             @PathParam("queueName") QueueName queueName,
             @PathParam("messagePointer") Long messagePointer) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final Message message = getMessageRepoFactory().forQueue(queueDefinition.get())
+        final Message message = getMessageRepoFactory().forQueue(definition)
                                                        .getMessage(MonotonicIndex.valueOf(messagePointer));
 
         return Response.ok(message)
-                       .status(Response.Status.OK)
                        .build();
-
-
     }
 
     @GET
@@ -201,18 +183,12 @@ public class QueueDebugResource extends BaseQueueResource {
     public Response getCurrentMonotonValue(
             @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(queueDefinition.get().getId());
+        final MonotonicRepository monotonicRepository = getMonotonicRepoFactory().forQueue(definition.getId());
 
         return Response.ok(monotonicRepository.getCurrent())
-                       .status(Response.Status.OK)
                        .build();
-
-
     }
 
     @GET
@@ -226,12 +202,9 @@ public class QueueDebugResource extends BaseQueueResource {
     public Response getPointers(
             @PathParam("queueName") QueueName queueName) {
 
-        final Optional<QueueDefinition> queueDefinition = getQueueDefinition(queueName);
-        if (!queueDefinition.isPresent()) {
-            return buildQueueNotFoundResponse(queueName);
-        }
+        final QueueDefinition definition = lookupQueueDefinition(queueName);
 
-        final QueueDataContext dataContext = dataContextFactory.forQueue(queueDefinition.get());
+        final QueueDataContext dataContext = dataContextFactory.forQueue(definition);
 
         final PointerRepository pointerRepository = dataContext.getPointerRepository();
 
@@ -239,20 +212,15 @@ public class QueueDebugResource extends BaseQueueResource {
         final ReaderBucketPointer readerCurrentBucket = pointerRepository.getReaderCurrentBucket();
         final RepairBucketPointer repairCurrentBucketPointer = pointerRepository.getRepairCurrentBucketPointer();
 
-        return Response.ok(
-                new Object() {
-                    @Getter
-                    private final InvisibilityMessagePointer currentInvisibilityPointer = currentInvisPointer;
+        return Response.ok(new Object() {
+            @Getter
+            private final InvisibilityMessagePointer currentInvisibilityPointer = currentInvisPointer;
 
-                    @Getter
-                    private final ReaderBucketPointer currentReaderBucket = readerCurrentBucket;
+            @Getter
+            private final ReaderBucketPointer currentReaderBucket = readerCurrentBucket;
 
-                    @Getter
-                    private final RepairBucketPointer currentRepairBucket = repairCurrentBucketPointer;
-                })
-                       .status(Response.Status.OK)
-                       .build();
-
-
+            @Getter
+            private final RepairBucketPointer currentRepairBucket = repairCurrentBucketPointer;
+        }).build();
     }
 }
