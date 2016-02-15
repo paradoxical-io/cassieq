@@ -41,23 +41,6 @@ function run_app(){
     exec ${cmd}
 }
 
-function bootstrap(){
-    java -jar /data/tools/cassandra-loader.jar \
-        -k ${KEYSPACE} \
-        -ip ${CONTACT_POINTS} \
-        -u ${USERNAME} \
-        -pw ${PASSWORD} \
-        -f /data/db \
-        "$@"
-}
-
 echo "Container service running with args: $@"
 
-case "$1" in
-    "bootstrap")
-        shift
-        bootstrap $@;;
-
-    *)
-        run_app $@;;
-esac
+run_app $@
