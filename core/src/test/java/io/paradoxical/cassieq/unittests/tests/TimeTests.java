@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests;
 
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import io.paradoxical.cassieq.unittests.time.TestExecutorService;

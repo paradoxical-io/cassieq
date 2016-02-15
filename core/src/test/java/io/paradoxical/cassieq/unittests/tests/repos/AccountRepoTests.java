@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.repos;
 
 import categories.BuildVerification;
 import com.google.common.collect.ImmutableMap;
@@ -8,6 +8,7 @@ import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.accounts.KeyName;
 import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
+import io.paradoxical.cassieq.unittests.DbTestBase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

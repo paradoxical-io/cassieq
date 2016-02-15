@@ -1,9 +1,12 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests;
 
+import categories.BuildVerification;
 import io.paradoxical.cassieq.clustering.eventing.EventBus;
 import io.paradoxical.cassieq.clustering.eventing.EventListener;
 import io.paradoxical.cassieq.model.events.QueueAddedEvent;
+import io.paradoxical.cassieq.unittests.TestBase;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static junit.framework.TestCase.fail;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(BuildVerification.class)
 public class EventBusTests extends TestBase {
     @Test
     public void events_register_and_consume() throws InterruptedException {

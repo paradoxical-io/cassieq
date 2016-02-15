@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.queueSemantics;
 
 import categories.BuildVerification;
 import com.google.inject.Injector;
@@ -6,6 +6,8 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MessageUpdateRequest;
+import io.paradoxical.cassieq.unittests.DbTestBase;
+import io.paradoxical.cassieq.unittests.TestQueueContext;
 import io.paradoxical.cassieq.unittests.time.TestClock;
 import org.joda.time.Duration;
 import org.junit.Before;

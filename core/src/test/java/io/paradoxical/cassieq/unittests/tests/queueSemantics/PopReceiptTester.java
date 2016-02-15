@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.queueSemantics;
 
 import categories.BuildVerification;
 import io.paradoxical.cassieq.model.Message;

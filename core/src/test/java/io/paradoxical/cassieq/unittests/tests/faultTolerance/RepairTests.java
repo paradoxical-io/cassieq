@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests;
+package io.paradoxical.cassieq.unittests.tests.faultTolerance;
 
 import categories.BuildVerification;
 import com.datastax.driver.core.Session;
@@ -22,9 +22,11 @@ import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
+import io.paradoxical.cassieq.unittests.DbTestBase;
 import io.paradoxical.cassieq.unittests.data.CqlDb;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
+import io.paradoxical.cassieq.unittests.modules.TestClockModule;
 import io.paradoxical.cassieq.unittests.server.SelfHostServer;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerImpl;
 import io.paradoxical.cassieq.workers.repair.RepairWorkerManager;
@@ -48,14 +50,22 @@ public class RepairTests extends DbTestBase {
     public void repair_manager_claims_workers() throws Exception {
         Session session = CqlDb.createFresh();
 
-        @Cleanup SelfHostServer server1 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule("repair_manager_claims_workers"));
-        @Cleanup SelfHostServer server2 = new SelfHostServer(new InMemorySessionProvider(session), new HazelcastTestModule("repair_manager_claims_workers"));
+        @Cleanup SelfHostServer server1 = new SelfHostServer(
+                new InMemorySessionProvider(session),
+                new HazelcastTestModule("repair_manager_claims_workers"),
+                new TestClockModule(getTestClock()));
+
+        @Cleanup SelfHostServer server2 = new SelfHostServer(
+                new InMemorySessionProvider(session),
+                new HazelcastTestModule("repair_manager_claims_workers"),
+                new TestClockModule(getTestClock()));
 
         server1.start();
 
         final QueueCreateOptions createOptions = fixture.manufacturePojo(QueueCreateOptions.class);
 
-        assertThat(server1.getClient(getTestAccountCredentials(server1.getService().getGuiceBundleProvider().getInjector())).createQueue(testAccountName, createOptions).execute().isSuccess()).isTrue();
+        assertThat(server1.getClient(getTestAccountCredentials(server1.getService().getGuiceBundleProvider().getInjector()))
+                          .createQueue(testAccountName, createOptions).execute().isSuccess()).isTrue();
 
         final Injector server1Injector = server1.getService().getGuiceBundleProvider().getBundle().getInjector();
         ensureTestAccountCreated(server1Injector);
