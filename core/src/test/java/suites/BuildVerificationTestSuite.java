@@ -12,7 +12,7 @@ import org.junit.runners.Suite;
 @Categories.IncludeCategory(BuildVerification.class)
 @Categories.ExcludeCategory(VerySlowTests.class)
 @Suite.SuiteClasses({
-    ApiTester.class,
+    StandardApiTests.class,
     MessageRepositoryTester.class,
     PopReceiptTester.class,
     QueueDeleterTests.class,
@@ -20,7 +20,8 @@ import org.junit.runners.Suite;
     RepairTests.class,
     TimeTests.class,
     YamlConfigTest.class,
-    QueueRepositoryTester.class
+    QueueRepositoryTester.class,
+    ApiAuthenticationTests.class
 })
 public class BuildVerificationTestSuite {
 }
