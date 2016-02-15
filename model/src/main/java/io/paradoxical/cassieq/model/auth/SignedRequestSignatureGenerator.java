@@ -5,6 +5,7 @@ import io.paradoxical.cassieq.model.accounts.AccountName;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
+import org.joda.time.DateTime;
 
 import javax.validation.constraints.NotNull;
 
@@ -25,11 +26,15 @@ public class SignedRequestSignatureGenerator extends SignatureGenerator {
     @NotNull
     private final String requestPath;
 
+    @NonNull
+    @NotNull
+    private final DateTime requestTime;
+
     @Override
     public String getStringToSign() {
 
         return SignedStringComponentJoiner
-                .join(accountName.get(), requestMethod, canonicalizeRequestPath(requestPath));
+                .join(accountName.get(), requestMethod, canonicalizeRequestPath(requestPath), formatDateTime(requestTime));
     }
 
     private static String canonicalizeRequestPath(final String requestPath) {

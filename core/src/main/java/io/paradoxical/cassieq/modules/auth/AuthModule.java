@@ -4,6 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.governator.guice.lazy.LazySingleton;
 import io.dropwizard.auth.Authenticator;
+import io.paradoxical.cassieq.ServiceConfiguration;
 import io.paradoxical.cassieq.discoverable.auth.AccountPrincipal;
 import io.paradoxical.cassieq.discoverable.auth.AuthorizedRequestCredentials;
 import io.paradoxical.cassieq.discoverable.auth.SignedRequestAuthenticator;
@@ -18,7 +19,8 @@ public class AuthModule extends AbstractModule {
     @LazySingleton
     public Authenticator<AuthorizedRequestCredentials, AccountPrincipal> getAuthenticator(
             DataContextFactory dataContextFactory,
-            Clock clock) {
-        return new SignedRequestAuthenticator(dataContextFactory, clock);
+            Clock clock,
+            ServiceConfiguration serviceConfiguration) {
+        return new SignedRequestAuthenticator(dataContextFactory, clock, serviceConfiguration.getAuthConfig());
     }
 }
