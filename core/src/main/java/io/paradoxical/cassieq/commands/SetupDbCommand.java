@@ -37,7 +37,7 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
                  .dest("password")
                  .help("Cassandra DB password");
 
-        subparser.addArgument("-c", "--createKeyspace")
+        subparser.addArgument("--dontCreateKeyspace")
                  .dest("shouldCreateKeyspace")
                  .action(Arguments.storeFalse())
                  .setDefault(true)
@@ -53,20 +53,24 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
                  .type(Integer.class)
                  .help("The port to connect to cassandra on");
 
-        subparser.addArgument("-v", "--databaseVersino")
-                 .dest("databaseVersino")
+        subparser.addArgument("-v", "--databaseVersion")
+                 .dest("databaseVersion")
                  .type(Integer.class)
+                 .setDefault(0)
                  .help("The database version");
 
         subparser.addArgument("--recreate")
-                .dest("recreateKeyspace")
-                .action(Arguments.storeTrue())
-                .help("weather or not to recreate the keyspace");
+                 .dest("recreateKeyspace")
+                 .action(Arguments.storeTrue())
+                 .help("weather or not to recreate the keyspace");
 
     }
 
     @Override
-    protected void run(final Bootstrap<ServiceConfiguration> bootstrap, final Namespace namespace, final ServiceConfiguration configuration) throws Exception {
+    protected void run(
+            final Bootstrap<ServiceConfiguration> bootstrap,
+            final Namespace namespace,
+            final ServiceConfiguration configuration) throws Exception {
         DbRunnerConfig dbRunnerConfig = getDbRunnerConfig(namespace);
 
         if (dbRunnerConfig.getRecreateDatabase()) {
@@ -90,7 +94,7 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
                        .password(password != null ? password : "")
                        .createKeyspace(namespace.getBoolean("shouldCreateKeyspace"))
                        .keyspace(namespace.getString("keyspace"))
-//                       .dbVersion(namespace.getInt("databaseVersion"))
+                       .dbVersion(namespace.getInt("databaseVersion"))
                        .filePath("/data/db")
                        .recreateDatabase(namespace.getBoolean("recreateKeyspace"));
 
