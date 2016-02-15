@@ -1,43 +1,53 @@
 package io.paradoxical.cassieq.api.client;
 
-import com.godaddy.logging.Logger;
 import com.google.common.base.Splitter;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.Request;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.MacProviders;
+import io.paradoxical.cassieq.model.auth.SignatureGenerator;
 import io.paradoxical.cassieq.model.auth.SignedRequestSignatureGenerator;
-import org.joda.time.DateTime;
+import io.paradoxical.cassieq.model.auth.StandardAuthHeaders;
+import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.model.time.JodaDefaultClock;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.Instant;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-
-import static com.godaddy.logging.LoggerFactory.getLogger;
 
 @FunctionalInterface
 public interface CassieqCredentials {
-    static CassieqCredentials key(final AccountName accountName, final AccountKey accountKey) throws NoSuchAlgorithmException, InvalidKeyException {
-        final Logger logger = getLogger(CassieqCredentials.class);
 
-        final DateTimeFormatter dateTimeFormatter = ISODateTimeFormat.dateTime();
+    static CassieqCredentials key(
+            final AccountName accountName,
+            final AccountKey accountKey) {
+        return key(accountName, accountKey, new JodaDefaultClock());
+    }
+
+    static CassieqCredentials key(
+            final AccountName accountName,
+            final AccountKey accountKey,
+            final Clock requestClock) {
 
         return request -> {
-            final DateTime utcNow = DateTime.now(DateTimeZone.UTC);
+
+            final Instant now = requestClock.now();
 
             final SignedRequestSignatureGenerator requestParameters =
-                    new SignedRequestSignatureGenerator(accountName, request.method(), request.url().getPath());
-
+                    new SignedRequestSignatureGenerator(
+                            accountName,
+                            request.method(),
+                            request.url().getPath(),
+                            now.toDateTime(DateTimeZone.UTC));
 
             final String signature = requestParameters.computeSignature(MacProviders.HmacSha256(accountKey));
 
+            final String requestTime = SignatureGenerator.formatDateTime(now);
+
             return request.newBuilder()
                           .header("Authorization", "Signed " + signature)
-                          .header("x-cassieq-request-time", utcNow.toString(dateTimeFormatter))
+                          .header(StandardAuthHeaders.RequestTime.getHeaderName(), requestTime)
                           .build();
         };
     }
