@@ -182,7 +182,6 @@ public class StandardApiTests extends ApiTestsBase {
     }
 
     @Test(timeout = 30000)
-    @Category(VerySlowTests.class)
     public void test_invis_like_crazy() throws Exception {
         final QueueName queueName = QueueName.valueOf("test");
 

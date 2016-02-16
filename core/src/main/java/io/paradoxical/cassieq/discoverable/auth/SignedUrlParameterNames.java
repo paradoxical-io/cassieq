@@ -2,15 +2,12 @@ package io.paradoxical.cassieq.discoverable.auth;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
-import com.google.common.escape.Escaper;
-import com.google.common.net.UrlEscapers;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignatureGenerator;
 import io.paradoxical.cassieq.model.auth.SignedUrlSignatureGenerator;
 import lombok.Getter;
 import lombok.NonNull;
-import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nonnull;

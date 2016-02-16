@@ -11,7 +11,7 @@ import javax.annotation.Nonnull;
 import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
 
-public interface RequestParameters {
+public interface RequestAuthParameters {
     AccountName getAccountName();
 
     EnumSet<AuthorizationLevel> getAuthorizationLevels();

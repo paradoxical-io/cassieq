@@ -25,9 +25,9 @@ import static com.godaddy.logging.LoggerFactory.getLogger;
 @EqualsAndHashCode(callSuper = false)
 @Value
 @Builder
-public class SignedUrlParameters extends SignedParametersBase implements RequestParameters {
+public class SignedUrlAuthParameters extends SignedAuthParametersBase implements RequestAuthParameters {
 
-    private static final Logger logger = getLogger(SignedUrlParameters.class);
+    private static final Logger logger = getLogger(SignedUrlAuthParameters.class);
 
     @NonNull
     @NotNull
@@ -55,9 +55,8 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
 
     @Override
     public boolean verify(final VerificationContext context) {
-        final boolean verified = super.verify(context);
 
-        return verified &&
+        return super.verify(context) &&
                requestInAllowedTimeFrame(context) &&
                queueAllowed(context);
 

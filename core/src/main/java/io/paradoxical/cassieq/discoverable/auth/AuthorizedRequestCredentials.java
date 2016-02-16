@@ -4,9 +4,11 @@ import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
 import io.paradoxical.cassieq.model.accounts.AccountName;
+import io.paradoxical.cassieq.model.time.Clock;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
+import org.joda.time.Duration;
 
 import javax.validation.constraints.NotNull;
 import java.util.Optional;
@@ -29,18 +31,19 @@ public class AuthorizedRequestCredentials {
 
     @NotNull
     @NonNull
-    private final RequestParameters requestParameters;
+    private final RequestAuthParameters requestAuthParameters;
 
     public boolean verify(final CredentialsVerificationContext credentialsVerificationContext) throws Exception {
 
+        final Clock clock = credentialsVerificationContext.getClock();
+        final Duration allowedClockSkew = credentialsVerificationContext.getAllowedClockSkew();
+
         for (AccountKey key : credentialsVerificationContext.getKeys()) {
 
-            if (requestParameters.verify(
-                    new VerificationContext(
-                            key,
-                            credentialsVerificationContext.getClock(),
-                            queueName,
-                            credentialsVerificationContext.getAllowedClockSkew()))) {
+            final VerificationContext verificationContext =
+                    new VerificationContext(accountName, key, clock, queueName, allowedClockSkew);
+
+            if (requestAuthParameters.verify(verificationContext)) {
                 return true;
             }
         }
