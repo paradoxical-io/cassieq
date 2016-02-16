@@ -111,8 +111,4 @@ public class DefaultMessageConsumer implements MessageConsumer {
     private boolean ackMessage(final Message message) {
         return messageRepository.ackMessage(message);
     }
-
-    public interface Factory {
-        MessageConsumer forQueue(QueueDefinition queueDefinition);
-    }
 }
