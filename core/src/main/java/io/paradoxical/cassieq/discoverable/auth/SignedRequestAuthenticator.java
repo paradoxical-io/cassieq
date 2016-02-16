@@ -34,24 +34,26 @@ public class SignedRequestAuthenticator implements Authenticator<AuthorizedReque
 
     @Override
     public Optional<AccountPrincipal> authenticate(final AuthorizedRequestCredentials credentials) throws AuthenticationException {
-        final RequestParameters requestParameters = credentials.getRequestParameters();
+        final RequestAuthParameters requestAuthParameters = credentials.getRequestAuthParameters();
 
-        final java.util.Optional<AccountDefinition> account = accountRepository.getAccount(requestParameters.getAccountName());
+        final java.util.Optional<AccountDefinition> account = accountRepository.getAccount(requestAuthParameters.getAccountName());
 
         if (account.isPresent()) {
+
+            final Duration allowedClockSkew = Duration.millis(authConfig.getAllowedClockSkew().toMilliseconds());
 
             final CredentialsVerificationContext credentialsVerificationContext =
                     new CredentialsVerificationContext(
                             account.get().getKeys().values(),
                             clock,
-                            Duration.millis(authConfig.getAllowedClockSkew().toMilliseconds()));
+                            allowedClockSkew);
 
             try {
                 if (credentials.verify(credentialsVerificationContext)) {
                     final AccountPrincipal accountPrincipal =
                             new AccountPrincipal(
-                                    requestParameters.getAccountName(),
-                                    requestParameters.getAuthorizationLevels());
+                                    requestAuthParameters.getAccountName(),
+                                    requestAuthParameters.getAuthorizationLevels());
 
                     return Optional.of(accountPrincipal);
                 }

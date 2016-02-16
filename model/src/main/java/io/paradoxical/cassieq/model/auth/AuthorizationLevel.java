@@ -8,7 +8,11 @@ import com.google.common.collect.ImmutableSet;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 
@@ -22,8 +26,14 @@ public enum AuthorizationLevel {
     CreateQueue("c"),
     DeleteQueue("d");
 
-    public static final EnumSet<AuthorizationLevel> All =
-            EnumSet.of(ReadMessage, PutMessage, UpdateMessage, AckMessage, GetQueueInformation, CreateQueue, DeleteQueue);
+    public static final EnumSet<AuthorizationLevel> All = buildAllLevelSet();
+
+    private static EnumSet<AuthorizationLevel> buildAllLevelSet() {
+        final EnumSet<AuthorizationLevel> allLevels = EnumSet.copyOf(Arrays.asList(values()));
+        allLevels.remove(None);
+
+        return allLevels;
+    }
 
     private static final Splitter parseSplitter = Splitter.fixedLength(1);
 

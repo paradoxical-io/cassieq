@@ -10,9 +10,9 @@ import javax.crypto.Mac;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 
-public abstract class SignedParametersBase implements RequestParameters {
+public abstract class SignedAuthParametersBase implements RequestAuthParameters {
 
-    private static final Logger logger = getLogger(SignedParametersBase.class);
+    private static final Logger logger = getLogger(SignedAuthParametersBase.class);
 
     @Override
     public boolean verify(final VerificationContext context)  {

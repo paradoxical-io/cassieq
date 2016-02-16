@@ -2,6 +2,7 @@ package io.paradoxical.cassieq.discoverable.auth;
 
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountKey;
+import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.time.Clock;
 import lombok.NonNull;
 import lombok.Value;
@@ -14,6 +15,10 @@ import java.util.Optional;
 
 @Value
 public class VerificationContext {
+
+    @NotNull
+    @NonNull
+    private final AccountName accountName;
 
     @NotNull
     @NonNull
