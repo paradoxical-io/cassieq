@@ -65,7 +65,7 @@ public class SignedUrlParameters extends SignedParametersBase implements Request
 
     private boolean queueAllowed(final VerificationContext context) {
         return !queueName.isPresent() || // no queue restriction
-    context.getQueueName().equals(queueName);
+               context.getQueueName().equals(queueName);
     }
 
     private boolean requestInAllowedTimeFrame(final VerificationContext context) {

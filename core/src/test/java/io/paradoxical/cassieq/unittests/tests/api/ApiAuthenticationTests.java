@@ -348,4 +348,40 @@ public class ApiAuthenticationTests extends ApiTestsBase {
         // unauthenticated since key was revoked
         assertThat(usingOldCreds.code()).isEqualTo(401);
     }
+
+    @Test
+    public void test_query_auth_with_no_queue_info_does_not_restricts() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+        final AdminClient adminClient = AdminClient.createClient(server.getAdminuri().toString());
+
+        final AccountName accountName = AccountName.valueOf("test_query_auth_with_no_queue_info_does_not_restricts");
+        final QueueName queueName = QueueName.valueOf("test_query_auth_with_no_queue_info_does_not_restricts");
+
+        final Response<AccountDefinition> createAccount = adminClient.createAccount(accountName).execute();
+        final AccountKey accountKey = createAccount.body().getKeys().get(WellKnownKeyNames.Primary.getKeyName());
+
+        final CassieqApi fullAccessClient = CassieqApi.createClient(server.getBaseUri(), CassieqCredentials.key(accountName, accountKey));
+
+        // make both queues exist
+        fullAccessClient.createQueue(accountName, new QueueCreateOptions(queueName)).execute();
+
+        final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
+                GetAuthQueryParamsRequest.builder()
+                                         .accountName(accountName)
+                                         .keyName(WellKnownKeyNames.Primary)
+                                         .level(AuthorizationLevel.PutMessage)
+                                         .build();
+
+        final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
+
+        final String queryParam = result.getQueryParam();
+
+        final CassieqApi authedClient =
+                CassieqApi.createClient(server.getBaseUri(),
+                                        CassieqCredentials.signedQueryString(queryParam));
+
+        final Response<ResponseBody> goodRequestIsAuthorized =
+                authedClient.addMessage(accountName, queueName, "Hello queue").execute();
+
+        assertThat(goodRequestIsAuthorized.isSuccess()).isTrue();
+    }
 }
