@@ -118,7 +118,9 @@ public class ReaderImpl implements Reader {
         if (nowVisibleMessage.isPresent()) {
             logger.with(nowVisibleMessage.get()).info("Got newly visible message");
 
-            final Optional<Message> consumedMessage = tryConsume(nowVisibleMessage, invisibility);
+            final ConsumableMessage message = new ConsumableMessage(nowVisibleMessage.get(), invisibility, Source.InvisStrategy);
+
+            final Optional<Message> consumedMessage = tryConsume(message);
 
             if (consumedMessage.isPresent()) {
                 metricRegistry.counter(name("reader", "revived", "messages")).inc();
@@ -178,7 +180,9 @@ public class ReaderImpl implements Reader {
                 return Optional.empty();
             }
 
-            Optional<Message> consumedMessage = tryConsume(foundMessage, invisiblity);
+            final ConsumableMessage consumableMessage = new ConsumableMessage(foundMessage.get(), invisiblity, Source.Reader);
+
+            Optional<Message> consumedMessage = tryConsume(consumableMessage);
 
             if (consumedMessage.isPresent()) {
                 return consumedMessage;
@@ -188,14 +192,12 @@ public class ReaderImpl implements Reader {
         }
     }
 
-    private Optional<Message> tryConsume(final Optional<Message> foundMessage, Duration invisiblity) {
-        final Message visibleMessage = foundMessage.get();
-
-        final Optional<Message> consumedMessage = messageConsumer.tryConsume(visibleMessage, invisiblity);
+    private Optional<Message> tryConsume(ConsumableMessage message) {
+        final Optional<Message> consumedMessage = messageConsumer.tryConsume(message);
 
         if (!consumedMessage.isPresent()) {
             // someone else did it, fuck it, try again for the next visibleMessage
-            logger.with(visibleMessage).trace("Someone else consumed the visibleMessage!");
+            logger.with(message).trace("Someone else consumed the visibleMessage!");
 
             return Optional.empty();
         }

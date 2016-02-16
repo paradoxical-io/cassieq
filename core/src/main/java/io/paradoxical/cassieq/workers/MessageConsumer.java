@@ -2,12 +2,12 @@ package io.paradoxical.cassieq.workers;
 
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueDefinition;
-import org.joda.time.Duration;
+import io.paradoxical.cassieq.workers.reader.ConsumableMessage;
 
 import java.util.Optional;
 
 public interface MessageConsumer {
-    Optional<Message> tryConsume(Message message, Duration invisiblity);
+    Optional<Message> tryConsume(ConsumableMessage message);
 
     interface Factory {
         MessageConsumer forQueue(QueueDefinition queueDefinition);

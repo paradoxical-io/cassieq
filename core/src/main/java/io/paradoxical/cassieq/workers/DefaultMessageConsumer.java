@@ -9,8 +9,8 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.workers.reader.ConsumableMessage;
 import io.paradoxical.cassieq.workers.reader.InvisStrategy;
-import org.joda.time.Duration;
 
 import java.util.Optional;
 
@@ -49,19 +49,18 @@ public class DefaultMessageConsumer implements MessageConsumer {
      * Consumes with business logic
      *
      * @param message
-     * @param invisiblity
      * @return
      */
     @Override
-    public Optional<Message> tryConsume(Message message, Duration invisiblity) {
-        if (!messageConsumable(message)) {
+    public Optional<Message> tryConsume(ConsumableMessage message) {
+        if (!messageConsumable(message.getMessage())) {
             return Optional.empty();
         }
 
-        final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(message, invisiblity);
+        final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(message.getMessage(), message.getInvisibility());
 
-        if(consumeMessage.isPresent()){
-            invisStrategy.trackConsumedMessage(consumeMessage.get());
+        if (consumeMessage.isPresent()) {
+            invisStrategy.trackConsumedMessage(message.toBuilder().message(consumeMessage.get()).build());
         }
 
         return consumeMessage;
