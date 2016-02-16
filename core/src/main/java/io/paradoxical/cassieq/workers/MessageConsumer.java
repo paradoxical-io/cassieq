@@ -60,7 +60,7 @@ public class MessageConsumer {
         final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(message, invisiblity);
 
         if(consumeMessage.isPresent()){
-            invisStrategy.trackConsumedMessage(consumeMessage.get(), invisiblity);
+            invisStrategy.trackConsumedMessage(consumeMessage.get());
         }
 
         return consumeMessage;

@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface InvisStrategy {
     Optional<Message> findNextVisibleMessage(Duration invisiblity);
 
-    void trackConsumedMessage(Message message, Duration invisiblity);
+    void trackConsumedMessage(Message message);
 
     interface Factory {
         InvisStrategy forQueue(QueueDefinition definition);
