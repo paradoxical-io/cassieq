@@ -16,6 +16,7 @@ import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.workers.DefaultMessageConsumer;
 import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import org.joda.time.Duration;
@@ -49,7 +50,7 @@ public class ReaderImpl implements Reader {
             DataContextFactory dataContextFactory,
             Clock clock,
             MetricRegistry metricRegistry,
-            MessageConsumer.Factory messageConsumerFactory,
+            DefaultMessageConsumer.Factory messageConsumerFactory,
             InvisStrategy.Factory invisStrategyFactory,
             @Assisted AccountName accountName,
             @Assisted QueueDefinition queueDefinition) {

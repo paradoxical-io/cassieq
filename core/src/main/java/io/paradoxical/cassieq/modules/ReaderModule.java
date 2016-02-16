@@ -3,7 +3,7 @@ package io.paradoxical.cassieq.modules;
 import com.google.inject.AbstractModule;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import io.paradoxical.cassieq.factories.ReaderFactory;
-import io.paradoxical.cassieq.workers.MessageConsumer;
+import io.paradoxical.cassieq.workers.DefaultMessageConsumer;
 import io.paradoxical.cassieq.workers.reader.InvisStrategy;
 import io.paradoxical.cassieq.workers.reader.PointerBasedInvisStrategy;
 import io.paradoxical.cassieq.workers.reader.Reader;
@@ -21,8 +21,8 @@ public class ReaderModule extends AbstractModule {
                         .build(InvisStrategy.Factory.class));
 
         install(new FactoryModuleBuilder()
-                        .implement(MessageConsumer.class, MessageConsumer.class)
-                        .build(MessageConsumer.Factory.class));
+                        .implement(DefaultMessageConsumer.class, DefaultMessageConsumer.class)
+                        .build(DefaultMessageConsumer.Factory.class));
     }
 }
 

@@ -15,6 +15,7 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
+import io.paradoxical.cassieq.workers.DefaultMessageConsumer;
 import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import lombok.Data;
@@ -83,7 +84,7 @@ public class PointerBasedInvisStrategy implements InvisStrategy {
     public PointerBasedInvisStrategy(
             DataContextFactory dataContextFactory,
             Clock clock,
-            MessageConsumer.Factory messageConsumer,
+            DefaultMessageConsumer.Factory messageConsumer,
             MetricRegistry metricRegistry,
             @Assisted QueueDefinition queueDefinition) {
         this.clock = clock;
