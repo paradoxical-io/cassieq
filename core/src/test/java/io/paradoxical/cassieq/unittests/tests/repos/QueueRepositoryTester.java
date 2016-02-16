@@ -33,6 +33,7 @@ public class QueueRepositoryTester extends DbTestBase {
     @Test
     public void queue_size_grows_and_shrinks() throws Exception {
         final QueueName queueName = QueueName.valueOf("queue_size_grows_and_shrinks");
+
         final TestQueueContext testContext = createTestQueueContext(queueName);
 
         int numMessages = 10;
@@ -49,14 +50,14 @@ public class QueueRepositoryTester extends DbTestBase {
 
         int ackCount = 0;
         for (int i = numMessages - 1; i >= 0; i--) {
-            ackCount++;
 
-            testContext.readAndAckMessage(Integer.valueOf(i).toString());
+            testContext.readAndAckMessage(Integer.valueOf(ackCount).toString());
 
             final Optional<Long> newQueueSize = queueRepository.getQueueSize(testContext.getQueueDefinition());
 
-            assertThat(newQueueSize.get()).isEqualTo(numMessages - ackCount);
+            ackCount++;
 
+            assertThat(newQueueSize.get()).isEqualTo(numMessages - ackCount);
         }
 
         queueSize = queueRepository.getQueueSize(testContext.getQueueDefinition());

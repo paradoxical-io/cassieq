@@ -24,6 +24,11 @@ public class QueueDefinition {
     private final QueueStatsId queueStatsId;
     private final Optional<QueueName> dlqName;
 
+    /**
+     * Allow reading a queue's bucket messages in random order. Helps prevent reader collision
+     */
+    private final Boolean allowRandomBucketReading;
+
     public QueueId getId() {
         return QueueId.valueOf(accountName, queueName, version);
     }
@@ -39,7 +44,8 @@ public class QueueDefinition {
             final Integer repairWorkerTombstonedBucketTimeoutSeconds,
             final Boolean deleteBucketsAfterFinalization,
             final QueueStatsId queueStatsId,
-            final Optional<QueueName> dlqName) {
+            final Optional<QueueName> dlqName,
+            final Boolean allowRandomBucketReading) {
         this.accountName = accountName;
         this.queueName = queueName;
         this.queueStatsId = queueStatsId;
@@ -51,6 +57,7 @@ public class QueueDefinition {
         this.status = status == null ? QueueStatus.Active : status;
         this.repairWorkerPollFrequencySeconds = repairWorkerPollFrequencySeconds == null ? 5 : repairWorkerPollFrequencySeconds;
         this.repairWorkerTombstonedBucketTimeoutSeconds = repairWorkerTombstonedBucketTimeoutSeconds == null ? 15 : repairWorkerTombstonedBucketTimeoutSeconds;
+        this.allowRandomBucketReading = allowRandomBucketReading == null ? false : allowRandomBucketReading;
     }
 
     public static QueueDefinition fromRow(final Row row) {
@@ -65,6 +72,7 @@ public class QueueDefinition {
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
                               .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
+                              .allowRandomBucketReading(row.getBool(Tables.Queue.ALLOW_RANDOM_BUCKET_READING))
                               .dlqName(getDlqName(row))
                               .build();
     }

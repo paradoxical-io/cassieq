@@ -103,7 +103,7 @@ public class ReaderTester extends DbTestBase {
 
         // reader skipped all the invis and tombstoned the
         // buckets
-        testContext.readAndAckMessage("4 (new bucket");
+        testContext.readAndAckMessage("4 (new bucket)");
         testContext.readAndAckMessage("5");
 
         assertThat(testContext.readNextMessage(10)).isEmpty();
@@ -214,7 +214,7 @@ public class ReaderTester extends DbTestBase {
 
         final TestClock testClock = getTestClock();
 
-        testContext.readAndAckMessage("message 1", 1L);
+        testContext.readAndAckMessage("ok", 1L);
 
         testClock.tickSeconds(1L);
 

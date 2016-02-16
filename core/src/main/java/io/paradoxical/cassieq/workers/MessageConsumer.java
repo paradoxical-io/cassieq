@@ -9,6 +9,7 @@ import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.QueueDefinition;
+import io.paradoxical.cassieq.workers.reader.InvisStrategy;
 import org.joda.time.Duration;
 
 import java.util.Optional;
@@ -24,15 +25,20 @@ public class MessageConsumer {
 
     private final MessageRepository messageRepository;
 
+    private final InvisStrategy invisStrategy;
+
     @Inject
     public MessageConsumer(
             MessageRepoFactory messageRepoFactory,
             MessagePublisher messagePublisher,
+            InvisStrategy.Factory invisStrategyFactory,
             DataContextFactory dataContextFactory,
             @Assisted QueueDefinition definition) {
         this.messagePublisher = messagePublisher;
         this.dataContextFactory = dataContextFactory;
         messageRepository = messageRepoFactory.forQueue(definition);
+
+        invisStrategy = invisStrategyFactory.forQueue(definition);
 
         this.queueDefinition = definition;
 
@@ -51,7 +57,13 @@ public class MessageConsumer {
             return Optional.empty();
         }
 
-        return messageRepository.rawConsumeMessage(message, invisiblity);
+        final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(message, invisiblity);
+
+        if(consumeMessage.isPresent()){
+            invisStrategy.trackConsumedMessage(consumeMessage.get(), invisiblity);
+        }
+
+        return consumeMessage;
     }
 
     /**

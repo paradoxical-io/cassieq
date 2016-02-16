@@ -180,6 +180,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .value(Tables.Queue.QUEUE_STATS_ID, getUniqueQueueCounterId(initDefinition.getId()).get())
                             .value(Tables.Queue.MAX_DELIVERY_COUNT, initDefinition.getMaxDeliveryCount())
                             .value(Tables.Queue.DLQ_NAME, initDefinition.getDlqName().map(QueueName::get).orElse(null))
+                            .value(Tables.Queue.ALLOW_RANDOM_BUCKET_READING, initDefinition.getAllowRandomBucketReading())
                             .value(Tables.Queue.STATUS, QueueStatus.Provisioning.ordinal());
 
         final boolean queueInserted = session.execute(insertQueue).wasApplied();
@@ -260,6 +261,7 @@ public class QueueRepositoryImpl extends RepositoryBase implements QueueReposito
                             .and(set(Tables.Queue.MAX_DELIVERY_COUNT, nextQueueDefinition.getMaxDeliveryCount()))
                             .and(set(Tables.Queue.QUEUE_STATS_ID, newQueueCounterId.get()))
                             .and(set(Tables.Queue.DLQ_NAME, nextQueueDefinition.getDlqName().map(QueueName::get).orElse(null)))
+                            .and(set(Tables.Queue.ALLOW_RANDOM_BUCKET_READING, nextQueueDefinition.getAllowRandomBucketReading()))
                             .onlyIf(eq(Tables.Queue.VERSION, currentVersion))
                             .and(gte(Tables.Queue.STATUS, QueueStatus.Deleting.ordinal()));
 

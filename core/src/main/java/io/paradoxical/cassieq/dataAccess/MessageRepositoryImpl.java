@@ -107,7 +107,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
                                                 .and(eq(Tables.Message.ACKED, false));
 
         if (session.execute(statement).wasApplied()) {
-            return Optional.of(message.withNewVersion(newVersion));
+            return Optional.of(message.toBuilder().version(newVersion).build());
         }
 
         return Optional.empty();
@@ -136,7 +136,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
 
         final boolean wasApplied = resultSet.wasApplied();
 
-        if(wasApplied) {
+        if (wasApplied) {
             updateQueueSize(-1);
         }
 
@@ -256,7 +256,7 @@ public class MessageRepositoryImpl extends RepositoryBase implements MessageRepo
         return session.execute(statement).wasApplied();
     }
 
-    private void updateQueueSize(int amount){
+    private void updateQueueSize(int amount) {
         final Statement with = QueryBuilder.update(Tables.QueueStats.TABLE_NAME)
                                            .where(eq(Tables.QueueStats.QUEUE_STATS_ID, queueDefinition.getQueueStatsId().get()))
                                            .with(incr(Tables.QueueStats.SIZE, amount));

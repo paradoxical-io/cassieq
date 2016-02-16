@@ -6,12 +6,9 @@ import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
-import io.paradoxical.cassieq.factories.InvisLocaterFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
-import io.paradoxical.cassieq.model.InvisibilityMessagePointer;
 import io.paradoxical.cassieq.model.Message;
 import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.PopReceipt;
@@ -42,7 +39,7 @@ public class ReaderImpl implements Reader {
     private static final Random random = new Random();
     private final Clock clock;
     private final MetricRegistry metricRegistry;
-    private final InvisLocaterFactory invisLocaterFactory;
+    private final InvisStrategy.Factory invisStrategyFactory;
     private final QueueDefinition queueDefinition;
     private final MessageConsumer messageConsumer;
     private final Supplier<Timer.Context> timerSupplier;
@@ -53,13 +50,13 @@ public class ReaderImpl implements Reader {
             Clock clock,
             MetricRegistry metricRegistry,
             MessageConsumer.Factory messageConsumerFactory,
-            InvisLocaterFactory invisLocaterFactory,
+            InvisStrategy.Factory invisStrategyFactory,
             @Assisted AccountName accountName,
             @Assisted QueueDefinition queueDefinition) {
         this.dataContextFactory = dataContextFactory;
         this.clock = clock;
         this.metricRegistry = metricRegistry;
-        this.invisLocaterFactory = invisLocaterFactory;
+        this.invisStrategyFactory = invisStrategyFactory;
         messageConsumer = messageConsumerFactory.forQueue(queueDefinition);
         this.queueDefinition = queueDefinition;
 
@@ -82,15 +79,22 @@ public class ReaderImpl implements Reader {
         @Cleanup("stop")
         final Timer.Context readerTimer = timerSupplier.get();
 
-        final Optional<Message> nowVisibleMessage = invisLocaterFactory.forQueue(queueDefinition)
-                                                                       .tryConsumeNextVisibleMessage(getCurrentInvisPointer(), invisibility);
+        final Optional<Message> nowVisibleMessage = getNewlyVisible(invisibility);
 
         if (nowVisibleMessage.isPresent()) {
-            logger.with(nowVisibleMessage.get()).info("Got newly visible message");
-
             return nowVisibleMessage;
         }
 
+        return getNext(invisibility);
+    }
+
+    /**
+     * Gets the next visible message
+     *
+     * @param invisibility
+     * @return
+     */
+    private Optional<Message> getNext(Duration invisibility) {
         final Optional<Message> nextMessage = getAndMark(getReaderCurrentBucket(), invisibility);
 
         if (nextMessage.isPresent()) {
@@ -98,6 +102,31 @@ public class ReaderImpl implements Reader {
         }
 
         return nextMessage;
+    }
+
+    /**
+     * Asks the invis strategy for the next visible message
+     *
+     * @param invisibility
+     * @return
+     */
+    private Optional<Message> getNewlyVisible(Duration invisibility) {
+        final Optional<Message> nowVisibleMessage = invisStrategyFactory.forQueue(queueDefinition)
+                                                                        .findNextVisibleMessage(invisibility);
+
+        if (nowVisibleMessage.isPresent()) {
+            logger.with(nowVisibleMessage.get()).info("Got newly visible message");
+
+            final Optional<Message> consumedMessage = tryConsume(nowVisibleMessage, invisibility);
+
+            if (consumedMessage.isPresent()) {
+                metricRegistry.counter(name("reader", "revived", "messages")).inc();
+
+                return consumedMessage;
+            }
+        }
+
+        return Optional.empty();
     }
 
     private boolean isActive() {
@@ -115,10 +144,6 @@ public class ReaderImpl implements Reader {
         }
 
         return dataContext.getMessageRepository().ackMessage(messageAt);
-    }
-
-    private InvisibilityMessagePointer getCurrentInvisPointer() {
-        return dataContext.getPointerRepository().getCurrentInvisPointer();
     }
 
     private ReaderBucketPointer getReaderCurrentBucket() {
@@ -154,7 +179,7 @@ public class ReaderImpl implements Reader {
 
             Optional<Message> consumedMessage = tryConsume(foundMessage, invisiblity);
 
-            if(consumedMessage.isPresent()) {
+            if (consumedMessage.isPresent()) {
                 return consumedMessage;
             }
 
@@ -184,9 +209,13 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
-        final int i = random.nextInt(size);
+        if (queueDefinition.getAllowRandomBucketReading()) {
+            final int i = random.nextInt(size);
 
-        return Optional.of(availableMessages.get(i));
+            return Optional.of(availableMessages.get(i));
+        }
+
+        return Optional.of(availableMessages.get(0));
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {
