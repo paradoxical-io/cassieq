@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
@@ -45,23 +46,23 @@ public class AuthLevelDynamicFeature implements DynamicFeature {
                   .with("resource", resourceInfo.getResourceClass().getSimpleName())
                   .info("Registering auth filter");
 
-            final EnumSet<AuthorizationLevel> requiredLevels = EnumSet.copyOf(Arrays.asList(annotatedMethod.getAnnotation(AuthLevelRequired.class).level()));
+            final AuthorizationLevel requiredAuthLevel = annotatedMethod.getAnnotation(AuthLevelRequired.class).level();
 
-            context.register(getAuthFilter(requiredLevels));
+            context.register(getAuthFilter(requiredAuthLevel));
 
             context.register(new AuthorizationFilter());
         }
     }
 
-    public SignedRequestAuthenticationFilter<AccountPrincipal> getAuthFilter(final EnumSet<AuthorizationLevel> allowedLevels) {
+    public SignedRequestAuthenticationFilter<AccountPrincipal> getAuthFilter(final AuthorizationLevel requiredAuthLevel) {
         return SignedRequestAuthenticationFilter.<AccountPrincipal>builder()
                 .accountNamePathParameter("accountName")
                 .setAuthenticator(authenticator)
                 .setPrefix("Signed")
                 .setAuthorizer((principal, _ignore) -> {
-                    final EnumSet<AuthorizationLevel> claimedLevels = principal.getAuthorizationLevels();
+                    final EnumSet<AuthorizationLevel> grantedAuthLevels = principal.getAuthorizationLevels();
 
-                    return allowedLevels.stream().anyMatch(claimedLevels::contains);
+                    return grantedAuthLevels.contains(requiredAuthLevel);
                 })
                 .setUnauthorizedHandler((prefix, realm) -> Response.status(Response.Status.UNAUTHORIZED).build())
                 .buildAuthFilter();

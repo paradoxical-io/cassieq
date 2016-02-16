@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.unittests.tests.stress;
 
 import categories.BuildVerification;
-import categories.StressTests;
 import com.godaddy.logging.Logger;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.inject.Injector;
@@ -50,7 +49,6 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.fail;
 
-@Category({ StressTests.class, BuildVerification.class })
 public class ParallelWorkerTests extends DbTestBase {
     private static final Logger logger = getLogger(ParallelWorkerTests.class);
 
@@ -58,6 +56,7 @@ public class ParallelWorkerTests extends DbTestBase {
     public RetryRule retryRule = new RetryRule(3);
 
     @Test(timeout = 30000)
+    @Category({ BuildVerification.class })
     public void test_multiple_parallel_readers() throws Exception {
         parallel_read_worker(250, // messages
                              10,  // good workers

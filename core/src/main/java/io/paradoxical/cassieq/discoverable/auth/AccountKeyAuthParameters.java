@@ -11,7 +11,7 @@ import java.util.EnumSet;
 
 @Value
 @Builder
-public class AccountKeyParameters implements RequestParameters {
+public class AccountKeyAuthParameters implements RequestAuthParameters {
 
     @NonNull
     @NotNull

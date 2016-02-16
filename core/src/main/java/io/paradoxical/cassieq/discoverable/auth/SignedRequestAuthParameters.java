@@ -1,6 +1,5 @@
 package io.paradoxical.cassieq.discoverable.auth;
 
-import com.godaddy.logging.Logger;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.auth.SignatureGenerator;
@@ -14,14 +13,10 @@ import org.joda.time.DateTime;
 import javax.validation.constraints.NotNull;
 import java.util.EnumSet;
 
-import static com.godaddy.logging.LoggerFactory.getLogger;
-
 @EqualsAndHashCode(callSuper = false)
 @Value
 @Builder
-public class SignedRequestParameters extends SignedParametersBase implements RequestParameters {
-
-    private static final Logger logger = getLogger(SignedRequestParameters.class);
+public class SignedRequestAuthParameters extends SignedAuthParametersBase implements RequestAuthParameters {
 
     @NonNull
     @NotNull
@@ -53,9 +48,8 @@ public class SignedRequestParameters extends SignedParametersBase implements Req
 
     @Override
     public boolean verify(final VerificationContext context) {
-        final boolean verified = super.verify(context);
 
-        return verified &&
-                context.requestTimeWithinAllowances(requestTime);
+        return super.verify(context) &&
+               context.requestTimeWithinAllowances(requestTime);
     }
 }

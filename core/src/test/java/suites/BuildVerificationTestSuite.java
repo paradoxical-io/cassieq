@@ -6,12 +6,14 @@ import categories.VerySlowTests;
 import io.paradoxical.cassieq.unittests.tests.EventBusTests;
 import io.paradoxical.cassieq.unittests.tests.TimeTests;
 import io.paradoxical.cassieq.unittests.tests.YamlConfigTest;
+import io.paradoxical.cassieq.unittests.tests.api.AccountResourceTests;
 import io.paradoxical.cassieq.unittests.tests.api.ApiAuthenticationTests;
 import io.paradoxical.cassieq.unittests.tests.api.StandardApiTests;
 import io.paradoxical.cassieq.unittests.tests.faultTolerance.RepairTests;
 import io.paradoxical.cassieq.unittests.tests.queueSemantics.PopReceiptTester;
 import io.paradoxical.cassieq.unittests.tests.queueSemantics.QueueDeleterTests;
 import io.paradoxical.cassieq.unittests.tests.queueSemantics.ReaderTester;
+import io.paradoxical.cassieq.unittests.tests.repos.AccountRepoTests;
 import io.paradoxical.cassieq.unittests.tests.repos.MessageRepositoryTester;
 import io.paradoxical.cassieq.unittests.tests.repos.QueueRepositoryTester;
 import io.paradoxical.cassieq.unittests.tests.stress.ParallelWorkerTests;
@@ -35,7 +37,9 @@ import org.junit.runners.Suite;
         QueueRepositoryTester.class,
         ApiAuthenticationTests.class,
         ParallelWorkerTests.class,
-        EventBusTests.class
+        EventBusTests.class,
+        AccountResourceTests.class,
+        AccountRepoTests.class
 })
 public class BuildVerificationTestSuite {
 }
