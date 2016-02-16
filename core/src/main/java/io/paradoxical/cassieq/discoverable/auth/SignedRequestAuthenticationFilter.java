@@ -178,6 +178,7 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
 
         final java.util.Optional<DateTime> startTime = parseTimeParam(queryParameters, SignedUrlParameterNames.StartTime);
         final java.util.Optional<DateTime> endTime = parseTimeParam(queryParameters, SignedUrlParameterNames.EndTime);
+        final java.util.Optional<QueueName> authQueueName = parseQueueName(queryParameters);
 
         return SignedUrlParameters.builder()
                                   .accountName(accountName)
@@ -185,9 +186,21 @@ public class SignedRequestAuthenticationFilter<TPrincipal extends Principal> ext
                                   .querySignature(sig)
                                   .endDateTime(endTime)
                                   .startDateTime(startTime)
-                                  .queueName(queueName)
+                                  .queueName(authQueueName)
                                   .build();
 
+    }
+
+    private java.util.Optional<QueueName> parseQueueName(
+            final MultivaluedMap<String, String> queryParameters) {
+
+        final String queueName = queryParameters.getFirst(SignedUrlParameterNames.Queue.getParameterName());
+
+        if (Strings.isNullOrEmpty(queueName)) {
+            return java.util.Optional.empty();
+        }
+
+        return java.util.Optional.of(QueueName.valueOf(queueName));
     }
 
     private java.util.Optional<DateTime> parseTimeParam(
