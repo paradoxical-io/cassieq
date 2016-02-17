@@ -23,7 +23,7 @@ import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.RepairBucketPointer;
 import io.paradoxical.cassieq.model.accounts.AccountDefinition;
 import io.paradoxical.cassieq.unittests.DbTestBase;
-import io.paradoxical.cassieq.unittests.data.CqlDb;
+import io.paradoxical.cassieq.dataAccess.CqlDb;
 import io.paradoxical.cassieq.unittests.modules.HazelcastTestModule;
 import io.paradoxical.cassieq.unittests.modules.InMemorySessionProvider;
 import io.paradoxical.cassieq.unittests.modules.TestClockModule;

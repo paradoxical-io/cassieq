@@ -9,9 +9,9 @@ import java.net.URI;
 public class LogMapping {
     public static void register(){
         LoggingConfigs.getCurrent()
-                      .withOverride(URI.class, URI::toString)
-                      .withOverride(ValueTypeWrapper.class, ValueTypeWrapper::toString)
-                      .withOverride(DateTime.class, DateTime::toString)
-                      .withOverride(Class.class, Class::toString);
+                      .addOverride(URI.class, URI::toString)
+                      .addOverride(ValueTypeWrapper.class, ValueTypeWrapper::toString)
+                      .addOverride(DateTime.class, DateTime::toString)
+                      .addOverride(Class.class, Class::toString);
     }
 }

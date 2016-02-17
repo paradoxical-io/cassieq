@@ -85,7 +85,7 @@
         <io.paradoxical.jackson-lombok.version>1.1</io.paradoxical.jackson-lombok.version>
         <guice.version>4.0</guice.version>
         <apache.collections4.version>4.0</apache.collections4.version>
-        <godaddy.logging.version>1.0</godaddy.logging.version>
+        <godaddy.logging.version>1.2.1</godaddy.logging.version>
         <podam.version>5.4.0.RELEASE</podam.version>
         <javax.validation.version>1.1.0.Final</javax.validation.version>
         <dropwizard.version>0.9.1</dropwizard.version>
@@ -318,7 +318,6 @@
                 <groupId>io.paradoxical</groupId>
                 <artifactId>common.test</artifactId>
                 <version>${io.paradoxical.common.test}</version>
-                <scope>tests</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -342,7 +341,6 @@
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>${junit.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.hubspot.dropwizard</groupId>

@@ -14,4 +14,4 @@ ENTRYPOINT ["/data/bin/service"]
 #   docker -it run paradoxical/cassieq args...
 #
 # these arguments will be overwritten.
-CMD ["server" "/data/conf/configuration.yml"]
+CMD ["server", "/data/conf/configuration.yml"]
