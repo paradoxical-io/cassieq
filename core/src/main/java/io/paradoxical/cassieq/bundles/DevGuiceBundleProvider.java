@@ -25,7 +25,7 @@ public class DevGuiceBundleProvider extends GuiceBundleProvider {
                 try {
                     final String db_path = SystemProps.instance().DB_SCRIPTS_PATH();
 
-                    bind(Session.class).toInstance(CqlUnitDb.create(db_path == null ? "/data/db" : db_path));
+                    bind(Session.class).toInstance(CqlUnitDb.create(db_path));
                 }
                 catch (Exception e) {
                     throw new RuntimeException("Cannot create session!", e);
