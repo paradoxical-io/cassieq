@@ -3,6 +3,7 @@ package suites;
 import categories.BuildVerification;
 import categories.StressTests;
 import categories.VerySlowTests;
+import io.paradoxical.cassieq.unittests.tests.SystemPropTests;
 import io.paradoxical.cassieq.unittests.tests.EventBusTests;
 import io.paradoxical.cassieq.unittests.tests.TimeTests;
 import io.paradoxical.cassieq.unittests.tests.YamlConfigTest;
@@ -26,20 +27,21 @@ import org.junit.runners.Suite;
 @Categories.IncludeCategory(BuildVerification.class)
 @Categories.ExcludeCategory({ VerySlowTests.class, StressTests.class })
 @Suite.SuiteClasses({
-        StandardApiTests.class,
-        MessageRepositoryTester.class,
-        PopReceiptTester.class,
-        QueueDeleterTests.class,
-        ReaderTester.class,
-        RepairTests.class,
-        TimeTests.class,
-        YamlConfigTest.class,
-        QueueRepositoryTester.class,
-        ApiAuthenticationTests.class,
-        ParallelWorkerTests.class,
-        EventBusTests.class,
-        AccountResourceTests.class,
-        AccountRepoTests.class
-})
+                            StandardApiTests.class,
+                            MessageRepositoryTester.class,
+                            PopReceiptTester.class,
+                            QueueDeleterTests.class,
+                            ReaderTester.class,
+                            RepairTests.class,
+                            TimeTests.class,
+                            YamlConfigTest.class,
+                            QueueRepositoryTester.class,
+                            ApiAuthenticationTests.class,
+                            SystemPropTests.class,
+                            ParallelWorkerTests.class,
+                            EventBusTests.class,
+                            AccountResourceTests.class,
+                            AccountRepoTests.class
+                    })
 public class BuildVerificationTestSuite {
 }

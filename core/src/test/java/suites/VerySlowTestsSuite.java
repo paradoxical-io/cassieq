@@ -13,7 +13,6 @@ import io.paradoxical.cassieq.unittests.tests.repos.MessageRepositoryTester;
 import io.paradoxical.cassieq.unittests.tests.repos.QueueRepositoryTester;
 import io.paradoxical.cassieq.unittests.tests.stress.ParallelWorkerTests;
 import org.junit.experimental.categories.Categories;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -21,16 +20,16 @@ import org.junit.runners.Suite;
 @Categories.IncludeCategory(VerySlowTests.class)
 @Categories.ExcludeCategory(StressTests.class)
 @Suite.SuiteClasses({
-    ParallelWorkerTests.class,
-    StandardApiTests.class,
-    MessageRepositoryTester.class,
-    PopReceiptTester.class,
-    QueueDeleterTests.class,
-    ReaderTester.class,
-    RepairTests.class,
-    TimeTests.class,
-    YamlConfigTest.class,
-    QueueRepositoryTester.class
-})
+                            ParallelWorkerTests.class,
+                            StandardApiTests.class,
+                            MessageRepositoryTester.class,
+                            PopReceiptTester.class,
+                            QueueDeleterTests.class,
+                            ReaderTester.class,
+                            RepairTests.class,
+                            TimeTests.class,
+                            YamlConfigTest.class,
+                            QueueRepositoryTester.class
+                    })
 public class VerySlowTestsSuite {
 }

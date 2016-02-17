@@ -9,7 +9,7 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.views.ViewBundle;
 import io.dropwizard.views.ViewRenderer;
 import io.dropwizard.views.mustache.MustacheViewRenderer;
-import io.paradoxical.cassieq.bundles.ExperimentModeBundleProvider;
+import io.paradoxical.cassieq.bundles.DevGuiceBundleProvider;
 import io.paradoxical.cassieq.bundles.GuiceBundleProvider;
 import io.paradoxical.cassieq.commands.ConfigDumpCommand;
 import io.paradoxical.cassieq.commands.DebugCommand;
@@ -46,7 +46,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
 
         if (!ArrayUtils.isEmpty(args)) {
             if (args[0].equals(DevCommand.ModeName)) {
-                application = new ServiceApplication(new ExperimentModeBundleProvider());
+                application = new ServiceApplication(new DevGuiceBundleProvider());
             }
         }
 
@@ -72,6 +72,7 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         bootstrap.addCommand(new HelpCommand());
         bootstrap.addCommand(new SetupDbCommand());
         bootstrap.addCommand(new DevCommand(this));
+
         bootstrap.addBundle(new TemplateConfigBundle());
 
         initializeViews(bootstrap);
