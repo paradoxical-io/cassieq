@@ -17,7 +17,6 @@ import io.paradoxical.cassieq.unittests.tests.queueSemantics.ReaderTester;
 import io.paradoxical.cassieq.unittests.tests.repos.AccountRepoTests;
 import io.paradoxical.cassieq.unittests.tests.repos.MessageRepositoryTester;
 import io.paradoxical.cassieq.unittests.tests.repos.QueueRepositoryTester;
-import io.paradoxical.cassieq.unittests.tests.stress.ParallelWorkerTests;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -38,7 +37,6 @@ import org.junit.runners.Suite;
         QueueRepositoryTester.class,
         ApiAuthenticationTests.class,
         SystemPropTests.class,
-        ParallelWorkerTests.class,
         EventBusTests.class,
         AccountResourceTests.class,
         AccountRepoTests.class
