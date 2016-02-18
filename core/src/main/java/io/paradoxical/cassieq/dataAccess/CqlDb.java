@@ -1,4 +1,4 @@
-package io.paradoxical.cassieq.unittests.data;
+package io.paradoxical.cassieq.dataAccess;
 
 import com.datastax.driver.core.Session;
 import io.paradoxical.cassandra.loader.db.CqlUnitDb;

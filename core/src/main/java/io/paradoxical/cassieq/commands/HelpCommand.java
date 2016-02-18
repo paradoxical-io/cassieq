@@ -1,18 +1,15 @@
 package io.paradoxical.cassieq.commands;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.CharSink;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
 import io.dropwizard.cli.Command;
 import io.dropwizard.setup.Bootstrap;
-import lombok.Cleanup;
+import io.paradoxical.cassieq.environment.SystemProps;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 
 public class HelpCommand extends Command {
     public HelpCommand() {
@@ -31,5 +28,17 @@ public class HelpCommand extends Command {
         final CharSource helpTextSource = Files.asCharSource(helpFile, Charsets.UTF_8);
 
         helpTextSource.copyTo(System.out);
+
+        final String pattern = "%s\t[%s]\t%s\t(%s)";
+
+        System.out.println(String.format(pattern, "EnvVar", "CurrentValue", "HelpText", "DefaultValue"));
+
+        SystemProps.discover().forEach(property -> {
+            System.out.println(String.format(pattern,
+                                             property.getEnvVarName(),
+                                             property.getCurrentValue(),
+                                             property.getHelp(),
+                                             property.getDefaultValue()));
+        });
     }
 }

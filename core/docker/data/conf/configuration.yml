@@ -26,7 +26,7 @@ server:
 </#if>
 
 allocation:
-  strategy: ${env.ALLOCATION_STRATEGY!'CLUSTER'}
+  strategy: ${env.ALLOCATION_STRATEGY!'NONE'}
 
 auth:
   allowedClockSkew: 1 minute
@@ -50,7 +50,7 @@ cassandra:
         minSimultaneousRequests: ${env.REMOTE_MIN_SIMUL_CONNECTIONS!1}
         maxConnections: ${env.REMOTE_MAX_CONNECTIONS!500}
   authProvider:
-    type: ${env.AUTH_PROVIDER!"plainText"}
+    type: plainText
     username: ${env.USERNAME!'test'}
     password: ${env.PASSWORD!'test'}
   queryOptions:

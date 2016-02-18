@@ -3,6 +3,7 @@ package suites;
 import categories.BuildVerification;
 import categories.StressTests;
 import categories.VerySlowTests;
+import io.paradoxical.cassieq.unittests.tests.SystemPropTests;
 import io.paradoxical.cassieq.unittests.tests.EventBusTests;
 import io.paradoxical.cassieq.unittests.tests.TimeTests;
 import io.paradoxical.cassieq.unittests.tests.YamlConfigTest;
@@ -36,6 +37,7 @@ import org.junit.runners.Suite;
         YamlConfigTest.class,
         QueueRepositoryTester.class,
         ApiAuthenticationTests.class,
+        SystemPropTests.class,
         ParallelWorkerTests.class,
         EventBusTests.class,
         AccountResourceTests.class,

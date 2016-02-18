@@ -40,7 +40,7 @@ public class SelfHostServer implements AutoCloseable {
     public void start(ServiceConfiguration configuration) {
 
         serviceConfigurationTestServiceServiceTestRunner =
-                new ServiceTestRunner<ServiceConfiguration, TestService>(TestService::new,
+                new ServiceTestRunner<>(TestService::new,
                                         configuration,
                                         getNextPort());
 
