@@ -29,7 +29,7 @@ public class HelpCommand extends Command {
 
         helpTextSource.copyTo(System.out);
 
-        final String pattern = "%s [%s] - %s (%s)";
+        final String pattern = "%s\t[%s]\t%s\t(%s)";
 
         System.out.println(String.format(pattern, "EnvVar", "CurrentValue", "HelpText", "DefaultValue"));
 
