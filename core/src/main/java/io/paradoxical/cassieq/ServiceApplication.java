@@ -98,6 +98,6 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
     public void run(ServiceConfiguration config, final Environment env) throws Exception {
         this.env = env;
 
-        new ServiceConfigurator(config, env).setup();
+        new ServiceConfigurator(config, env).configure();
     }
 }

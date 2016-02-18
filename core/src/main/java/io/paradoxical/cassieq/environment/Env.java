@@ -10,5 +10,5 @@ import java.lang.annotation.Target;
 public @interface Env {
     String help();
 
-    String defaultValue();
+    String defaultValue() default "";
 }

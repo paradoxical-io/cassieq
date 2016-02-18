@@ -40,7 +40,7 @@ public class ServiceConfigurator {
         this.env = env;
     }
 
-    public void setup() {
+    public void configure() {
         ArrayList<BiConsumer<ServiceConfiguration, Environment>> run = new ArrayList<>();
 
         run.add(this::configureJson);

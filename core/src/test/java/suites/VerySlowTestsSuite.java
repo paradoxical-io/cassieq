@@ -20,16 +20,16 @@ import org.junit.runners.Suite;
 @Categories.IncludeCategory(VerySlowTests.class)
 @Categories.ExcludeCategory(StressTests.class)
 @Suite.SuiteClasses({
-                            ParallelWorkerTests.class,
-                            StandardApiTests.class,
-                            MessageRepositoryTester.class,
-                            PopReceiptTester.class,
-                            QueueDeleterTests.class,
-                            ReaderTester.class,
-                            RepairTests.class,
-                            TimeTests.class,
-                            YamlConfigTest.class,
-                            QueueRepositoryTester.class
-                    })
+     ParallelWorkerTests.class,
+     StandardApiTests.class,
+     MessageRepositoryTester.class,
+     PopReceiptTester.class,
+     QueueDeleterTests.class,
+     ReaderTester.class,
+     RepairTests.class,
+     TimeTests.class,
+     YamlConfigTest.class,
+     QueueRepositoryTester.class
+})
 public class VerySlowTestsSuite {
 }
