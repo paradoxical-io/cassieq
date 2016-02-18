@@ -29,16 +29,18 @@ public class HelpCommand extends Command {
 
         helpTextSource.copyTo(System.out);
 
-        final String pattern = "%s\t[%s]\t%s\t(%s)";
+        final String pattern = "%-25s %-30s %-30s %s\n";
 
-        System.out.println(String.format(pattern, "EnvVar", "CurrentValue", "HelpText", "DefaultValue"));
+        System.out.printf(String.format(pattern, "EnvVar", "CurrentValue", "DefaultValue", "HelpText"));
 
         SystemProps.discover().forEach(property -> {
-            System.out.println(String.format(pattern,
-                                             property.getEnvVarName(),
-                                             property.getCurrentValue(),
-                                             property.getHelp(),
-                                             property.getDefaultValue()));
+            System.out.printf(String.format(pattern,
+                                            property.getEnvVarName(),
+                                            property.getCurrentValue(),
+                                            property.getDefaultValue(),
+                                            property.getHelp()
+
+            ));
         });
     }
 }
