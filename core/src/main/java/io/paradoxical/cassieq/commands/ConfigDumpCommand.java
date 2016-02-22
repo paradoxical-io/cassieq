@@ -8,28 +8,16 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharSource;
 import com.google.common.io.Files;
-import io.dropwizard.cli.Command;
 import io.dropwizard.cli.ConfiguredCommand;
-import io.dropwizard.cli.EnvironmentCommand;
-import io.dropwizard.configuration.ConfigurationException;
 import io.dropwizard.configuration.ConfigurationFactory;
-import io.dropwizard.configuration.ConfigurationFactoryFactory;
 import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
 import io.paradoxical.cassieq.ServiceConfiguration;
-import lombok.Cleanup;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
-import org.apache.commons.lang3.StringUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.PipedReader;
-import java.io.PipedWriter;
-import java.io.PrintWriter;
 
 public class ConfigDumpCommand extends ConfiguredCommand<ServiceConfiguration> {
 
@@ -54,16 +42,19 @@ public class ConfigDumpCommand extends ConfiguredCommand<ServiceConfiguration> {
 
     @Override
     public void configure(final Subparser subparser) {
-
-        subparser.addArgument("file")
-                 .nargs("?")
-                 .setDefault(DefaultConfigFile)
-                 .help("application configuration file");
+        setupDefaultConfigFile(subparser);
 
         subparser.addArgument("-f", "--full")
                  .action(Arguments.storeTrue())
                  .dest("full")
                  .help("Dumps the full configuration object as YAML");
+    }
+
+    public static void setupDefaultConfigFile(final Subparser subparser) {
+        subparser.addArgument("file")
+                 .nargs("?")
+                 .setDefault(DefaultConfigFile)
+                 .help("application configuration file");
     }
 
     @Override

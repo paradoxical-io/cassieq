@@ -54,3 +54,4 @@ public class GuiceBundleProvider {
         return builder.build();
     }
 }
+
