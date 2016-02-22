@@ -55,6 +55,7 @@ public class TestQueueContext {
         this(QueueDefinition.builder()
                             .accountName(accountName)
                             .queueName(name)
+                            .strictFifo(true)
                             .build(), injector);
 
     }
