@@ -212,13 +212,13 @@ public class ReaderImpl implements Reader {
             return Optional.empty();
         }
 
-        if (queueDefinition.getAllowRandomBucketReading()) {
-            final int i = random.nextInt(size);
-
-            return Optional.of(availableMessages.get(i));
+        if (queueDefinition.isStrictFifo()) {
+            Optional.of(availableMessages.get(0));
         }
 
-        return Optional.of(availableMessages.get(0));
+        final int i = random.nextInt(size);
+
+        return Optional.of(availableMessages.get(i));
     }
 
     private void tombstone(final ReaderBucketPointer bucket) {

@@ -25,9 +25,10 @@ public class QueueDefinition {
     private final Optional<QueueName> dlqName;
 
     /**
-     * Allow reading a queue's bucket messages in random order. Helps prevent reader collision
+     * Ensure reading a queue's bucket messages in strict fifo order. Setting to false helps prevent reader collision
+     * but also means messages can be read out of order in a bucket
      */
-    private final Boolean allowRandomBucketReading;
+    private final boolean strictFifo;
 
     public QueueId getId() {
         return QueueId.valueOf(accountName, queueName, version);
@@ -45,7 +46,7 @@ public class QueueDefinition {
             final Boolean deleteBucketsAfterFinalization,
             final QueueStatsId queueStatsId,
             final Optional<QueueName> dlqName,
-            final Boolean allowRandomBucketReading) {
+            final Boolean strictFifo) {
         this.accountName = accountName;
         this.queueName = queueName;
         this.queueStatsId = queueStatsId;
@@ -57,7 +58,7 @@ public class QueueDefinition {
         this.status = status == null ? QueueStatus.Active : status;
         this.repairWorkerPollFrequencySeconds = repairWorkerPollFrequencySeconds == null ? 5 : repairWorkerPollFrequencySeconds;
         this.repairWorkerTombstonedBucketTimeoutSeconds = repairWorkerTombstonedBucketTimeoutSeconds == null ? 15 : repairWorkerTombstonedBucketTimeoutSeconds;
-        this.allowRandomBucketReading = allowRandomBucketReading == null ? false : allowRandomBucketReading;
+        this.strictFifo = strictFifo == null ? true : strictFifo;
     }
 
     public static QueueDefinition fromRow(final Row row) {
@@ -72,7 +73,7 @@ public class QueueDefinition {
                               .repairWorkerPollFrequencySeconds(row.getInt(Tables.Queue.REPAIR_WORKER_POLL_FREQ_SECONDS))
                               .repairWorkerTombstonedBucketTimeoutSeconds(row.getInt(Tables.Queue.REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS))
                               .deleteBucketsAfterFinalization(row.getBool(Tables.Queue.DELETE_BUCKETS_AFTER_FINALIZATION))
-                              .allowRandomBucketReading(row.getBool(Tables.Queue.ALLOW_RANDOM_BUCKET_READING))
+                              .strictFifo(row.getBool(Tables.Queue.STRICT_FIFO))
                               .dlqName(getDlqName(row))
                               .build();
     }

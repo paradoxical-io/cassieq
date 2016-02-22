@@ -7,7 +7,7 @@ import io.paradoxical.cassieq.workers.reader.ConsumableMessage;
 import java.util.Optional;
 
 public interface MessageConsumer {
-    Optional<Message> tryConsume(ConsumableMessage message);
+    Optional<Message> tryConsume(ConsumableMessage consumableMessage);
 
     interface Factory {
         MessageConsumer forQueue(QueueDefinition queueDefinition);

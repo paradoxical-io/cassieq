@@ -48,19 +48,19 @@ public class DefaultMessageConsumer implements MessageConsumer {
     /**
      * Consumes with business logic
      *
-     * @param message
+     * @param consumableMessage
      * @return
      */
     @Override
-    public Optional<Message> tryConsume(ConsumableMessage message) {
-        if (!messageConsumable(message.getMessage())) {
+    public Optional<Message> tryConsume(ConsumableMessage consumableMessage) {
+        if (!messageConsumable(consumableMessage.getMessage())) {
             return Optional.empty();
         }
 
-        final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(message.getMessage(), message.getInvisibility());
+        final Optional<Message> consumeMessage = messageRepository.rawConsumeMessage(consumableMessage.getMessage(), consumableMessage.getInvisibility());
 
         if (consumeMessage.isPresent()) {
-            invisStrategy.trackConsumedMessage(message.toBuilder().message(consumeMessage.get()).build());
+            invisStrategy.trackConsumedMessage(consumableMessage.toBuilder().message(consumeMessage.get()).build());
         }
 
         return consumeMessage;
