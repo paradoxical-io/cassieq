@@ -213,7 +213,7 @@ public class ReaderImpl implements Reader {
         }
 
         if (queueDefinition.isStrictFifo()) {
-            Optional.of(availableMessages.get(0));
+            return Optional.of(availableMessages.get(0));
         }
 
         final int i = random.nextInt(size);
