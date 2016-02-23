@@ -38,6 +38,7 @@ public final class Tables {
         public static final String REPAIR_WORKER_TOMBSTONE_BUCKET_TIMEOUT_SECONDS = "repair_worker_tombstone_bucket_timeout_seconds";
         public static final String DELETE_BUCKETS_AFTER_FINALIZATION = "delete_buckets_after_finalization";
         public static final String DLQ_NAME = "dlq_queue_name";
+        public static final String STRICT_FIFO = "strict_fifo";
     }
 
     public static class QueueStats {

@@ -5,8 +5,6 @@ import com.codahale.metrics.Timer;
 import com.godaddy.logging.Logger;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
-import io.paradoxical.cassieq.factories.DataContext;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.QueueDataContext;
 import io.paradoxical.cassieq.model.BucketPointer;
@@ -17,7 +15,6 @@ import io.paradoxical.cassieq.model.MonotonicIndex;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.ReaderBucketPointer;
 import io.paradoxical.cassieq.model.time.Clock;
-import io.paradoxical.cassieq.workers.MessageConsumer;
 import lombok.Cleanup;
 import lombok.Data;
 import org.joda.time.Duration;
@@ -70,27 +67,24 @@ enum BucketScanResultAction {
     Stop
 }
 
-public class InvisLocatorImpl implements InvisLocator {
-    private Logger logger = getLogger(InvisLocatorImpl.class);
+public class PointerBasedInvisStrategy implements InvisStrategy {
+    private Logger logger = getLogger(PointerBasedInvisStrategy.class);
 
     private final Clock clock;
     private final MetricRegistry metricRegistry;
-    private final MessageConsumer messageConsumer;
     private final QueueDefinition queueDefinition;
     private final QueueDataContext dataContext;
     private final ReaderBucketPointer currentReaderBucket;
 
 
     @Inject
-    public InvisLocatorImpl(
+    public PointerBasedInvisStrategy(
             DataContextFactory dataContextFactory,
             Clock clock,
             MetricRegistry metricRegistry,
-            MessageConsumer.Factory messageConsumer,
             @Assisted QueueDefinition queueDefinition) {
         this.clock = clock;
         this.metricRegistry = metricRegistry;
-        this.messageConsumer = messageConsumer.forQueue(queueDefinition);
         this.queueDefinition = queueDefinition;
         this.dataContext = dataContextFactory.forQueue(queueDefinition);
 
@@ -100,12 +94,28 @@ public class InvisLocatorImpl implements InvisLocator {
     }
 
     @Override
-    public Optional<Message> tryConsumeNextVisibleMessage(InvisibilityMessagePointer pointer, Duration invisiblity) {
+    public Optional<Message> findNextVisibleMessage(Duration invisiblity) {
         @Cleanup("close")
         @SuppressWarnings("unused")
         final Timer.Context timer = metricRegistry.timer(name("reader", "invisibility", "try-consume")).time();
 
-        return findAndConsumeNextVisible(pointer, currentReaderBucket, invisiblity);
+        return findAndConsumeNextVisible(getCurrentInvisPointer(), currentReaderBucket, invisiblity);
+    }
+
+    @Override
+    public void trackConsumedMessage(final ConsumableMessage message) {
+        switch (message.getSource()) {
+            case Reader:
+                break;
+            case InvisStrategy:
+                trySetNewInvisPointer(getCurrentInvisPointer(), message.getMessage().getIndex());
+
+                break;
+        }
+    }
+
+    private InvisibilityMessagePointer getCurrentInvisPointer() {
+        return dataContext.getPointerRepository().getCurrentInvisPointer();
     }
 
     /**
@@ -135,7 +145,7 @@ public class InvisLocatorImpl implements InvisLocator {
             switch (invisMessagePointerProcessResult.getResultAction()) {
                 // if the current pointer is invalid or needs more scanning, check the bucket we're in
                 case ScanBucket:
-                    final InvisBucketProcessResult invisBucketProcessResult = processBucket(activePointer, currentReaderBucketPointer, invisiblity);
+                    final InvisBucketProcessResult invisBucketProcessResult = processBucket(activePointer, currentReaderBucketPointer);
 
                     switch (invisBucketProcessResult.getResultAction()) {
                         // if the bucket we're in needs to scan, advance the pointer and try again
@@ -179,14 +189,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
         if (messageAt.isVisible(clock) && messageAt.isNotAcked()) {
             // the message we are pointing at has come back alive
-            final Optional<Message> message = messageConsumer.tryConsume(messageAt, invisibility);
-
-            // were able to consume
-            if (message.isPresent()) {
-                metricRegistry.counter(name("reader", "revived", "messages")).inc();
-
-                return InvisMessagePointerProcessResult.of(message);
-            }
+            return InvisMessagePointerProcessResult.of(Optional.of(messageAt));
         }
 
         // scan for the next visible if we have one
@@ -195,8 +198,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
     private InvisBucketProcessResult processBucket(
             final InvisibilityMessagePointer activePointer,
-            final ReaderBucketPointer currentReaderBucketPointer,
-            final Duration invisiblity) {
+            final ReaderBucketPointer currentReaderBucketPointer) {
         // check all the messages in the bucket the invis pointer is currently on
         final BucketPointer invisBucketPointer = activePointer.toBucketPointer(queueDefinition.getBucketSize());
 
@@ -212,7 +214,7 @@ public class InvisLocatorImpl implements InvisLocator {
 
             // a finalizer exists so this bucket is done but the messages are deleted
             // we can be safe to move on, since a delete can occur only if all were ack'd and its finalized
-            if(dataContext.getMessageRepository().finalizedExists(invisBucketPointer)) {
+            if (dataContext.getMessageRepository().finalizedExists(invisBucketPointer)) {
                 return InvisBucketProcessResult.nextBucket();
             }
 
@@ -224,7 +226,7 @@ public class InvisLocatorImpl implements InvisLocator {
         // if there are messages that are alive and were skipped
         if (currentReaderBucketPointer.get() > invisBucketPointer.get()) {
             // in the bucket, see if there is a revived message
-            final Optional<Message> newlyAliveMessage = consumeRevivedMessageInBucket(messagesInBucket, invisiblity, activePointer);
+            final Optional<Message> newlyAliveMessage = findRevivedMessageInBucket(messagesInBucket);
 
             if (newlyAliveMessage.isPresent()) {
                 return InvisBucketProcessResult.of(newlyAliveMessage);
@@ -318,37 +320,14 @@ public class InvisLocatorImpl implements InvisLocator {
      * Look in this message bucket list and find a message that has now become alive and consume it
      *
      * @param messagesInBucket
-     * @param invisiblity
-     * @param currentPointer
      * @return
      */
-    private Optional<Message> consumeRevivedMessageInBucket(
-            final List<Message> messagesInBucket,
-            final Duration invisiblity,
-            InvisibilityMessagePointer currentPointer) {
+    private Optional<Message> findRevivedMessageInBucket(final List<Message> messagesInBucket) {
         // any message in the bucket that is revived (delivery count > 0 and is visible non-acked)
         // OR a message that
-        final Optional<Message> revivedMessage = messagesInBucket.stream()
-                                                                 .filter(m -> m.isVisible(clock) && !m.isAcked())
-                                                                 .findFirst();
-
-        if (revivedMessage.isPresent()) {
-            // stop here since we're scanning and we can't have anyone else behind us
-            // since they are either invis, OR they are acked
-            // attempt to consume the message
-            final Optional<Message> tryConsumedMessage = messageConsumer.tryConsume(revivedMessage.get(), invisiblity);
-
-            // if we were able to consume the message, try and move the invis pointer to this since its going to now be invis.
-            // if someone else finds an earlier invis, it'll get moved to that
-            // we can do this only because we don't already have an invis pointer
-            if (tryConsumedMessage.isPresent()) {
-                trySetNewInvisPointer(currentPointer, revivedMessage.get().getIndex());
-
-                return tryConsumedMessage;
-            }
-        }
-
-        return Optional.empty();
+        return messagesInBucket.stream()
+                               .filter(m -> m.isVisible(clock) && !m.isAcked())
+                               .findFirst();
     }
 
     /**

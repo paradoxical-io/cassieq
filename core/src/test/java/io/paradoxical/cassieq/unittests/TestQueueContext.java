@@ -55,6 +55,7 @@ public class TestQueueContext {
         this(QueueDefinition.builder()
                             .accountName(accountName)
                             .queueName(name)
+                            .strictFifo(true)
                             .build(), injector);
 
     }
@@ -118,7 +119,7 @@ public class TestQueueContext {
     public boolean readAndAckMessage(String blob, Long invisDuration) {
         Optional<Message> message = getReader().nextMessage(Duration.standardSeconds(invisDuration));
 
-        assertThat(message.get().getBlob().equals(blob));
+        assertThat(message.get().getBlob()).isEqualTo(blob);
 
         final PopReceipt popReceipt = PopReceipt.from(message.get());
 

@@ -12,7 +12,7 @@ import lombok.Data;
 import org.joda.time.DateTime;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class Message {
     private final MonotonicIndex index;
 
@@ -64,29 +64,7 @@ public class Message {
     }
 
     public Message createNewWithIndex(MonotonicIndex index) {
-        return Message.builder()
-                      .blob(blob)
-                      .index(index)
-                      .version(0)
-                      .isAcked(false)
-                      .nextVisiblityAt(nextVisiblityAt)
-                      .deliveryCount(deliveryCount)
-                      .createdDate(createdDate)
-                      .tag(tag)
-                      .build();
-    }
-
-    public Message withNewVersion(int version) {
-        return Message.builder()
-                      .blob(blob)
-                      .index(index)
-                      .version(version)
-                      .isAcked(isAcked)
-                      .nextVisiblityAt(nextVisiblityAt)
-                      .deliveryCount(deliveryCount)
-                      .createdDate(createdDate)
-                      .tag(tag)
-                      .build();
+        return toBuilder().index(index).build();
     }
 
     public static Message fromRow(final Row row) {

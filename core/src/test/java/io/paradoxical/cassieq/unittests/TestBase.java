@@ -121,6 +121,7 @@ public class TestBase {
         final QueueDefinition queueDefinition = QueueDefinition.builder()
                                                                .accountName(testAccountName)
                                                                .queueName(queue)
+                                                               .strictFifo(true)
                                                                .bucketSize(BucketSize.valueOf(bucketSize))
                                                                .build();
         return setupTestContext(queueDefinition);

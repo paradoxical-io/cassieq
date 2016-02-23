@@ -18,7 +18,6 @@ import org.junit.runners.Suite;
 
 @RunWith(Categories.class)
 @Categories.IncludeCategory(VerySlowTests.class)
-@Categories.ExcludeCategory(StressTests.class)
 @Suite.SuiteClasses({
      ParallelWorkerTests.class,
      StandardApiTests.class,

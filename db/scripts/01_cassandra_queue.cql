@@ -10,7 +10,7 @@ CREATE TABLE queue (
   delete_buckets_after_finalization boolean,
   dlq_queue_name text,
   version int,
-
+  strict_fifo boolean,
   PRIMARY KEY (account_name, queuename)
 );
 
