@@ -7,7 +7,7 @@
     <groupId>io.paradoxical</groupId>
     <artifactId>cassieq</artifactId>
     <packaging>pom</packaging>
-    <version>0.11</version>
+    <version>0.12-SNAPSHOT</version>
     <url>http://github.com/paradoxical-io/cassieq</url>
     <description>A distributed queue based on cassandra</description>
     <name>cassieq</name>
@@ -22,7 +22,7 @@
         <connection>scm:git:git@github.com:paradoxical-io/cassieq.git</connection>
         <developerConnection>scm:git:git@github.com:paradoxical-io/cassieq.git
         </developerConnection>
-        <tag>cassieq-0.11</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <licenses>
