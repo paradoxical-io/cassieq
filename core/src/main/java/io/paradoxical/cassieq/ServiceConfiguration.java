@@ -19,6 +19,11 @@ import javax.validation.constraints.NotNull;
 public class ServiceConfiguration extends Configuration {
     @Valid
     @NotNull
+    @JsonProperty("web")
+    private WebConfiguration web = new WebConfiguration();
+
+    @Valid
+    @NotNull
     @JsonProperty("cassandra")
     private CassandraConfiguration cassandra = new CassandraConfiguration();
 

@@ -25,9 +25,13 @@ import io.paradoxical.common.web.web.filter.CorrelationIdFilter;
 import io.paradoxical.common.web.web.filter.JerseyRequestLogging;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.jersey.servlet.ServletContainer;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -83,7 +87,7 @@ public class ServiceConfigurator {
 
         adminResourceConfig.register(ConstraintViolationExceptionMapper.class);
 
-        adminResourceConfig.register(JsonProcessingExceptionMapper.class);
+        adminResourceConfig.register(new JsonProcessingExceptionMapper(true));
 
         environment.admin().addServlet("admin-resources", adminContainerHolder.getContainer()).addMapping("/admin/*");
     }
@@ -110,11 +114,22 @@ public class ServiceConfigurator {
     }
 
     private void configureFilters(final ServiceConfiguration serviceConfiguration, final Environment environment) {
-        environment.jersey().register(new CorrelationIdFilter());
-
         if (serviceConfiguration.getLogConfig().getLogRawJerseyRequests()) {
             environment.jersey().register(new JerseyRequestLogging());
         }
+
+        enableCors(serviceConfiguration, environment);
+
+        environment.jersey().register(new CorrelationIdFilter());
+    }
+
+    private void enableCors(ServiceConfiguration config, Environment environment) {
+        FilterRegistration.Dynamic filter = environment.servlets().addFilter("CORS", CrossOriginFilter.class);
+
+        filter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, environment.getApplicationContext().getContextPath() + "*");
+        filter.setInitParameter("allowedOrigins", String.join(",", config.getWeb().getAllowedOrigins()));    // allowed origins comma separated
+        filter.setInitParameter("allowedHeaders", "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin");
+        filter.setInitParameter("allowedMethods", "GET,PUT,POST,DELETE,OPTIONS");
     }
 
     private void configureLogging(final ServiceConfiguration serviceConfiguration, final Environment environment) {

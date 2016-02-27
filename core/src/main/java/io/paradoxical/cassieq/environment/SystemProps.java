@@ -71,6 +71,12 @@ public interface SystemProps {
     @Env(defaultValue = "", help = "The graphite prefix")
     String GRAPHITE_PREFIX();
 
+    @Env(defaultValue = "*", help = "Allowed CORS origins (comma separated)")
+    String CORS_ALLOWED_ORIGINS();
+
+    @Env(defaultValue = "false", help = "Log raw requests to console")
+    Boolean LOG_RAW_REQUESTS();
+
     static List<SystemPropDiscovery> discover() {
         return Arrays.asList(SystemProps.class.getMethods())
                      .stream()
@@ -135,4 +141,6 @@ public interface SystemProps {
 
         throw new RuntimeException("Could not convert string to type: " + method.getName());
     }
+
+
 }
