@@ -1,17 +1,21 @@
 package io.paradoxical.cassieq.commands;
 
-import io.dropwizard.cli.ConfiguredCommand;
+import com.godaddy.logging.Logger;
+import io.dropwizard.cli.Command;
 import io.dropwizard.setup.Bootstrap;
 import io.paradoxical.cassandra.loader.DbRunnerConfig;
 import io.paradoxical.cassandra.loader.DbScriptsRunner;
-import io.paradoxical.cassieq.ServiceConfiguration;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 import java.util.Scanner;
 
-public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
+import static com.godaddy.logging.LoggerFactory.getLogger;
+
+public class SetupDbCommand extends Command {
+
+    private static final Logger logger = getLogger(SetupDbCommand.class);
 
     public SetupDbCommand() {
         super("setup-db", "Initializes the cassandra database");
@@ -19,22 +23,20 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
 
     @Override
     public void configure(final Subparser subparser) {
-        subparser.addArgument("--config")
-                 .dest("file")
-                 .nargs("?")
-                 .setDefault("/data/conf/configuration.yml")
-                 .help("application configuration file");
 
         subparser.addArgument("-i", "--ip")
                  .dest("ip")
+                 .required(true)
                  .help("Cassandra cluster IP");
 
         subparser.addArgument("-u", "--userName")
                  .dest("userName")
+                 .setDefault("guest")
                  .help("Cassandra DB user name");
 
         subparser.addArgument("-p", "--password")
                  .dest("password")
+                 .setDefault("guest")
                  .help("Cassandra DB password");
 
         subparser.addArgument("--dontCreateKeyspace")
@@ -45,6 +47,7 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
 
         subparser.addArgument("-k", "--keyspace")
                  .dest("keyspace")
+                 .required(true)
                  .help("the keyspace to create");
 
         subparser.addArgument("--port")
@@ -63,14 +66,10 @@ public class SetupDbCommand extends ConfiguredCommand<ServiceConfiguration> {
                  .dest("recreateKeyspace")
                  .action(Arguments.storeTrue())
                  .help("weather or not to recreate the keyspace");
-
     }
 
     @Override
-    protected void run(
-            final Bootstrap<ServiceConfiguration> bootstrap,
-            final Namespace namespace,
-            final ServiceConfiguration configuration) throws Exception {
+    public void run(final Bootstrap<?> bootstrap, final Namespace namespace) throws Exception {
         DbRunnerConfig dbRunnerConfig = getDbRunnerConfig(namespace);
 
         if (dbRunnerConfig.getRecreateDatabase()) {
