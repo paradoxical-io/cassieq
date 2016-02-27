@@ -56,16 +56,10 @@ public class SetupDbCommand extends Command {
                  .type(Integer.class)
                  .help("The port to connect to cassandra on");
 
-        subparser.addArgument("-v", "--databaseVersion")
-                 .dest("databaseVersion")
-                 .type(Integer.class)
-                 .setDefault(0)
-                 .help("The database version");
-
         subparser.addArgument("--recreate")
                  .dest("recreateKeyspace")
                  .action(Arguments.storeTrue())
-                 .help("weather or not to recreate the keyspace");
+                 .help("Whether or not to recreate the keyspace");
     }
 
     @Override
@@ -93,7 +87,6 @@ public class SetupDbCommand extends Command {
                        .password(password != null ? password : "")
                        .createKeyspace(namespace.getBoolean("shouldCreateKeyspace"))
                        .keyspace(namespace.getString("keyspace"))
-                       .dbVersion(namespace.getInt("databaseVersion"))
                        .filePath("/data/db")
                        .recreateDatabase(namespace.getBoolean("recreateKeyspace"));
 
