@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 public class ServiceConfigurator {
+    private static final String CQ_VERSION = "0.12";
+
     private final ServiceConfiguration config;
     private final Environment env;
 
@@ -102,7 +104,7 @@ public class ServiceConfigurator {
         swagConfig.setLicense("Apache 2.0");
         swagConfig.setResourcePackage(AdminRoot.packageName());
         swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
-        swagConfig.setVersion("0.9");
+        swagConfig.setVersion(CQ_VERSION);
 
         swagConfig.setBasePath("/admin");
 
@@ -132,7 +134,7 @@ public class ServiceConfigurator {
         swagConfig.setLicense("Apache 2.0");
         swagConfig.setResourcePackage(ApiDiscoverableRoot.packageName());
         swagConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
-        swagConfig.setVersion("0.9");
+        swagConfig.setVersion(CQ_VERSION);
         swagConfig.setBasePath(environment.getApplicationContext().getContextPath());
 
         environment.jersey().register(new SwaggerSerializers());

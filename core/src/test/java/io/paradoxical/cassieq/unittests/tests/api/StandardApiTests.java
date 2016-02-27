@@ -1,7 +1,6 @@
 package io.paradoxical.cassieq.unittests.tests.api;
 
 import categories.BuildVerification;
-import categories.VerySlowTests;
 import com.godaddy.logging.Logger;
 import com.squareup.okhttp.ResponseBody;
 import io.paradoxical.cassieq.api.client.CassieqApi;
@@ -174,7 +173,7 @@ public class StandardApiTests extends ApiTestsBase {
                         delete_queue,
                         body.getPopReceipt(),
                         new UpdateMessageRequest("foo2", 10L)).execute()
-                      .body();
+                           .body();
 
         apiClient().ackMessage(testAccountName, delete_queue, updateResponse.getPopReceipt()).execute();
 
