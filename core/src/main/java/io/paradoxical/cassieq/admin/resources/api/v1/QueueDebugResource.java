@@ -40,7 +40,7 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 @Path("/api/v1/debug/accounts/{accountName}/queues")
-@Api(value = "/api/v1/debug/accounts/{accountName}/queues", description = "Queue diagnostic api", tags = { "cassieq", "debug" })
+@Api(value = "/api/v1/debug/accounts/{accountName}/queues", description = "Queue diagnostic api", tags = { "cassieq-debug" })
 @Produces(MediaType.APPLICATION_JSON)
 public class QueueDebugResource extends BaseQueueResource {
 

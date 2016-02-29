@@ -3,7 +3,6 @@ package io.paradoxical.cassieq.discoverable.auth.parsers;
 import com.google.common.base.Strings;
 import io.paradoxical.cassieq.discoverable.auth.SignedUrlAuthParameters;
 import io.paradoxical.cassieq.discoverable.auth.SignedUrlParameterNames;
-import io.paradoxical.cassieq.discoverable.auth.parsers.AuthParametersParser;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.accounts.AccountName;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
