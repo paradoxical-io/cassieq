@@ -2,7 +2,7 @@
 
 if [ "$DOCKER_MACHINE_NAME" = "" ]; then
     log-warn "warning your DOCKER_MACHINE_NAME environment variable was not set. have you run: echo \"\$(docker-machine env <MACHINE-NAME)\"?"
-    DOCKER_MACHINE_NAME=dev
+    DOCKER_MACHINE_NAME=default
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
