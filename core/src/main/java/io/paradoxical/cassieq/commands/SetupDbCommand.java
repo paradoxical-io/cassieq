@@ -31,12 +31,10 @@ public class SetupDbCommand extends Command {
 
         subparser.addArgument("-u", "--userName")
                  .dest("userName")
-                 .setDefault("guest")
                  .help("Cassandra DB user name");
 
         subparser.addArgument("-p", "--password")
                  .dest("password")
-                 .setDefault("guest")
                  .help("Cassandra DB password");
 
         subparser.addArgument("--dontCreateKeyspace")
