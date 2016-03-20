@@ -1,7 +1,7 @@
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
     <servers>
         <server>
-            <id>paradoxicalio</id>
+            <id>${env.GPG_USER}</id>
             <passphrase>${env.GPG_PASSWORD}</passphrase>
         </server>
         <server>
