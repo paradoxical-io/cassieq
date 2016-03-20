@@ -64,7 +64,6 @@
     </distributionManagement>
     <properties>
         <!-- Project Settings -->
-        <gpg.passphrase>${env.GPG_PASSWORD}</gpg.passphrase>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dockerRepo>paradoxical</dockerRepo>
         <jenkinsBuildNumber>dev</jenkinsBuildNumber>
