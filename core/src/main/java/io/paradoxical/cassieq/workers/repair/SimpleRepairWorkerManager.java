@@ -108,6 +108,8 @@ public class SimpleRepairWorkerManager implements RepairWorkerManager {
     }
 
     public synchronized void claim() {
+        logger.info("Claiming resources");
+
         allocator.claim();
     }
 
