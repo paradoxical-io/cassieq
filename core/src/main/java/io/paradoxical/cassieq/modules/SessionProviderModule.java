@@ -43,7 +43,7 @@ public class SessionProviderModule extends AbstractModule {
                 session = new SessionProxy(session, config.getCassandra());
             }
         }
-        catch(Throwable ex){
+        catch(Exception ex){
             logger.error("An unknown error occurred. Check your cassandra configuration: {}", ex.getLocalizedMessage());
 
             System.exit(1);
