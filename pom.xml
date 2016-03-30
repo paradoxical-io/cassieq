@@ -67,6 +67,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dockerRepo>paradoxical</dockerRepo>
         <jenkinsBuildNumber>dev</jenkinsBuildNumber>
+        <gpg.passphrase>${env.GPG_PASSWORD}</gpg.passphrase>
         <!-- build.git_sha is created below -->
         <git_sha>${build.git_sha}</git_sha>
         <buildNumber>${git_sha}_${jenkinsBuildNumber}</buildNumber>
