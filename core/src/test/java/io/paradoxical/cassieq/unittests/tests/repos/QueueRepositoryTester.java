@@ -3,6 +3,7 @@ package io.paradoxical.cassieq.unittests.tests.repos;
 import categories.BuildVerification;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.exceptions.QueueNotFoundException;
 import io.paradoxical.cassieq.model.QueueDefinition;
 import io.paradoxical.cassieq.model.QueueName;
 import io.paradoxical.cassieq.model.QueueStatus;
@@ -227,7 +228,7 @@ public class QueueRepositoryTester extends DbTestBase {
                      try {
                          queueDeleter.delete(queueName);
                      }
-                     catch (QueueAlreadyDeletingException e) {
+                     catch (QueueAlreadyDeletingException | QueueNotFoundException e) {
                          // ok
                      }
                  });

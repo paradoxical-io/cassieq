@@ -158,6 +158,13 @@ public class StandardApiTests extends ApiTestsBase {
     }
 
     @Test
+    public void delete_on_non_existent_queue_fails() throws Exception {
+        final QueueName non_existent_queue = QueueName.valueOf("non_existent_queue");
+
+        assertThat(apiClient().deleteQueue(testAccountName, non_existent_queue).execute().isSuccess()).isFalse();
+    }
+
+    @Test
     public void update_message() throws Exception {
         final QueueName delete_queue = QueueName.valueOf("update_message");
 

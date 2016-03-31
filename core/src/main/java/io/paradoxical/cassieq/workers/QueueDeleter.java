@@ -6,6 +6,7 @@ import com.google.inject.assistedinject.Assisted;
 import io.paradoxical.cassieq.dataAccess.DeletionJob;
 import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingException;
 import io.paradoxical.cassieq.dataAccess.interfaces.QueueRepository;
+import io.paradoxical.cassieq.exceptions.QueueNotFoundException;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageDeleterJobProcessorFactory;
 import io.paradoxical.cassieq.model.QueueDefinition;
@@ -37,13 +38,13 @@ public class QueueDeleter {
         this.accountName = accountName;
     }
 
-    public void delete(QueueName queueName) throws QueueAlreadyDeletingException {
+    public void delete(QueueName queueName) throws QueueAlreadyDeletingException, QueueNotFoundException {
         final QueueRepository queueRepository = dataContextFactory.forAccount(accountName);
 
         final Optional<QueueDefinition> optionalDefinition = queueRepository.getActiveQueue(queueName);
 
         if (!optionalDefinition.isPresent()) {
-            return;
+            throw new QueueNotFoundException("Delete", queueName);
         }
 
 
