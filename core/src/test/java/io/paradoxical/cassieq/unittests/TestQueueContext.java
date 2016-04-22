@@ -101,7 +101,7 @@ public class TestQueueContext {
         return context.getMonotonicRepository().nextMonotonic();
     }
 
-    public void putMessage(int seconds, String blob) throws Exception {
+    public void putMessage(int initialInvisibility, String blob) throws Exception {
 
         final MonotonicIndex monoton = context.getMonotonicRepository().nextMonotonic();
 
@@ -109,7 +109,7 @@ public class TestQueueContext {
                 Message.builder()
                        .blob(blob)
                        .index(monoton)
-                       .build(), Duration.standardSeconds(seconds));
+                       .build(), Duration.standardSeconds(initialInvisibility));
     }
 
     public QueueDeleter createQueueDeleter() {

@@ -34,6 +34,32 @@ public class ReaderTester extends DbTestBase {
     }
 
     @Test
+    public void initial_inivs_is_respected() throws Exception {
+        final TestQueueContext testContext = setupTestContext("initial_inivs_is_respected", 10);
+
+        testContext.putMessage(0, "msg1");
+        testContext.putMessage(400000, "msg2");
+        testContext.putMessage(300000, "msg3");
+        testContext.putMessage(200000, "msg4");
+        testContext.putMessage(0, "msg5");
+
+        testContext.readAndAckMessage("msg1");
+        testContext.readAndAckMessage("msg5");
+
+        getTestClock().tickSeconds(200000L);
+
+        testContext.readAndAckMessage("msg4");
+
+        getTestClock().tickSeconds(100000L);
+
+        testContext.readAndAckMessage("msg3");
+
+        getTestClock().tickSeconds(100000L);
+
+        testContext.readAndAckMessage("msg2");
+
+    }
+    @Test
     public void invis_stops_non_finalized_bucket() throws Exception {
         final TestQueueContext testContext = setupTestContext("invis_stops_non_finalized_bucket", 3);
 

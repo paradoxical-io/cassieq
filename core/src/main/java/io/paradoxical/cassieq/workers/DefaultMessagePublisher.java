@@ -37,8 +37,7 @@ public class DefaultMessagePublisher implements MessagePublisher {
         final Duration initialInvisibility = Duration.standardSeconds(initialInvisibilityTimeSeconds);
 
         messageRepoFactory.forQueue(queueDefinition)
-                          .putMessage(messageToInsert,
-                                      initialInvisibility);
+                          .putMessage(messageToInsert, initialInvisibility);
 
         logger.with("index", messageToInsert.getIndex())
               .with("tag", messageToInsert.getTag())

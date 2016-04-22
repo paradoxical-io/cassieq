@@ -277,7 +277,7 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response putMessage(
             @StringTypeValid @PathParam("queueName") QueueName queueName,
-            @QueryParam("initialInvisibilityTime") @DefaultValue("0") Long initialInvisibilityTime,
+            @QueryParam("initialInvisibilitySeconds") @DefaultValue("0") Long initialInvisibilityTime,
             String message) {
 
         final QueueDefinition definition = lookupQueueDefinition(queueName);

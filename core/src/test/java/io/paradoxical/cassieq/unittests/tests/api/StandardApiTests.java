@@ -41,6 +41,41 @@ public class StandardApiTests extends ApiTestsBase {
     }
 
     @Test
+    public void initial_invis_respected() throws IOException {
+        final QueueName queueName = QueueName.valueOf("initial_invis_respected");
+
+        final CassieqApi client = apiClient();
+
+        client.createQueue(testAccountName, new QueueCreateOptions(queueName)).execute();
+
+        client.addMessage(testAccountName, queueName, "0").execute();
+        client.addMessage(testAccountName, queueName, "4", 400000L).execute();
+        client.addMessage(testAccountName, queueName, "3", 300000L).execute();
+        client.addMessage(testAccountName, queueName, "2", 200000L).execute();
+        client.addMessage(testAccountName, queueName, "1").execute();
+
+        int counter = 0;
+
+        for (int i = 0; i < 5; ++i) {
+            final Response<GetMessageResponse> body = client.getMessage(testAccountName, queueName, 10000L).execute();
+
+            assertThat(body.isSuccess()).isTrue();
+
+            System.out.println("========");
+
+            counter += body.body() == null ? 0 : 1;
+        }
+
+        client.deleteQueue(testAccountName, queueName).execute();
+        // counter should be 2 but is always 5
+        // it means we consumed messages with visibility in >= 200000 seconds (55 hours)
+        System.out.println(" COUNTER : " + counter);
+
+        assert counter <= 2;
+    }
+
+
+    @Test
     public void create_queue_with_invalid_name_fails() throws IOException {
         final QueueName queueName = QueueName.valueOf("invalid!");
 
