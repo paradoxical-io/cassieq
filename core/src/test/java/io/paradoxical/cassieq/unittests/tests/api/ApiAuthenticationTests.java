@@ -16,7 +16,7 @@ import io.paradoxical.cassieq.model.accounts.WellKnownKeyNames;
 import io.paradoxical.cassieq.model.auth.AuthorizationLevel;
 import io.paradoxical.cassieq.model.time.Clock;
 import io.paradoxical.cassieq.unittests.server.AdminClient;
-import io.paradoxical.cassieq.unittests.tests.api.ApiTestsBase;
+import io.paradoxical.cassieq.unittests.time.TestClock;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
@@ -138,7 +138,7 @@ public class ApiAuthenticationTests extends ApiTestsBase {
 
         final CassieqApi fullAccessClient =
                 CassieqApi.createClient(server.getBaseUri(),
-                                        CassieqCredentials.key(accountName, accountKey));
+                                        CassieqCredentials.key(accountName, accountKey, getTestClock()));
 
         final Response<ResponseBody> createWithoutDelayResponse =
                 fullAccessClient.createQueue(accountName, new QueueCreateOptions(queueName)).execute();
@@ -157,7 +157,7 @@ public class ApiAuthenticationTests extends ApiTestsBase {
         final Response<AccountDefinition> createAccount = adminClient.createAccount(accountName).execute();
         final AccountKey accountKey = createAccount.body().getKeys().get(WellKnownKeyNames.Primary.getKeyName());
 
-        final CassieqApi fullAccessClient = CassieqApi.createClient(server.getBaseUri(), CassieqCredentials.key(accountName, accountKey));
+        final CassieqApi fullAccessClient = CassieqApi.createClient(server.getBaseUri(), CassieqCredentials.key(accountName, accountKey, getTestClock()));
 
         // make both queues exist
         final Response<ResponseBody> goodQueueCreateRequest = fullAccessClient.createQueue(accountName, new QueueCreateOptions(queueName)).execute();
@@ -252,12 +252,14 @@ public class ApiAuthenticationTests extends ApiTestsBase {
 
         adminClient.createAccount(accountName).execute();
 
+        final TestClock testClock = getTestClock();
+
         final GetAuthQueryParamsRequest getAuthQueryParamsRequest =
                 GetAuthQueryParamsRequest.builder()
                                          .accountName(accountName)
                                          .keyName(WellKnownKeyNames.Primary)
                                          .level(AuthorizationLevel.CreateQueue)
-                                         .endTime(DateTime.now(DateTimeZone.UTC).minus(Period.seconds(3)))
+                                         .endTime(testClock.now().minus(Duration.standardSeconds(3)).toDateTime())
                                          .build();
 
         final QueryAuthUrlResult result = adminClient.createPermissions(getAuthQueryParamsRequest).execute().body();
@@ -359,7 +361,7 @@ public class ApiAuthenticationTests extends ApiTestsBase {
         final Response<AccountDefinition> createAccount = adminClient.createAccount(accountName).execute();
         final AccountKey accountKey = createAccount.body().getKeys().get(WellKnownKeyNames.Primary.getKeyName());
 
-        final CassieqApi fullAccessClient = CassieqApi.createClient(server.getBaseUri(), CassieqCredentials.key(accountName, accountKey));
+        final CassieqApi fullAccessClient = CassieqApi.createClient(server.getBaseUri(), CassieqCredentials.key(accountName, accountKey, getTestClock()));
 
         // make both queues exist
         fullAccessClient.createQueue(accountName, new QueueCreateOptions(queueName)).execute();
