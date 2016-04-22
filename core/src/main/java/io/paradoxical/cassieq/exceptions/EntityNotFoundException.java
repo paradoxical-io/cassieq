@@ -1,6 +1,5 @@
 package io.paradoxical.cassieq.exceptions;
 
-import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 
