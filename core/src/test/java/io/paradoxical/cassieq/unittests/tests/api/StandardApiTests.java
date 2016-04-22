@@ -61,17 +61,14 @@ public class StandardApiTests extends ApiTestsBase {
 
             assertThat(body.isSuccess()).isTrue();
 
-            System.out.println("========");
-
             counter += body.body() == null ? 0 : 1;
         }
 
         client.deleteQueue(testAccountName, queueName).execute();
-        // counter should be 2 but is always 5
-        // it means we consumed messages with visibility in >= 200000 seconds (55 hours)
-        System.out.println(" COUNTER : " + counter);
 
-        assert counter <= 2;
+        assertThat(counter)
+                .isEqualTo(2)
+                .withFailMessage("Initial messages did not respect invis time");
     }
 
 
