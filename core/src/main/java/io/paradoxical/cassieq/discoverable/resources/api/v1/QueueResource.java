@@ -292,8 +292,8 @@ public class QueueResource extends BaseQueueResource {
             throw new QueryParamWithDeprecationDetectedError(
                     new ErrorEntity("putMessage",
                                     "initialInvisiblityTime query param is deprecated but " +
-                                    "used with the initialInvisibilityTime parameter. " +
-                                    "Only one may be used at a time (initialInvisibilityTime preferred)"));
+                                    "used with the initialInvisibilitySeconds parameter. " +
+                                    "Only one may be used at a time (initialInvisibilitySeconds preferred)"));
         }
 
         final QueueDefinition definition = lookupQueueDefinition(queueName);
