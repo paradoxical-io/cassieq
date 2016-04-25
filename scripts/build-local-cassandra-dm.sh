@@ -21,4 +21,4 @@ java -jar ${RUNNER_LOCATION} \
            -ip `docker-machine ip $DOCKER_MACHINE_NAME` \
            -k cassieq \
            -p 9042 \
-           -createKeyspace -recreateDatabase
+           -createKeyspace #-recreateDatabase

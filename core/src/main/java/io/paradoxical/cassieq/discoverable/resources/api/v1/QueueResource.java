@@ -10,6 +10,8 @@ import io.paradoxical.cassieq.dataAccess.exceptions.QueueAlreadyDeletingExceptio
 import io.paradoxical.cassieq.discoverable.auth.AccountAuth;
 import io.paradoxical.cassieq.discoverable.auth.AuthLevelRequired;
 import io.paradoxical.cassieq.exceptions.ConflictException;
+import io.paradoxical.cassieq.exceptions.ErrorEntity;
+import io.paradoxical.cassieq.exceptions.QueryParamWithDeprecationDetectedError;
 import io.paradoxical.cassieq.exceptions.QueueInternalServerError;
 import io.paradoxical.cassieq.factories.DataContextFactory;
 import io.paradoxical.cassieq.factories.MessageRepoFactory;
@@ -25,6 +27,7 @@ import io.paradoxical.cassieq.workers.MessagePublisher;
 import io.paradoxical.cassieq.workers.QueueDeleter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import org.joda.time.Duration;
@@ -276,9 +279,22 @@ public class QueueResource extends BaseQueueResource {
                             @ApiResponse(code = 404, message = "Queue doesn't exist"),
                             @ApiResponse(code = 500, message = "Server Error") })
     public Response putMessage(
-            @StringTypeValid @PathParam("queueName") QueueName queueName,
-            @QueryParam("initialInvisibilityTime") @DefaultValue("0") Long initialInvisibilityTime,
-            String message) {
+            final @StringTypeValid @PathParam("queueName") QueueName queueName,
+            final @ApiParam(hidden = true) @QueryParam("initialInvisiblityTime") Long initialInvisibilityTimeDeprecated,
+            @QueryParam("initialInvisibilitySeconds") @DefaultValue("0") Long initialInvisibilityTime,
+            final String message) {
+
+        if (initialInvisibilityTimeDeprecated != null && initialInvisibilityTime == null) {
+            initialInvisibilityTime = initialInvisibilityTimeDeprecated;
+        }
+
+        if (initialInvisibilityTime != null && initialInvisibilityTimeDeprecated != null) {
+            throw new QueryParamWithDeprecationDetectedError(
+                    new ErrorEntity("putMessage",
+                                    "initialInvisiblityTime query param is deprecated but " +
+                                    "used with the initialInvisibilitySeconds parameter. " +
+                                    "Only one may be used at a time (initialInvisibilitySeconds preferred)"));
+        }
 
         final QueueDefinition definition = lookupQueueDefinition(queueName);
 

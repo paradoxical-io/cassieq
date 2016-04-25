@@ -23,6 +23,7 @@ import retrofit.http.Path;
 import retrofit.http.Query;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import static com.godaddy.logging.LoggerFactory.getLogger;
 

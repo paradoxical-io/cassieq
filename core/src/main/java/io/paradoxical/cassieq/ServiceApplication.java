@@ -17,6 +17,8 @@ import io.paradoxical.cassieq.commands.DevCommand;
 import io.paradoxical.cassieq.commands.GenerateHttpsCertsCommand;
 import io.paradoxical.cassieq.commands.HelpCommand;
 import io.paradoxical.cassieq.commands.SetupDbCommand;
+import io.paradoxical.cassieq.handlers.ValueModelResolver;
+import io.swagger.converter.ModelConverters;
 import lombok.Getter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.joda.time.DateTimeZone;
@@ -78,6 +80,8 @@ public class ServiceApplication extends Application<ServiceConfiguration> {
         initializeViews(bootstrap);
 
         initializeDepedencyInjection(bootstrap);
+
+        ModelConverters.getInstance().addConverter(new ValueModelResolver());
     }
 
     private void initializeViews(final Bootstrap<ServiceConfiguration> bootstrap) {
